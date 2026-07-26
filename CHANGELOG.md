@@ -2,6 +2,22 @@
 
 All notable project changes are documented here.
 
+## [0.2.0-alpha.1] - 2026-07-26
+
+### Added
+
+- Private inherited CDP pipe transport as the default, with no listening socket.
+- Explicit localized consent before a loopback-only TCP fallback is attempted.
+- Shared Manager/Runtime/protocol/schema version metadata.
+- Bounded renderer events and diagnostics, structural calibration validation,
+  avatar path/dimension checks, log rotation/redaction, and safe error codes.
+
+### Verification
+
+- Added security-boundary tests and a private-pipe probe with listener checks.
+- Verified Pipe evaluation/DOM mutation and the full TCP runtime recovery
+  harness against an isolated official Desktop profile.
+
 ## [0.1.1-alpha] - 2026-07-26
 
 ### Fixed

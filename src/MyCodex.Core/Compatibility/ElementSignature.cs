@@ -22,7 +22,7 @@ public sealed record SignatureLayout
 
 public sealed record ElementSignature
 {
-    public int SchemaVersion { get; init; } = 1;
+    public int SchemaVersion { get; init; } = BuildInfo.CalibrationSchemaVersion;
     public string TagName { get; init; } = string.Empty;
     public string? Role { get; init; }
     public Dictionary<string, string> StableAttributes { get; init; } = [];

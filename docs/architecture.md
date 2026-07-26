@@ -16,7 +16,7 @@ flowchart TB
     APP["Application adapters + discovery"]
     SESSION["Desktop session controller"]
     BACKEND["IInjectionBackend / CdpInjectionBackend"]
-    CDP["CDP client + target discovery"]
+    CDP["Pipe/TCP CDP connections + target discovery"]
   end
   subgraph Desktop["Official Desktop process"]
     PAGE["Chromium renderer"]
@@ -49,7 +49,8 @@ close an official Desktop process it launched.
 
 - installed/running application discovery and candidate scoring;
 - `ChatGptDesktopAdapter` and `LegacyCodexAdapter`;
-- loopback port allocation and CDP HTTP/WebSocket clients;
+- private-pipe launch with a restricted inherited handle list;
+- explicit-consent loopback port allocation and CDP HTTP/WebSocket fallback;
 - renderer capability scoring;
 - `IInjectionBackend` and the initial `CdpInjectionBackend`;
 - runtime session lifecycle and target monitoring;
@@ -83,18 +84,20 @@ The runtime:
 
 ## CDP lifecycle
 
-1. Allocate an unused ephemeral TCP port on loopback.
-2. Launch the selected official executable with its adapter's
-   `--remote-debugging-address=127.0.0.1` and port arguments.
-3. Poll `/json/list` with a bounded timeout.
-4. Score targets using type, URL/title hints, and a read-only DOM capability
+1. Create two anonymous pipes and inherit only Chromium's read/write handles.
+2. Launch the selected official executable with `--remote-debugging-pipe` and
+   `--remote-debugging-io-pipes`; no TCP listener is created.
+3. Request browser targets over the null-delimited private pipe.
+4. If Pipe startup fails, clean up that owned process and ask the user whether
+   to retry with a random `127.0.0.1` TCP port.
+5. Score targets using type, URL/title hints, and a read-only DOM capability
    probe.
-5. Connect the target WebSocket and enable Runtime/Page domains.
-6. Register a random `__mc_host_<guid>` binding.
-7. register the bootstrap with `Page.addScriptToEvaluateOnNewDocument` and
+6. Attach a transport-neutral target client and enable Runtime/Page domains.
+7. Register a random `__mc_host_<guid>` binding.
+8. Register the bootstrap with `Page.addScriptToEvaluateOnNewDocument` and
    evaluate it immediately.
-8. Verify manager/runtime protocol versions.
-9. Poll target identity and Runtime health; repair the current page, inject new
+9. Verify manager/runtime protocol versions.
+10. Poll target identity and Runtime health; repair the current page, inject new
    renderers, and clean up missing or unhealthy sessions.
 
 CDP command IDs are generated atomically and responses are correlated through
@@ -116,9 +119,11 @@ shell, filesystem, process, credential, or networking capability.
 ## Configuration
 
 `%APPDATA%\MyCodex` contains `config.json`, `calibration.json`, `avatars/`,
-`logs/`, and `backups/`. Writes use a temporary file followed by an atomic move.
-Schema 0 appearance names/avatars migrate to schema 1. Invalid JSON is copied to
-a timestamped backup and defaults are restored without crashing.
+`logs/`, and `backups/`. Writes use a unique temporary file followed by an
+atomic move. Schema 0 appearance names/avatars migrate to schema 1. Legacy
+avatars are validated and copied into the managed directory. Invalid JSON is
+moved to a bounded timestamped backup set and defaults are restored without
+crashing.
 
 The schema 1 `language` field accepts `en-US`, `zh-CN`, or `zh-TW`. Missing
 values remain backward-compatible with English. WPF dynamic resources switch

@@ -1,7 +1,7 @@
 # Development and verification notes
 
 Date: 2026-07-26  
-MyCodex: `0.1.1-alpha`
+MyCodex: `0.2.0-alpha.1`
 
 ## Environment inspected
 
@@ -30,7 +30,7 @@ Observed:
 - `Runtime.evaluate("1 + 1")` returned `2`;
 - `data-mycodex-probe="true"` was added to `body`, verified, and removed;
 - the production runtime bundle injected successfully;
-- handshake returned runtime `0.1.1-alpha`, protocol `1`;
+- handshake returned runtime `0.2.0-alpha.1`, protocol `1`;
 - a synthetic current-Codex user/assistant fixture was installed only inside
   the isolated profile, then its style and conversation root were removed;
 - the session health check restored the style, observer, and new root;
@@ -44,6 +44,20 @@ Observed:
 
 The probe exited successfully. These are local observations, not a promise for
 every future Desktop version.
+
+## Private-pipe gate
+
+The same official Desktop version was launched with an isolated profile through
+the Windows private-pipe path:
+
+- restricted `PROC_THREAD_ATTRIBUTE_HANDLE_LIST` inheritance succeeded;
+- Browser `Chrome/150.0.7871.128`, protocol `1.3`;
+- one `app://-/index.html` page target attached without a WebSocket URL;
+- `Runtime.evaluate` and a reversible body data-attribute mutation passed;
+- the result reported `Port: 0` and `BindAddress: private-pipe`;
+- while the pipe was held open, the root Desktop process had zero listening
+  TCP sockets;
+- all isolated probe processes were cleaned up after validation.
 
 ## Manager GUI verification
 

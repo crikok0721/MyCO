@@ -31,8 +31,18 @@ public sealed class CdpMessageCorrelator
         }
         if (message.TryGetProperty("error", out var error))
         {
+            var code = error.TryGetProperty("code", out var codeElement) &&
+                       codeElement.TryGetInt32(out var parsedCode)
+                ? parsedCode
+                : 0;
+            var detail = error.TryGetProperty("message", out var messageElement)
+                ? messageElement.GetString()
+                : "Unknown CDP error";
+            detail = string.IsNullOrWhiteSpace(detail)
+                ? "Unknown CDP error"
+                : detail.Length <= 256 ? detail : detail[..256];
             completion.TrySetException(
-                new InvalidOperationException($"CDP error: {error.GetRawText()}"));
+                new InvalidOperationException($"CDP error {code}: {detail}"));
         }
         else
         {

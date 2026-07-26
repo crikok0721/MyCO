@@ -8,7 +8,9 @@ using MyCodex.Applications;
 using MyCodex.Avatars;
 using MyCodex.Compatibility;
 using MyCodex.Configuration;
+using MyCodex.Cdp;
 using MyCodex.Injection;
+using MyCodex.Diagnostics;
 using MyCodex.Manager.Localization;
 using MyCodex.Manager.Resources;
 
@@ -35,6 +37,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly ApplicationAdapterCatalog _adapters = new();
     private readonly ApplicationRestartService _restartService = new();
     private readonly DesktopSessionController _controller;
+    private readonly IPrivacySafeLogger _logger;
     // Language changes, calibration, and the Save button can race; serialize disk writes.
     private readonly SemaphoreSlim _configSaveGate = new(1, 1);
     private CalibrationConfig _calibration = new();
@@ -71,7 +74,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         // Keep service construction here so the views contain no business logic.
         _configStore = new ConfigStore(_paths);
         _avatarService = new AvatarService(_paths.AvatarsDirectory);
-        _controller = new DesktopSessionController(RuntimeResourceLoader.Load());
+        _logger = new PrivacySafeLogger(_paths.LogsDirectory);
+        _controller = new DesktopSessionController(
+            RuntimeResourceLoader.Load(),
+            logger: _logger);
         _controller.StateChanged += HandleStateChanged;
         _controller.RuntimeEventReceived += HandleRuntimeEvent;
 
@@ -320,10 +326,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public bool IsSkinEnabled => SessionState.IsSkinEnabled;
     public string ConnectionSummary =>
         SessionState.IsConnected
-            ? LocalizationService.Format(
-                "ConnectionConnectedFormat",
-                SessionState.CdpPort,
-                SessionState.TargetCount)
+            ? SessionState.Transport == DesktopDebugTransport.Pipe
+                ? LocalizationService.Format(
+                    "ConnectionPipeFormat",
+                    SessionState.TargetCount)
+                : LocalizationService.Format(
+                    "ConnectionTcpFormat",
+                    SessionState.CdpPort,
+                    SessionState.TargetCount)
             : LocalizationService.Get("ConnectionDisconnected");
     public string CalibrationSummary =>
         LocalizationService.Format(
@@ -349,20 +359,66 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         LocalizationService.Format("MaxWidthFormat", MessageMaxWidth);
 
     public bool WasFirstRun { get; private set; }
+    public string VersionLabel => BuildInfo.Version;
 
     public async Task InitializeAsync()
     {
         // Load local state before detection so first-run and recovery messages are accurate.
         var load = await _configStore.LoadAsync().ConfigureAwait(true);
         WasFirstRun = load.WasCreated;
-        _persistedConfig = load.Config;
-        LoadConfig(load.Config);
+        var config = await MigrateLegacyAvatarsAsync(load.Config).ConfigureAwait(true);
+        _persistedConfig = config;
+        LoadConfig(config);
         await DetectAsync().ConfigureAwait(true);
         SetStatus(
             load.CorruptBackupPath is null
                 ? "StatusReady"
                 : "StatusRecoveredConfig");
         _initialized = true;
+    }
+
+    private async Task<AppConfig> MigrateLegacyAvatarsAsync(AppConfig config)
+    {
+        var assistant = await ImportLegacyAvatarAsync(
+            config.Assistant.Avatar).ConfigureAwait(true);
+        var user = await ImportLegacyAvatarAsync(config.User.Avatar).ConfigureAwait(true);
+        if (string.Equals(
+                assistant,
+                config.Assistant.Avatar,
+                StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(
+                user,
+                config.User.Avatar,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return config;
+        }
+        var migrated = config with
+        {
+            Assistant = config.Assistant with { Avatar = assistant },
+            User = config.User with { Avatar = user }
+        };
+        await _configStore.SaveAsync(migrated).ConfigureAwait(true);
+        return migrated;
+    }
+
+    private async Task<string> ImportLegacyAvatarAsync(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return string.Empty;
+        }
+        try
+        {
+            return (await _avatarService.ImportAsync(path).ConfigureAwait(true)).StoredPath;
+        }
+        catch (Exception exception) when (
+            exception is FileNotFoundException or ArgumentException or
+                IOException or UnauthorizedAccessException)
+        {
+            _logger.Error("avatar_migration_rejected", exception);
+            return string.Empty;
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -444,7 +500,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         SetStatus("StatusStartingDesktop");
         try
         {
-            await _controller.StartAsync(candidate, adapter, BuildConfig()).ConfigureAwait(true);
+            await StartControllerWithFallbackAsync(candidate, adapter).ConfigureAwait(true);
         }
         catch (FileNotFoundException)
         {
@@ -454,8 +510,42 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             adapter = _adapters.Select(candidate)
                       ?? throw new NotSupportedException(
                           "No compatible application adapter is available.");
-            await _controller.StartAsync(candidate, adapter, BuildConfig())
-                .ConfigureAwait(true);
+            await StartControllerWithFallbackAsync(candidate, adapter).ConfigureAwait(true);
+        }
+    }
+
+    private async Task StartControllerWithFallbackAsync(
+        ApplicationCandidate candidate,
+        IApplicationAdapter adapter)
+    {
+        try
+        {
+            await _controller.StartAsync(
+                candidate,
+                adapter,
+                BuildConfig(),
+                DesktopDebugTransport.Pipe).ConfigureAwait(true);
+        }
+        catch (SecureTransportUnavailableException exception)
+        {
+            var useTcp = System.Windows.MessageBox.Show(
+                LocalizationService.Format(
+                    "TcpFallbackPromptFormat",
+                    exception.ErrorCode),
+                LocalizationService.Get("TcpFallbackTitle"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+            if (useTcp != MessageBoxResult.Yes)
+            {
+                SetStatus("StatusTcpFallbackDeclined");
+                return;
+            }
+            SetStatus("StatusStartingTcpFallback");
+            await _controller.StartAsync(
+                candidate,
+                adapter,
+                BuildConfig(),
+                DesktopDebugTransport.Tcp).ConfigureAwait(true);
         }
     }
 
@@ -532,8 +622,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             : [];
         DiagnosticsText = JsonSerializer.Serialize(new
         {
-            managerVersion = "0.1.1-alpha",
-            protocolVersion = 1,
+            managerVersion = BuildInfo.Version,
+            protocolVersion = BuildInfo.ProtocolVersion,
             operatingSystem = Environment.OSVersion.VersionString,
             desktopCandidates = Candidates.Select(candidate => new
             {
@@ -650,9 +740,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         catch (Exception exception)
         {
             var context = LocalizationService.Get(contextKey);
-            SetStatusText($"{context}: {exception.Message}");
+            var errorCode = ErrorCodeFactory.Create("UI", contextKey);
+            _logger.Error(errorCode, exception);
+            SetStatusText(
+                LocalizationService.Format("OperationErrorFormat", context, errorCode));
             System.Windows.MessageBox.Show(
-                exception.Message,
+                LocalizationService.Format("UnhandledErrorFormat", errorCode),
                 context,
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
@@ -688,7 +781,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 }
                 var signature = hostEvent.Payload.GetProperty("signature")
                     .Deserialize<ElementSignature>(JsonOptions);
-                if (signature is null || signature.SchemaVersion != 1)
+                if (signature is null ||
+                    signature.SchemaVersion != BuildInfo.CalibrationSchemaVersion)
                 {
                     throw new InvalidOperationException(
                         "Calibration signature is not supported.");
@@ -710,9 +804,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
             catch (Exception exception)
             {
-                SetStatus(
-                    "StatusCalibrationRejectedFormat",
-                    exception.Message);
+                var errorCode = ErrorCodeFactory.Create("CAL", "REJECTED");
+                _logger.Error(errorCode, exception);
+                SetStatus("StatusCalibrationRejectedFormat", errorCode);
             }
         });
     }
@@ -753,8 +847,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
         catch (Exception exception)
         {
+            var errorCode = ErrorCodeFactory.Create("CONFIG", "LANGUAGE");
+            _logger.Error(errorCode, exception);
             SetStatusText(
-                $"{LocalizationService.Get("ErrorSaveLanguage")}: {exception.Message}");
+                LocalizationService.Format(
+                    "OperationErrorFormat",
+                    LocalizationService.Get("ErrorSaveLanguage"),
+                    errorCode));
         }
     }
 

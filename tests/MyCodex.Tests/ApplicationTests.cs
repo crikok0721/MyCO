@@ -20,6 +20,9 @@ public sealed class ApplicationTests
         Assert.Contains(
             adapter.BuildLaunchArguments(54321),
             argument => argument == "--remote-debugging-port=54321");
+        Assert.Equal(
+            ["--remote-debugging-pipe"],
+            ((IApplicationAdapter)adapter).BuildPipeLaunchArguments());
     }
 
     [Fact]

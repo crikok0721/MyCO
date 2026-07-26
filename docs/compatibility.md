@@ -22,7 +22,8 @@ Adapters do not contain DOM selectors.
 ## Injection backend
 
 `IInjectionBackend` separates renderer access from the skin engine. Version
-`0.1.1-alpha` uses `CdpInjectionBackend`. If a future official application
+`0.2.0-alpha.1` uses `CdpInjectionBackend` over a transport-neutral connection.
+Private pipe is preferred, while loopback TCP requires explicit consent. If a future official application
 removes the remote-debugging capability, MyCodex reports injection unavailable;
 it does not modify `app.asar` or patch binaries.
 

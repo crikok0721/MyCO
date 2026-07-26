@@ -15,17 +15,19 @@ public static class RuntimeConfigSerializer
         string bindingName,
         CancellationToken cancellationToken = default)
     {
+        var paths = new ConfigPaths();
+        var avatarService = new AvatarService(paths.AvatarsDirectory);
         // Renderer pages cannot read the local avatar files, so inline them as data URLs.
-        var assistantAvatar = await AvatarService.ToDataUrlAsync(
+        var assistantAvatar = await avatarService.ToDataUrlAsync(
             config.Assistant.Avatar,
             cancellationToken).ConfigureAwait(false);
-        var userAvatar = await AvatarService.ToDataUrlAsync(
+        var userAvatar = await avatarService.ToDataUrlAsync(
             config.User.Avatar,
             cancellationToken).ConfigureAwait(false);
         return JsonSerializer.Serialize(new
         {
-            schemaVersion = 1,
-            protocolVersion = 1,
+            schemaVersion = BuildInfo.ConfigSchemaVersion,
+            protocolVersion = BuildInfo.ProtocolVersion,
             assistant = new
             {
                 name = config.Assistant.Name,

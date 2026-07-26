@@ -1,6 +1,14 @@
-// Shared protocol types. Keep schema and protocol numbers aligned with the C# host.
-export const RUNTIME_VERSION = "0.1.1-alpha";
-export const PROTOCOL_VERSION = 1;
+// Values are injected from eng/MyCodex.Version.props by build.mjs.
+declare const __MYCODEX_VERSION__: string;
+declare const __MYCODEX_PROTOCOL_VERSION__: number;
+declare const __MYCODEX_CONFIG_SCHEMA_VERSION__: number;
+declare const __MYCODEX_CALIBRATION_SCHEMA_VERSION__: number;
+
+export const RUNTIME_VERSION = __MYCODEX_VERSION__;
+export const PROTOCOL_VERSION = __MYCODEX_PROTOCOL_VERSION__;
+export const CONFIG_SCHEMA_VERSION = __MYCODEX_CONFIG_SCHEMA_VERSION__;
+export const CALIBRATION_SCHEMA_VERSION =
+  __MYCODEX_CALIBRATION_SCHEMA_VERSION__;
 export const RUNTIME_SYMBOL = Symbol.for("mycodex.runtime.protocol.1");
 
 export type MessageRole = "user" | "assistant";
@@ -29,7 +37,7 @@ export interface AppearanceConfig {
 }
 
 export interface ElementSignature {
-  schemaVersion: 1;
+  schemaVersion: number;
   tagName: string;
   role: string | null;
   stableAttributes: Record<string, string>;
@@ -49,14 +57,14 @@ export interface ElementSignature {
 }
 
 export interface CalibrationConfig {
-  schemaVersion: 1;
+  schemaVersion: number;
   userTurn: ElementSignature | null;
   assistantTurn: ElementSignature | null;
 }
 
 export interface RuntimeConfig {
-  schemaVersion: 1;
-  protocolVersion: 1;
+  schemaVersion: number;
+  protocolVersion: number;
   assistant: PersonConfig;
   user: PersonConfig;
   appearance: AppearanceConfig;
@@ -83,7 +91,7 @@ export interface RuntimeDiagnostics {
   averageConfidence: number;
   observerActive: boolean;
   lastRefreshAt: string | null;
-  errors: Array<{ code: string; message: string; at: string }>;
+  errors: Array<{ code: string; at: string }>;
 }
 
 export interface RuntimeHealth {
@@ -114,8 +122,8 @@ export interface MyCodexRuntimeApi {
 export function defaultConfig(): RuntimeConfig {
   // Defaults make the bundle safe to install before the host sends user settings.
   return {
-    schemaVersion: 1,
-    protocolVersion: 1,
+    schemaVersion: CONFIG_SCHEMA_VERSION,
+    protocolVersion: PROTOCOL_VERSION,
     assistant: { name: "Codex", avatar: "" },
     user: { name: "You", avatar: "" },
     appearance: {
@@ -134,7 +142,7 @@ export function defaultConfig(): RuntimeConfig {
       nicknameColor: "#9a9a9a"
     },
     calibration: {
-      schemaVersion: 1,
+      schemaVersion: CALIBRATION_SCHEMA_VERSION,
       userTurn: null,
       assistantTurn: null
     }

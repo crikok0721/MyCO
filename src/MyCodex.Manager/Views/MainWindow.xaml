@@ -42,7 +42,8 @@
                                    Margin="10,0,0,0" VerticalAlignment="Center" />
                         <Border Background="#24212F" CornerRadius="6" Padding="7,3"
                                 Margin="9,0,0,0">
-                            <TextBlock Text="0.1.1-alpha" Foreground="#B9AFFA" FontSize="10" />
+                            <TextBlock Text="{Binding VersionLabel}"
+                                       Foreground="#B9AFFA" FontSize="10" />
                         </Border>
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal">

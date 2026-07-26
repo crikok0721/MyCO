@@ -9,7 +9,6 @@ const GENERATED_PATTERNS = [
 
 const SAFE_ATTRIBUTE_NAMES = new Set([
   "role",
-  "aria-label",
   "aria-live",
   "data-message-author-role",
   "data-testid",

@@ -19,11 +19,19 @@ public interface ICdpClient : IAsyncDisposable
 
 public sealed class CdpClient : ICdpClient
 {
+    public const int MaximumMessageBytes = 32 * 1024 * 1024;
     private readonly ClientWebSocket _socket = new();
     private readonly CdpMessageCorrelator _correlator = new();
     private readonly CancellationTokenSource _lifetime = new();
+    private readonly SemaphoreSlim _sendGate = new(1, 1);
     private long _nextId;
     private Task? _receiveTask;
+
+    public CdpClient()
+    {
+        // CDP is always loopback-only; system proxies must never intercept it.
+        _socket.Options.Proxy = null;
+    }
 
     public event EventHandler<JsonElement>? EventReceived;
 
@@ -56,6 +64,12 @@ public sealed class CdpClient : ICdpClient
             method,
             @params = parameters ?? new { }
         });
+        if (payload.Length > MaximumMessageBytes)
+        {
+            _correlator.Remove(id);
+            throw new InvalidOperationException(
+                "CDP command exceeds the safe message limit.");
+        }
 
         using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken,
@@ -64,11 +78,19 @@ public sealed class CdpClient : ICdpClient
 
         try
         {
-            await _socket.SendAsync(
-                payload,
-                WebSocketMessageType.Text,
-                true,
-                timeoutSource.Token).ConfigureAwait(false);
+            await _sendGate.WaitAsync(timeoutSource.Token).ConfigureAwait(false);
+            try
+            {
+                await _socket.SendAsync(
+                    payload,
+                    WebSocketMessageType.Text,
+                    true,
+                    timeoutSource.Token).ConfigureAwait(false);
+            }
+            finally
+            {
+                _sendGate.Release();
+            }
             return await completion.WaitAsync(timeoutSource.Token).ConfigureAwait(false);
         }
         finally
@@ -84,17 +106,23 @@ public sealed class CdpClient : ICdpClient
 
         if (_socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
         {
+            using var closeTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
             try
             {
                 await _socket.CloseAsync(
                     WebSocketCloseStatus.NormalClosure,
                     "MyCodex probe complete",
-                    CancellationToken.None).ConfigureAwait(false);
+                    closeTimeout.Token).ConfigureAwait(false);
             }
-            catch (WebSocketException)
+            catch (Exception exception) when (
+                exception is WebSocketException or OperationCanceledException)
             {
                 _socket.Abort();
             }
+        }
+        else
+        {
+            _socket.Abort();
         }
 
         if (_receiveTask is not null)
@@ -107,9 +135,19 @@ public sealed class CdpClient : ICdpClient
             {
                 // Expected during disposal.
             }
+            catch (WebSocketException)
+            {
+                // The peer can close first during renderer teardown.
+            }
+            catch (Exception exception) when (
+                exception is InvalidDataException or JsonException)
+            {
+                // A malformed or oversized peer message already terminated the receive loop.
+            }
         }
 
         _socket.Dispose();
+        _sendGate.Dispose();
         _lifetime.Dispose();
     }
 
@@ -132,6 +170,11 @@ public sealed class CdpClient : ICdpClient
                     return;
                 }
 
+                if (message.Length + result.Count > MaximumMessageBytes)
+                {
+                    throw new InvalidDataException(
+                        "CDP WebSocket message exceeded the safe limit.");
+                }
                 message.Write(buffer, 0, result.Count);
             }
             while (!result.EndOfMessage);
@@ -145,7 +188,14 @@ public sealed class CdpClient : ICdpClient
                 continue;
             }
             // Unmatched messages are CDP events such as Runtime.bindingCalled.
-            EventReceived?.Invoke(this, root);
+            try
+            {
+                EventReceived?.Invoke(this, root);
+            }
+            catch (Exception)
+            {
+                // A consumer cannot be allowed to terminate the shared receive loop.
+            }
         }
     }
 }

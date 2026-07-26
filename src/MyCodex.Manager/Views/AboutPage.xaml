@@ -27,8 +27,12 @@
                             </Grid>
                         </Border>
                         <StackPanel Grid.Column="1">
-                            <TextBlock Text="MyCodex 0.1.1-alpha"
-                                       FontWeight="SemiBold" FontSize="18" />
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="MyCodex " FontWeight="SemiBold"
+                                           FontSize="18" />
+                                <TextBlock Text="{Binding VersionLabel}"
+                                           FontWeight="SemiBold" FontSize="18" />
+                            </StackPanel>
                             <TextBlock Text="{DynamicResource AboutTagline}"
                                        Foreground="{StaticResource MutedTextBrush}"
                                        Margin="0,5,0,0" />

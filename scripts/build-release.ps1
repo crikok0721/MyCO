@@ -12,8 +12,9 @@ $runtimeRoot = Join-Path $repoRoot "src\MyCodex.Runtime"
 $managerProject = Join-Path $repoRoot "src\MyCodex.Manager\MyCodex.Manager.csproj"
 $solution = Join-Path $repoRoot "MyCodex.sln"
 $artifactsRoot = Join-Path $repoRoot "artifacts"
-$publishRoot = Join-Path $artifactsRoot "MyCodex-win-x64"
-$archivePath = Join-Path $artifactsRoot "MyCodex-win-x64.zip"
+$artifactName = "MyCodex-$RuntimeIdentifier"
+$publishRoot = Join-Path $artifactsRoot $artifactName
+$archivePath = Join-Path $artifactsRoot "$artifactName.zip"
 
 $dotnet = (Get-Command dotnet -ErrorAction Stop).Source
 $npmCommand = Get-Command npm.cmd -ErrorAction SilentlyContinue

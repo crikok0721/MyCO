@@ -7,6 +7,8 @@ import { RuntimeObserver } from "./observer.js";
 import { findConversationRoot, scanTurnCandidates } from "./scanner.js";
 import { StyleManager } from "./style-manager.js";
 import {
+  CALIBRATION_SCHEMA_VERSION,
+  CONFIG_SCHEMA_VERSION,
   PROTOCOL_VERSION,
   RUNTIME_VERSION,
   defaultConfig,
@@ -209,9 +211,9 @@ export class MyCodexRuntime implements MyCodexRuntimeApi {
 
 function validateConfig(config: RuntimeConfig): void {
   if (
-    config.schemaVersion !== 1 ||
+    config.schemaVersion !== CONFIG_SCHEMA_VERSION ||
     config.protocolVersion !== PROTOCOL_VERSION ||
-    config.calibration.schemaVersion !== 1
+    config.calibration.schemaVersion !== CALIBRATION_SCHEMA_VERSION
   ) {
     throw new TypeError("Unsupported MyCodex runtime configuration schema.");
   }

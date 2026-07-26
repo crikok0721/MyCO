@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using System.Text.Json;
 using MyCodex.Cdp;
 
@@ -16,43 +15,25 @@ public sealed class TargetDiscoveryService
 {
     private static readonly JsonSerializerOptions JsonOptions =
         new(JsonSerializerDefaults.Web);
-    private readonly HttpClient _httpClient;
-
-    public TargetDiscoveryService(HttpClient? httpClient = null)
-    {
-        _httpClient = httpClient ?? new HttpClient();
-    }
-
-    public async Task<IReadOnlyList<CdpTarget>> ListTargetsAsync(
-        int port,
-        CancellationToken cancellationToken = default)
-    {
-        var targets = await _httpClient.GetFromJsonAsync<CdpTarget[]>(
-            $"http://127.0.0.1:{port}/json/list",
-            JsonOptions,
-            cancellationToken).ConfigureAwait(false);
-        return targets ?? [];
-    }
-
     public async Task<IReadOnlyList<TargetCandidate>> DiscoverAsync(
-        int port,
+        IDesktopDebugConnection connection,
         CancellationToken cancellationToken = default)
     {
         var results = new List<TargetCandidate>();
         // Inspect candidate documents instead of trusting target titles alone.
-        foreach (var target in await ListTargetsAsync(port, cancellationToken)
+        foreach (var target in await connection.ListTargetsAsync(cancellationToken)
                      .ConfigureAwait(false))
         {
-            if (target.Type is not ("page" or "webview") ||
-                !Uri.TryCreate(target.WebSocketDebuggerUrl, UriKind.Absolute, out var socketUri))
+            if (target.Type is not ("page" or "webview"))
             {
                 continue;
             }
 
             try
             {
-                await using var client = new CdpClient();
-                await client.ConnectAsync(socketUri, cancellationToken).ConfigureAwait(false);
+                await using var client = await connection.OpenTargetAsync(
+                    target,
+                    cancellationToken).ConfigureAwait(false);
                 var response = await client.SendCommandAsync(
                     "Runtime.evaluate",
                     new
@@ -76,7 +57,8 @@ public sealed class TargetDiscoveryService
                     childCount,
                     hasDocument));
             }
-            catch (Exception)
+            catch (Exception exception) when (
+                exception is not OperationCanceledException)
             {
                 // Background and transient renderer targets are expected.
             }

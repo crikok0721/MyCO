@@ -10,6 +10,7 @@ public interface IInjectionBackend
 
     Task<RuntimeInjectionResult> InjectAsync(
         CdpTarget target,
+        ICdpClient client,
         string runtimeScript,
         AppConfig config,
         CancellationToken cancellationToken = default);
@@ -28,12 +29,14 @@ public sealed class CdpInjectionBackend : IInjectionBackend
 
     public Task<RuntimeInjectionResult> InjectAsync(
         CdpTarget target,
+        ICdpClient client,
         string runtimeScript,
         AppConfig config,
         CancellationToken cancellationToken = default)
     {
         return _injector.InjectAsync(
             target,
+            client,
             runtimeScript,
             config,
             cancellationToken);

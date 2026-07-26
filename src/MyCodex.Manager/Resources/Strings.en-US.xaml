@@ -62,6 +62,8 @@
     <sys:String x:Key="DiagnosticsNotRefreshed">Diagnostics have not been refreshed.</sys:String>
     <sys:String x:Key="ConnectionDisconnected">Local · disconnected</sys:String>
     <sys:String x:Key="ConnectionConnectedFormat">127.0.0.1:{0} · {1} renderer</sys:String>
+    <sys:String x:Key="ConnectionPipeFormat">Private pipe · {0} renderer(s)</sys:String>
+    <sys:String x:Key="ConnectionTcpFormat">TCP 127.0.0.1:{0} · {1} renderer(s)</sys:String>
 
     <sys:String x:Key="AboutTitle">About MyCodex</sys:String>
     <sys:String x:Key="AboutSubtitle">Independent local UI customization for Codex / ChatGPT Desktop</sys:String>
@@ -87,6 +89,8 @@
 
     <sys:String x:Key="AlreadyRunningMessage">MyCodex is already running.</sys:String>
     <sys:String x:Key="StartupFailedTitle">MyCodex failed to start</sys:String>
+    <sys:String x:Key="UnhandledErrorFormat">MyCodex encountered an error.&#x0a;Error code: {0}&#x0a;&#x0a;No conversation content was included.</sys:String>
+    <sys:String x:Key="OperationErrorFormat">{0} · Error code {1}</sys:String>
     <sys:String x:Key="StatusStarting">Starting…</sys:String>
     <sys:String x:Key="StatusReady">Ready</sys:String>
     <sys:String x:Key="StatusRecoveredConfig">Recovered a damaged config; the original was backed up.</sys:String>
@@ -100,7 +104,11 @@
     <sys:String x:Key="ForceRestartPrompt">The official app did not close normally.&#x0a;&#x0a;Force Restart will terminate only the selected Desktop process tree. Unsaved app state may be lost.</sys:String>
     <sys:String x:Key="ForceRestartTitle">Force Restart?</sys:String>
     <sys:String x:Key="StatusRestartCancelledUnchanged">Restart cancelled; Desktop remains unchanged.</sys:String>
-    <sys:String x:Key="StatusStartingDesktop">Starting Desktop with a random local CDP port…</sys:String>
+    <sys:String x:Key="StatusStartingDesktop">Starting Desktop with a private local pipe…</sys:String>
+    <sys:String x:Key="TcpFallbackTitle">Private pipe unavailable</sys:String>
+    <sys:String x:Key="TcpFallbackPromptFormat">The private pipe transport could not be established.&#x0a;Error code: {0}&#x0a;&#x0a;Use a random loopback-only TCP port for this session instead? No external address will be bound.</sys:String>
+    <sys:String x:Key="StatusStartingTcpFallback">Starting the explicitly approved loopback TCP fallback…</sys:String>
+    <sys:String x:Key="StatusTcpFallbackDeclined">TCP fallback declined; Desktop was not left running by MyCodex.</sys:String>
     <sys:String x:Key="StatusRefreshingDesktopEntry">Desktop was updated; refreshing its registered launch path…</sys:String>
     <sys:String x:Key="StatusAppearanceSaved">Appearance saved locally and applied.</sys:String>
     <sys:String x:Key="ChooseAssistantAvatarTitle">Choose assistant avatar</sys:String>

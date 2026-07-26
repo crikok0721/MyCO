@@ -51,15 +51,11 @@ export class Diagnostics {
     this.state.compatibility = compatibilityFrom(average, userTurns, assistantTurns);
   }
 
-  addError(code: string, error: unknown): void {
-    const safeMessage =
-      error instanceof Error
-        ? `${error.name}: ${error.message}`.slice(0, 240)
-        : String(error).slice(0, 240);
-    // Keep only the ten most recent short errors to bound diagnostics size.
+  addError(code: string, _error: unknown): void {
+    // Page exception messages can contain DOM text, so retain only a technical code.
     this.state.errors = [
       ...this.state.errors.slice(-9),
-      { code, message: safeMessage, at: new Date().toISOString() }
+      { code, at: new Date().toISOString() }
     ];
   }
 

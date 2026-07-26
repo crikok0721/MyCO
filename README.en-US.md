@@ -1,6 +1,6 @@
 # MyCodex
 
-MyCodex `0.1.1-alpha` is a local Windows manager that adds custom assistant and
+MyCodex `0.2.0-alpha.1` is a local Windows manager that adds custom assistant and
 user avatars and nicknames plus compact assistant prose bubbles to the official
 Codex / ChatGPT Desktop conversation view. Official user bubbles stay native.
 
@@ -39,8 +39,9 @@ application bundle, or conversation data.
 
 ```mermaid
 flowchart LR
-  M["MyCodex WPF Manager"] -->|"launches with random 127.0.0.1 CDP port"| D["Official Desktop"]
-  M -->|"CDP WebSocket"| R["Chromium renderer"]
+  M["MyCodex WPF Manager"] -->|"default: private CDP pipe"| D["Official Desktop"]
+  M -. "after explicit consent: random 127.0.0.1 TCP" .-> D
+  M -->|"transport-neutral CDP session"| R["Chromium renderer"]
   R --> I["Idempotent Skin Runtime"]
   I --> P["Capability probe + DOM matcher"]
   P -->|"high confidence"| S["Scoped avatars, names, prose bubbles"]
@@ -49,7 +50,7 @@ flowchart LR
 
 The manager discovers supported installed applications, asks for a normal
 restart when an already-running app has no debugging endpoint, and launches the
-official executable with a random loopback-only port. It scores renderer
+official executable through a private inherited pipe. It scores renderer
 targets by URL, type, title, and DOM capabilities; injects the bundled runtime;
 then checks a versioned protocol handshake.
 
@@ -82,8 +83,8 @@ release source and checksum before choosing to run it.
 5. Open a conversation. If automatic matching is not confident, complete both
    calibration steps.
 
-MyCodex binds CDP only to `127.0.0.1` and chooses a new ephemeral port for each
-managed launch.
+The default pipe mode opens no TCP listener. If the pipe fails, MyCodex asks
+before using a new `127.0.0.1`-only TCP port for that session.
 
 ## Customization
 
@@ -190,7 +191,7 @@ decoration inside the selected renderer.
 flowchart LR
     UI["MyCodex.Manager<br/>WPF UI and MVVM"] --> Core["MyCodex.Core<br/>Discovery, config, compatibility"]
     Core --> Desktop["ChatGPT / Codex Desktop"]
-    Core --> CDP["Loopback CDP<br/>127.0.0.1 only"]
+    Core --> CDP["Local CDP<br/>private pipe first / loopback TCP fallback"]
     CDP --> Runtime["MyCodex.Runtime<br/>Injected TypeScript bundle"]
     Runtime --> DOM["Renderer DOM<br/>Identity and assistant prose styling"]
     Runtime -->|"Allow-listed events"| Core
@@ -217,7 +218,8 @@ The main execution path is:
 
 1. `MyCodex.Manager` loads `%APPDATA%\MyCodex\config.json` and discovers
    supported desktop installations through `MyCodex.Core`.
-2. The selected desktop is launched with a loopback-only CDP port.
+2. The selected desktop is launched through a private CDP pipe; loopback TCP
+   is used only after explicit confirmation.
 3. Core ranks renderer targets, injects the generated Runtime bundle, and
    verifies a protocol handshake.
 4. Runtime classifies message turns, decorates safe prose/identity surfaces,
@@ -246,8 +248,8 @@ Important rules before changing code:
   generated bundle with Runtime changes.
 - Build the Runtime before the WPF project. The WPF project embeds the current
   `dist/mycodex.runtime.js`; MSBuild does not generate it automatically.
-- Keep C# `ProtocolVersion`, TypeScript `PROTOCOL_VERSION`, and both config
-  schema versions aligned when changing the host/runtime contract.
+- Change release/protocol/schema values only in `eng/MyCodex.Version.props`;
+  C#, the TypeScript bundle, UI, and release artifacts consume that source.
 - Keep every localization `x:Key` identical in `Strings.en-US.xaml`,
   `Strings.zh-CN.xaml`, and `Strings.zh-TW.xaml`.
 - User config, avatars, logs, calibration data, and backups belong under
@@ -255,8 +257,8 @@ Important rules before changing code:
 - Do not commit official OpenAI binaries, bundles, DOM snapshots, icons,
   source, credentials, or real conversation data. Compatibility fixtures must
   be synthetic.
-- CDP must remain bound to `127.0.0.1`. Do not expose the debugging endpoint to
-  the local network.
+- CDP must remain private-pipe first. TCP is an explicitly approved fallback
+  and must bind only to `127.0.0.1`, never a LAN interface.
 - Classification and calibration changes must remain fail-closed: uncertain
   elements stay native rather than receiving a guessed role.
 
@@ -298,7 +300,8 @@ For a slow proxy or mainland-China network, the script also supports:
 ```
 
 That switch selects npm's npmmirror registry and Huawei Cloud's NuGet mirror
-for the current build only; it does not alter global package-manager settings.
+for the current build only; it does not alter global package-manager settings
+or store regional mirror URLs in the repository lockfile.
 
 ## Contributing
 

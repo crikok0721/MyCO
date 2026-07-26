@@ -62,6 +62,8 @@
     <sys:String x:Key="DiagnosticsNotRefreshed">诊断信息尚未刷新。</sys:String>
     <sys:String x:Key="ConnectionDisconnected">本地 · 未连接</sys:String>
     <sys:String x:Key="ConnectionConnectedFormat">127.0.0.1:{0} · {1} 个渲染器</sys:String>
+    <sys:String x:Key="ConnectionPipeFormat">私有管道 · {0} 个渲染器</sys:String>
+    <sys:String x:Key="ConnectionTcpFormat">TCP 127.0.0.1:{0} · {1} 个渲染器</sys:String>
 
     <sys:String x:Key="AboutTitle">关于 MyCodex</sys:String>
     <sys:String x:Key="AboutSubtitle">为 Codex / ChatGPT Desktop 提供独立的本地界面定制</sys:String>
@@ -87,6 +89,8 @@
 
     <sys:String x:Key="AlreadyRunningMessage">MyCodex 已经在运行。</sys:String>
     <sys:String x:Key="StartupFailedTitle">MyCodex 启动失败</sys:String>
+    <sys:String x:Key="UnhandledErrorFormat">MyCodex 遇到错误。&#x0a;错误编号：{0}&#x0a;&#x0a;诊断中不包含聊天正文。</sys:String>
+    <sys:String x:Key="OperationErrorFormat">{0} · 错误编号 {1}</sys:String>
     <sys:String x:Key="StatusStarting">正在启动…</sys:String>
     <sys:String x:Key="StatusReady">就绪</sys:String>
     <sys:String x:Key="StatusRecoveredConfig">已恢复损坏的配置，原文件已备份。</sys:String>
@@ -100,7 +104,11 @@
     <sys:String x:Key="ForceRestartPrompt">官方应用未能正常关闭。&#x0a;&#x0a;强制重启只会结束所选 Desktop 的进程树，未保存的应用状态可能丢失。</sys:String>
     <sys:String x:Key="ForceRestartTitle">是否强制重启？</sys:String>
     <sys:String x:Key="StatusRestartCancelledUnchanged">已取消重启，Desktop 保持不变。</sys:String>
-    <sys:String x:Key="StatusStartingDesktop">正在使用随机本地 CDP 端口启动 Desktop…</sys:String>
+    <sys:String x:Key="StatusStartingDesktop">正在使用本地私有管道启动 Desktop…</sys:String>
+    <sys:String x:Key="TcpFallbackTitle">私有管道不可用</sys:String>
+    <sys:String x:Key="TcpFallbackPromptFormat">无法建立私有管道连接。&#x0a;错误编号：{0}&#x0a;&#x0a;是否仅在本次会话改用随机的本机回环 TCP 端口？不会监听任何外部地址。</sys:String>
+    <sys:String x:Key="StatusStartingTcpFallback">正在启动已明确允许的本机回环 TCP 备用连接…</sys:String>
+    <sys:String x:Key="StatusTcpFallbackDeclined">已拒绝 TCP 备用连接；MyCodex 未留下由其启动的 Desktop 进程。</sys:String>
     <sys:String x:Key="StatusRefreshingDesktopEntry">检测到 Desktop 已更新，正在刷新当前启动路径…</sys:String>
     <sys:String x:Key="StatusAppearanceSaved">外观已保存到本地并应用。</sys:String>
     <sys:String x:Key="ChooseAssistantAvatarTitle">选择助手头像</sys:String>

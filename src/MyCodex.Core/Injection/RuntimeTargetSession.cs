@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text;
 using MyCodex.Cdp;
 using MyCodex.Configuration;
 
@@ -22,6 +23,9 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
     private readonly string _bindingName;
     private readonly string _runtimeScript;
     private readonly SemaphoreSlim _operationGate = new(1, 1);
+    private readonly Queue<DateTimeOffset> _recentEvents = new();
+    private readonly Queue<DateTimeOffset> _recentCalibrationEvents = new();
+    private readonly object _eventGate = new();
     private string _configJson;
     private bool _disposed;
 
@@ -153,11 +157,12 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
                     returnByValue = true
                 },
                 cancellationToken: cancellationToken).ConfigureAwait(false);
-            return response
+            var payload = response
                 .GetProperty("result")
                 .GetProperty("result")
                 .GetProperty("value")
                 .Clone();
+            return RuntimeDiagnosticsValidator.Normalize(payload);
         }
         finally
         {
@@ -223,7 +228,9 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
                 return;
             }
             var payload = parameters.GetProperty("payload").GetString();
-            if (string.IsNullOrWhiteSpace(payload))
+            if (string.IsNullOrWhiteSpace(payload) ||
+                Encoding.UTF8.GetByteCount(payload) >
+                RuntimeEventValidator.MaximumBindingPayloadBytes)
             {
                 return;
             }
@@ -231,15 +238,53 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
                 payload,
                 new JsonSerializerOptions(JsonSerializerDefaults.Web));
             if (hostEvent is not null &&
-                hostEvent.ProtocolVersion == RuntimeInjector.ProtocolVersion &&
-                AllowedEvents.Contains(hostEvent.Type))
+                AllowedEvents.Contains(hostEvent.Type) &&
+                TryAcceptEvent(hostEvent.Type))
             {
-                HostEventReceived?.Invoke(this, hostEvent);
+                HostEventReceived?.Invoke(
+                    this,
+                    RuntimeEventValidator.Normalize(hostEvent));
             }
         }
         catch (Exception)
         {
             // Ignore malformed page-supplied binding messages.
+        }
+    }
+
+    private bool TryAcceptEvent(string eventType)
+    {
+        var now = DateTimeOffset.UtcNow;
+        lock (_eventGate)
+        {
+            Trim(_recentEvents, now - TimeSpan.FromMinutes(1));
+            if (_recentEvents.Count >= 120)
+            {
+                return false;
+            }
+            _recentEvents.Enqueue(now);
+
+            if (eventType != "calibrationResult")
+            {
+                return true;
+            }
+            Trim(_recentCalibrationEvents, now - TimeSpan.FromMinutes(1));
+            if (_recentCalibrationEvents.Count >= 5)
+            {
+                return false;
+            }
+            _recentCalibrationEvents.Enqueue(now);
+            return true;
+        }
+    }
+
+    private static void Trim(
+        Queue<DateTimeOffset> events,
+        DateTimeOffset cutoff)
+    {
+        while (events.TryPeek(out var oldest) && oldest < cutoff)
+        {
+            events.Dequeue();
         }
     }
 
@@ -294,11 +339,7 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
         if (response.TryGetProperty("result", out var result) &&
             result.TryGetProperty("exceptionDetails", out var exception))
         {
-            var description =
-                exception.TryGetProperty("text", out var text)
-                    ? text.GetString()
-                    : "Runtime evaluation failed.";
-            throw new InvalidOperationException(description);
+            throw new InvalidOperationException("Runtime evaluation failed.");
         }
     }
 

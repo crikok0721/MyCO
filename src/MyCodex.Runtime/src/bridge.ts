@@ -1,3 +1,5 @@
+import { PROTOCOL_VERSION } from "./types.js";
+
 // Sends a small allow-listed event stream from the renderer back to the C# host.
 const ALLOWED_EVENTS = new Set([
   "calibrationResult",
@@ -24,7 +26,7 @@ export class RuntimeBridge {
         JSON.stringify({
           type,
           payload,
-          protocolVersion: 1,
+          protocolVersion: PROTOCOL_VERSION,
           at: new Date().toISOString()
         })
       );

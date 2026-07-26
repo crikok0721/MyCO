@@ -7,30 +7,17 @@ namespace MyCodex.Injection;
 
 public sealed class RuntimeInjector
 {
-    public const int ProtocolVersion = 1;
-
     public async Task<RuntimeInjectionResult> InjectAsync(
         CdpTarget target,
+        ICdpClient client,
         string runtimeScript,
         AppConfig config,
         CancellationToken cancellationToken = default)
     {
-        if (!Uri.TryCreate(target.WebSocketDebuggerUrl, UriKind.Absolute, out var socketUri))
-        {
-            return new RuntimeInjectionResult(
-                false,
-                "InvalidTarget",
-                null,
-                null,
-                "Target has no valid WebSocket debugger URL.");
-        }
-
         // A unique binding prevents page code from guessing another session's channel name.
         var bindingName = $"__mc_host_{Guid.NewGuid():N}";
-        var client = new CdpClient();
         try
         {
-            await client.ConnectAsync(socketUri, cancellationToken).ConfigureAwait(false);
             var configJson = await RuntimeConfigSerializer.SerializeAsync(
                 config,
                 bindingName,
@@ -76,7 +63,7 @@ public sealed class RuntimeInjector
 
             var handshake = await ReadHandshakeAsync(client, cancellationToken)
                 .ConfigureAwait(false);
-            if (handshake.ProtocolVersion != ProtocolVersion)
+            if (handshake.ProtocolVersion != BuildInfo.ProtocolVersion)
             {
                 await session.DestroyAsync(CancellationToken.None).ConfigureAwait(false);
                 return new RuntimeInjectionResult(
@@ -84,7 +71,7 @@ public sealed class RuntimeInjector
                     "RuntimeProtocolMismatch",
                     handshake,
                     null,
-                    $"Manager protocol {ProtocolVersion}, runtime protocol {handshake.ProtocolVersion}.");
+                    $"Manager protocol {BuildInfo.ProtocolVersion}, runtime protocol {handshake.ProtocolVersion}.");
             }
 
             return new RuntimeInjectionResult(true, "Pass", handshake, session, null);
@@ -97,7 +84,7 @@ public sealed class RuntimeInjector
                 "InjectionFailed",
                 null,
                 null,
-                $"{exception.GetType().Name}: {exception.Message}");
+                exception.GetType().Name);
         }
     }
 
