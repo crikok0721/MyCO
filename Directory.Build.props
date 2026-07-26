@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <Authors>MyCodex Contributors</Authors>
+    <Company>MyCodex Contributors</Company>
+    <Product>MyCodex</Product>
+    <Copyright>Copyright © 2026 MyCodex Contributors</Copyright>
+    <RepositoryType>git</RepositoryType>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+</Project>

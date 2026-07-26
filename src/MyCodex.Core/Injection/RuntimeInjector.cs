@@ -1,0 +1,152 @@
+using System.Text.Json;
+using MyCodex.Cdp;
+using MyCodex.Configuration;
+
+namespace MyCodex.Injection;
+
+public sealed class RuntimeInjector
+{
+    public const int ProtocolVersion = 1;
+
+    public async Task<RuntimeInjectionResult> InjectAsync(
+        CdpTarget target,
+        string runtimeScript,
+        AppConfig config,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Uri.TryCreate(target.WebSocketDebuggerUrl, UriKind.Absolute, out var socketUri))
+        {
+            return new RuntimeInjectionResult(
+                false,
+                "InvalidTarget",
+                null,
+                null,
+                "Target has no valid WebSocket debugger URL.");
+        }
+
+        var bindingName = $"__mc_host_{Guid.NewGuid():N}";
+        var client = new CdpClient();
+        try
+        {
+            await client.ConnectAsync(socketUri, cancellationToken).ConfigureAwait(false);
+            var configJson = await RuntimeConfigSerializer.SerializeAsync(
+                config,
+                bindingName,
+                cancellationToken).ConfigureAwait(false);
+            var session = new RuntimeTargetSession(
+                target,
+                client,
+                bindingName,
+                runtimeScript,
+                configJson);
+            client.EventReceived += session.HandleCdpEvent;
+            await client.SendCommandAsync(
+                "Runtime.enable",
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            await client.SendCommandAsync(
+                "Page.enable",
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            await client.SendCommandAsync(
+                "Runtime.addBinding",
+                new { name = bindingName },
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            var source = BuildBootstrapSource(runtimeScript, configJson);
+            var registration = await client.SendCommandAsync(
+                "Page.addScriptToEvaluateOnNewDocument",
+                new { source },
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            session.NewDocumentScriptId = registration
+                .GetProperty("result")
+                .GetProperty("identifier")
+                .GetString();
+
+            await client.SendCommandAsync(
+                "Runtime.evaluate",
+                new
+                {
+                    expression = source,
+                    awaitPromise = true,
+                    returnByValue = true
+                },
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            var handshake = await ReadHandshakeAsync(client, cancellationToken)
+                .ConfigureAwait(false);
+            if (handshake.ProtocolVersion != ProtocolVersion)
+            {
+                await session.DestroyAsync(CancellationToken.None).ConfigureAwait(false);
+                return new RuntimeInjectionResult(
+                    false,
+                    "RuntimeProtocolMismatch",
+                    handshake,
+                    null,
+                    $"Manager protocol {ProtocolVersion}, runtime protocol {handshake.ProtocolVersion}.");
+            }
+
+            return new RuntimeInjectionResult(true, "Pass", handshake, session, null);
+        }
+        catch (Exception exception)
+        {
+            await client.DisposeAsync().ConfigureAwait(false);
+            return new RuntimeInjectionResult(
+                false,
+                "InjectionFailed",
+                null,
+                null,
+                $"{exception.GetType().Name}: {exception.Message}");
+        }
+    }
+
+    private static async Task<RuntimeHandshake> ReadHandshakeAsync(
+        ICdpClient client,
+        CancellationToken cancellationToken)
+    {
+        Exception? lastError = null;
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            try
+            {
+                var response = await client.SendCommandAsync(
+                    "Runtime.evaluate",
+                    new
+                    {
+                        expression =
+                            "window.__MYCODEX_RUNTIME__?.getVersion?.() ?? null",
+                        returnByValue = true
+                    },
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+                var remote = response.GetProperty("result").GetProperty("result");
+                if (remote.TryGetProperty("value", out var value) &&
+                    value.ValueKind == JsonValueKind.Object)
+                {
+                    return new RuntimeHandshake(
+                        value.GetProperty("version").GetString() ?? "unknown",
+                        value.GetProperty("protocolVersion").GetInt32());
+                }
+            }
+            catch (Exception exception)
+            {
+                lastError = exception;
+            }
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+        }
+        throw new InvalidOperationException("Runtime handshake timed out.", lastError);
+    }
+
+    private static string BuildBootstrapSource(string runtimeScript, string configJson)
+    {
+        return $$"""
+            {{runtimeScript}}
+            ;(()=>{
+              const apply=()=>window.__MYCODEX_RUNTIME__?.applyConfig({{configJson}});
+              if(document.readyState==="loading"){
+                document.addEventListener("DOMContentLoaded",apply,{once:true});
+                return {pending:true};
+              }
+              return apply();
+            })()
+            //# sourceURL=mycodex.runtime.js
+            """;
+    }
+}

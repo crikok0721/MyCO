@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <AssemblyName>MyCodex</AssemblyName>
+    <RootNamespace>MyCodex.Manager</RootNamespace>
+    <Version>0.1.1-alpha</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <PublishSingleFile>false</PublishSingleFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MyCodex.Core\MyCodex.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\MyCodex.Runtime\dist\mycodex.runtime.js"
+                      Link="Resources\mycodex.runtime.js"
+                      LogicalName="MyCodex.Manager.Resources.mycodex.runtime.js" />
+    <None Include="..\..\assets\mycodex-logo.svg"
+          Link="Assets\mycodex-logo.svg"
+          CopyToOutputDirectory="PreserveNewest"
+          Condition="Exists('..\..\assets\mycodex-logo.svg')" />
+  </ItemGroup>
+</Project>

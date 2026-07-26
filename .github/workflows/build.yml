@@ -1,0 +1,83 @@
+name: build
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/MyCodex.Runtime/package-lock.json
+
+      - name: Install runtime dependencies
+        working-directory: src/MyCodex.Runtime
+        run: npm ci
+
+      - name: Lint, test, and bundle runtime
+        working-directory: src/MyCodex.Runtime
+        run: npm run check
+
+      - name: Restore solution
+        run: dotnet restore MyCodex.sln
+
+      - name: Restore Windows runtime
+        run: dotnet restore src/MyCodex.Manager/MyCodex.Manager.csproj -r win-x64
+
+      - name: Build
+        run: dotnet build MyCodex.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test MyCodex.sln -c Release --no-build --no-restore
+
+      - name: Publish self-contained app
+        run: >
+          dotnet publish src/MyCodex.Manager/MyCodex.Manager.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          --no-restore
+          -o artifacts/MyCodex-win-x64
+
+      - name: Add release documents
+        shell: pwsh
+        run: |
+          Copy-Item README.md, README.zh-CN.md, PRIVACY.md, SECURITY.md, `
+            CHANGELOG.md, CONTRIBUTING.md, LICENSE -Destination artifacts/MyCodex-win-x64
+          Copy-Item docs -Destination artifacts/MyCodex-win-x64 -Recurse
+
+      - name: Create release archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path artifacts/MyCodex-win-x64/* `
+            -DestinationPath artifacts/MyCodex-win-x64.zip `
+            -CompressionLevel Optimal
+          Get-FileHash artifacts/MyCodex-win-x64.zip -Algorithm SHA256
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyCodex-win-x64
+          path: artifacts/MyCodex-win-x64.zip
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,30 @@
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+
+# Node
+**/node_modules/
+src/MyCodex.Runtime/.test-dist/
+npm-debug.log*
+
+# Build and release output
+artifacts/
+TestResults/
+coverage/
+
+# Local-only data
+config.json
+calibration.json
+avatars/
+logs/
+backups/
+
+# Editors and operating system
+.idea/
+.vscode/
+Thumbs.db
+Desktop.ini
+*.tmp
