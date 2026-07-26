@@ -1,5 +1,6 @@
 using System.Windows.Input;
 
+// ICommand wrapper for immediate, synchronous UI actions.
 namespace MyCodex.Manager.ViewModels;
 
 internal sealed class RelayCommand : ICommand

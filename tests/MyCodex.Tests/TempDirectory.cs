@@ -1,3 +1,4 @@
+// Creates an isolated test directory and removes it after each test.
 namespace MyCodex.Tests;
 
 internal sealed class TempDirectory : IDisposable

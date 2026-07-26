@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 
+// Imports safe image formats into MyCodex's managed local data directory.
 namespace MyCodex.Avatars;
 
 public sealed record AvatarImportResult(
@@ -32,6 +33,7 @@ public sealed class AvatarService
             throw new ArgumentException("Avatar image must be between 1 byte and 10 MiB.");
         }
 
+        // Detect the real format from magic bytes instead of trusting the file extension.
         await using var input = File.OpenRead(sourcePath);
         var header = new byte[Math.Min(16, (int)file.Length)];
         var read = await input.ReadAsync(header, cancellationToken).ConfigureAwait(false);
@@ -42,6 +44,7 @@ public sealed class AvatarService
             .ToLowerInvariant();
 
         Directory.CreateDirectory(_avatarsDirectory);
+        // Content-based names deduplicate repeated imports and avoid user-controlled filenames.
         var destination = Path.Combine(_avatarsDirectory, $"{hash[..24]}{extension}");
         if (!File.Exists(destination))
         {
@@ -68,6 +71,7 @@ public sealed class AvatarService
             return string.Empty;
         }
 
+        // A data URL lets the injected page render the image without filesystem access.
         var bytes = await File.ReadAllBytesAsync(storedPath, cancellationToken)
             .ConfigureAwait(false);
         var (_, mediaType) = DetectFormat(bytes.AsSpan(0, Math.Min(bytes.Length, 16)));

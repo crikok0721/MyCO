@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 
+// Finds running, MSIX, and classic Win32 installations without hard-coding one path.
 namespace MyCodex.Applications;
 
 public sealed class WindowsApplicationLocator : IApplicationLocator
@@ -17,6 +18,7 @@ public sealed class WindowsApplicationLocator : IApplicationLocator
         var candidates = new Dictionary<string, ApplicationCandidate>(
             StringComparer.OrdinalIgnoreCase);
 
+        // Running processes provide the freshest path; registry sources fill in stopped apps.
         AddRunningCandidates(candidates);
         AddMsixCandidates(candidates);
         AddWin32Candidates(candidates);
@@ -87,6 +89,7 @@ public sealed class WindowsApplicationLocator : IApplicationLocator
     private static void AddMsixCandidates(
         IDictionary<string, ApplicationCandidate> candidates)
     {
+        // Packaged desktop apps are registered per user in the AppModel repository.
         using var repository = Registry.CurrentUser.OpenSubKey(PackageRepository);
         if (repository is null)
         {
@@ -139,6 +142,7 @@ public sealed class WindowsApplicationLocator : IApplicationLocator
     private static void AddWin32Candidates(
         IDictionary<string, ApplicationCandidate> candidates)
     {
+        // Read both user and machine uninstall views to cover 32-bit and 64-bit installers.
         var roots = new[]
         {
             (RegistryHive.CurrentUser, RegistryView.Default),
@@ -220,6 +224,7 @@ public sealed class WindowsApplicationLocator : IApplicationLocator
         string? packageIdentity,
         bool running)
     {
+        // Scores rank likely official desktop roots; they do not decide compatibility alone.
         var score = 0;
         score += processName.Equals("ChatGPT", StringComparison.OrdinalIgnoreCase) ? 30 : 22;
         score += executable.Contains("OpenAI", StringComparison.OrdinalIgnoreCase) ? 25 : 0;

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 
+// Selects an unused loopback port from the IANA dynamic/private range.
 namespace MyCodex.Cdp;
 
 public static class PortAllocator
@@ -13,6 +14,7 @@ public static class PortAllocator
             try
             {
                 var listener = new TcpListener(IPAddress.Loopback, port);
+                // Binding once is only a best-effort availability check; Chromium binds next.
                 listener.Start();
                 listener.Stop();
                 return port;

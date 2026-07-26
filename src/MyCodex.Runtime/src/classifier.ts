@@ -6,6 +6,7 @@ import type {
   MessageRole
 } from "./types.js";
 
+// Classifies a DOM element using semantics first, calibration second, and layout last.
 const USER_VALUES = /^(user|human|me|self|prompt)$/i;
 const ASSISTANT_VALUES = /^(assistant|codex|chatgpt|ai|model)$/i;
 
@@ -37,6 +38,7 @@ export function classifyTurn(
     return { role: "assistant", confidence: 0.94, source: "semantic" };
   }
 
+  // Saved calibration is useful across generated-class changes but is weaker than semantics.
   const calibrated = classifyFromCalibration(element, calibration);
   if (calibrated) return calibrated;
 
@@ -105,6 +107,7 @@ function classifyFromCalibration(
   scores.sort((left, right) => right.confidence - left.confidence);
   const best = scores[0];
   const second = scores[1];
+  // Fail closed when confidence is low or both roles look almost equally likely.
   if (!best || best.confidence < 0.72) return null;
   if (second && best.confidence - second.confidence < 0.08) {
     return { role: "unknown", confidence: best.confidence, source: "unknown" };

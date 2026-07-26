@@ -1,6 +1,7 @@
 using System.Text.Json;
 using MyCodex.Configuration;
 
+// Verifies config creation, migration, validation, recovery, and atomic persistence.
 namespace MyCodex.Tests;
 
 public sealed class ConfigurationTests

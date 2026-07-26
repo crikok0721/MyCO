@@ -1,3 +1,4 @@
+// Verifies generated classes are ignored and fingerprints never include conversation text.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { JSDOM } from "jsdom";

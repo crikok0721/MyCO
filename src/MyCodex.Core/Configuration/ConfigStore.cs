@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
+// Loads, validates, migrates, and atomically saves the user's local configuration.
 namespace MyCodex.Configuration;
 
 public sealed class ConfigStore
@@ -34,6 +35,7 @@ public sealed class ConfigStore
                 .ConfigureAwait(false);
             var node = JsonNode.Parse(json)?.AsObject()
                        ?? throw new JsonException("Configuration root must be an object.");
+            // Missing or older schema values are handled by the narrow legacy migrator below.
             var schemaVersion = node["schemaVersion"]?.GetValue<int>() ?? 0;
             var migrated = schemaVersion != 1;
             var config = migrated ? ConfigMigration.Migrate(node) : Deserialize(node);
@@ -58,6 +60,7 @@ public sealed class ConfigStore
         catch (Exception exception) when (
             exception is JsonException or InvalidOperationException or ArgumentException)
         {
+            // Preserve the bad file for diagnosis, then recover with known-safe defaults.
             var timestamp = DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss");
             var backup = Path.Combine(
                 _paths.BackupsDirectory,
@@ -87,6 +90,7 @@ public sealed class ConfigStore
                 Name = NicknameValidator.Normalize(config.User.Name)
             }
         };
+        // Write-then-move avoids leaving a half-written JSON file after a crash.
         var temporary = _paths.ConfigFile + ".tmp";
         var json = JsonSerializer.Serialize(normalized, JsonOptions);
         await File.WriteAllTextAsync(temporary, json, cancellationToken).ConfigureAwait(false);
@@ -176,6 +180,7 @@ internal static class ConfigMigration
 {
     public static AppConfig Migrate(JsonObject source)
     {
+        // Version 0 used flat person fields; version 1 stores nested person objects.
         var assistantName =
             source["assistantName"]?.GetValue<string>() ??
             source["assistant"]?["name"]?.GetValue<string>() ??

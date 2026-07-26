@@ -1,3 +1,4 @@
+// Shared protocol types. Keep schema and protocol numbers aligned with the C# host.
 export const RUNTIME_VERSION = "0.1.1-alpha";
 export const PROTOCOL_VERSION = 1;
 export const RUNTIME_SYMBOL = Symbol.for("mycodex.runtime.protocol.1");
@@ -111,6 +112,7 @@ export interface MyCodexRuntimeApi {
 }
 
 export function defaultConfig(): RuntimeConfig {
+  // Defaults make the bundle safe to install before the host sends user settings.
   return {
     schemaVersion: 1,
     protocolVersion: 1,

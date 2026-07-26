@@ -1,3 +1,4 @@
+// Stores structural DOM facts only; message text is deliberately excluded.
 namespace MyCodex.Compatibility;
 
 public sealed record SignatureAncestor

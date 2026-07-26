@@ -1,3 +1,4 @@
+// Converts runtime evidence into a fail-closed compatibility state.
 namespace MyCodex.Compatibility;
 
 public enum CompatibilityState
@@ -23,6 +24,7 @@ public static class CompatibilityStateMachine
 {
     public static CompatibilityState Evaluate(CompatibilityEvidence evidence)
     {
+        // Infrastructure and protocol failures take priority over visual confidence.
         if (!evidence.CdpAvailable)
         {
             return CompatibilityState.InjectionBackendUnsupported;

@@ -5,6 +5,7 @@ param(
     [string]$RuntimeIdentifier = "win-x64"
 )
 
+# Reproduces CI locally: runtime checks, .NET build/test, self-contained publish, and zip.
 $ErrorActionPreference = "Stop"
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $runtimeRoot = Join-Path $repoRoot "src\MyCodex.Runtime"
@@ -25,6 +26,7 @@ else {
 
 Push-Location $runtimeRoot
 try {
+    # China mirrors are opt-in and apply only to this process.
     if ($UseChinaMirrors) {
         & $npm ci --registry=https://registry.npmmirror.com
     }
@@ -70,6 +72,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 if (Test-Path -LiteralPath $publishRoot) {
+    # Resolve and verify the path before recursively deleting old publish output.
     $resolvedArtifacts = [System.IO.Path]::GetFullPath($artifactsRoot)
     $resolvedPublish = [System.IO.Path]::GetFullPath($publishRoot)
     if (-not $resolvedPublish.StartsWith(
@@ -92,12 +95,13 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Copy-Item -LiteralPath (Join-Path $repoRoot "README.md") -Destination $publishRoot
-Copy-Item -LiteralPath (Join-Path $repoRoot "README.zh-CN.md") -Destination $publishRoot
+Copy-Item -LiteralPath (Join-Path $repoRoot "README.en-US.md") -Destination $publishRoot
 Copy-Item -LiteralPath (Join-Path $repoRoot "PRIVACY.md") -Destination $publishRoot
 Copy-Item -LiteralPath (Join-Path $repoRoot "SECURITY.md") -Destination $publishRoot
 Copy-Item -LiteralPath (Join-Path $repoRoot "CHANGELOG.md") -Destination $publishRoot
 Copy-Item -LiteralPath (Join-Path $repoRoot "CONTRIBUTING.md") -Destination $publishRoot
 Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination $publishRoot
+# Ship architecture, compatibility, privacy, and contribution guidance with the app.
 Copy-Item -LiteralPath (Join-Path $repoRoot "docs") -Destination $publishRoot -Recurse
 
 if (Test-Path -LiteralPath $archivePath) {

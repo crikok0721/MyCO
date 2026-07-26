@@ -1,3 +1,4 @@
+// Debounces relevant DOM mutations and ignores nodes created by MyCodex itself.
 export class RuntimeObserver {
   private observer: MutationObserver | null = null;
   private refreshTimer: number | null = null;
@@ -28,6 +29,7 @@ export class RuntimeObserver {
             !node.matches("[data-mycodex-created=true]")
         );
       });
+      // Collapse a burst of streamed-message mutations into one refresh.
       if (!relevant || this.refreshTimer !== null) return;
       this.refreshTimer = window.setTimeout(() => {
         this.refreshTimer = null;

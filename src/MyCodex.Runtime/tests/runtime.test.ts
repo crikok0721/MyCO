@@ -1,3 +1,4 @@
+// Exercises installation, decoration boundaries, mutation refresh, cleanup, and self-repair.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { JSDOM } from "jsdom";

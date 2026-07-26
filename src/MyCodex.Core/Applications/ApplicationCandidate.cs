@@ -1,5 +1,7 @@
+// Describes one desktop application that MyCodex can launch or attach to.
 namespace MyCodex.Applications;
 
+// The target may be started as a normal executable or through a packaged app id.
 public enum ApplicationLaunchMethod
 {
     Executable,

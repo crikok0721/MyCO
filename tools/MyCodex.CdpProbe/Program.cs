@@ -2,6 +2,7 @@ using System.Text.Json;
 using MyCodex.Applications;
 using MyCodex.Cdp;
 
+// Standalone command-line gate for desktop discovery, CDP access, and runtime recovery.
 var options = ProbeOptions.Parse(args);
 var jsonOptions = new JsonSerializerOptions
 {
@@ -24,6 +25,7 @@ if (options.Help)
     return 0;
 }
 
+// Discovery mode is read-only and can be used before launching a dedicated probe process.
 var locator = new WindowsApplicationLocator();
 var candidates = await locator.FindCandidatesAsync();
 if (options.Discover)
@@ -59,6 +61,7 @@ object? runtimeVerification = null;
 var runtimePassed = true;
 if (result.Passed && options.Runtime is not null)
 {
+    // The extended gate injects the real bundle into a synthetic, text-only conversation DOM.
     if (!File.Exists(options.Runtime))
     {
         throw new FileNotFoundException("Runtime bundle was not found.", options.Runtime);
@@ -79,6 +82,7 @@ if (result.Passed && options.Runtime is not null)
     {
         await using var validationClient = new CdpClient();
         await validationClient.ConnectAsync(new Uri(target.WebSocketDebuggerUrl!));
+        // Replace the visible main element so tests never depend on private production DOM.
         await validationClient.SendCommandAsync(
             "Runtime.evaluate",
             new

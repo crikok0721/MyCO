@@ -1,6 +1,7 @@
 using System.Net.WebSockets;
 using System.Text.Json;
 
+// Minimal Chrome DevTools Protocol client used for one renderer WebSocket.
 namespace MyCodex.Cdp;
 
 public interface ICdpClient : IAsyncDisposable
@@ -45,6 +46,7 @@ public sealed class CdpClient : ICdpClient
             throw new InvalidOperationException("CDP WebSocket is not connected.");
         }
 
+        // CDP replies carry the request id, while messages without an id are events.
         var id = Interlocked.Increment(ref _nextId);
         var completion = _correlator.Register(id);
 
@@ -113,6 +115,7 @@ public sealed class CdpClient : ICdpClient
 
     private async Task ReceiveLoopAsync(CancellationToken cancellationToken)
     {
+        // WebSocket messages may arrive in several frames, so assemble one JSON payload first.
         var buffer = new byte[64 * 1024];
         using var message = new MemoryStream();
 
@@ -141,6 +144,7 @@ public sealed class CdpClient : ICdpClient
             {
                 continue;
             }
+            // Unmatched messages are CDP events such as Runtime.bindingCalled.
             EventReceived?.Invoke(this, root);
         }
     }

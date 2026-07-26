@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using MyCodex.Manager.ViewModels;
 
+// Code-behind is limited to window chrome and orderly asynchronous shutdown.
 namespace MyCodex.Manager.Views;
 
 public partial class MainWindow : Window
@@ -43,6 +44,7 @@ public partial class MainWindow : Window
 
     protected override async void OnClosing(CancelEventArgs eventArgs)
     {
+        // Delay the real close until CDP sessions and their background monitor are disposed.
         if (_allowClose)
         {
             base.OnClosing(eventArgs);

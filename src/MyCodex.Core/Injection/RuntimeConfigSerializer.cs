@@ -2,6 +2,7 @@ using System.Text.Json;
 using MyCodex.Avatars;
 using MyCodex.Configuration;
 
+// Produces the small JSON object consumed by the in-page TypeScript runtime.
 namespace MyCodex.Injection;
 
 public static class RuntimeConfigSerializer
@@ -14,6 +15,7 @@ public static class RuntimeConfigSerializer
         string bindingName,
         CancellationToken cancellationToken = default)
     {
+        // Renderer pages cannot read the local avatar files, so inline them as data URLs.
         var assistantAvatar = await AvatarService.ToDataUrlAsync(
             config.Assistant.Avatar,
             cancellationToken).ConfigureAwait(false);

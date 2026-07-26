@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 
+// Wire models for the loopback CDP discovery endpoints and feasibility reports.
 namespace MyCodex.Cdp;
 
 public sealed record CdpVersionInfo(

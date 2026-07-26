@@ -1,6 +1,7 @@
 using MyCodex.Cdp;
 using MyCodex.Configuration;
 
+// Separates session orchestration from the concrete CDP injection mechanism.
 namespace MyCodex.Injection;
 
 public interface IInjectionBackend

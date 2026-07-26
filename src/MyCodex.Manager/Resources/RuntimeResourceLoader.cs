@@ -1,5 +1,6 @@
 using System.Reflection;
 
+// Reads the bundled JavaScript runtime that is embedded by MyCodex.Manager.csproj.
 namespace MyCodex.Manager.Resources;
 
 internal static class RuntimeResourceLoader

@@ -2,6 +2,7 @@ using System.Text.Json;
 using MyCodex.Cdp;
 using MyCodex.Configuration;
 
+// Installs the browser runtime into one renderer and verifies the protocol handshake.
 namespace MyCodex.Injection;
 
 public sealed class RuntimeInjector
@@ -24,6 +25,7 @@ public sealed class RuntimeInjector
                 "Target has no valid WebSocket debugger URL.");
         }
 
+        // A unique binding prevents page code from guessing another session's channel name.
         var bindingName = $"__mc_host_{Guid.NewGuid():N}";
         var client = new CdpClient();
         try
@@ -52,6 +54,7 @@ public sealed class RuntimeInjector
                 cancellationToken: cancellationToken).ConfigureAwait(false);
 
             var source = BuildBootstrapSource(runtimeScript, configJson);
+            // Register for future navigations before evaluating in the current document.
             var registration = await client.SendCommandAsync(
                 "Page.addScriptToEvaluateOnNewDocument",
                 new { source },
@@ -103,6 +106,7 @@ public sealed class RuntimeInjector
         CancellationToken cancellationToken)
     {
         Exception? lastError = null;
+        // Runtime installation and DOM readiness can cross a few event-loop turns.
         for (var attempt = 0; attempt < 20; attempt++)
         {
             try

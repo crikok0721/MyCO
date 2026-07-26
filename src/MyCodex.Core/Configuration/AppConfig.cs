@@ -1,5 +1,6 @@
 using MyCodex.Compatibility;
 
+// Defines the versioned settings shared by the WPF manager and browser runtime.
 namespace MyCodex.Configuration;
 
 public sealed record PersonConfig

@@ -1,6 +1,7 @@
 import { createSignature } from "./matcher.js";
 import type { MessageRole } from "./types.js";
 
+// Lets the user click one visible turn and converts it into a text-free DOM signature.
 export class CalibrationController {
   private hovered: Element | null = null;
   private active = false;
@@ -45,6 +46,7 @@ export class CalibrationController {
     if (!this.active) return;
     const selected = resolveCalibrationRoot(event.composedPath()) ?? this.hovered;
     if (!selected) return;
+    // Calibration clicks must not trigger the desktop application's own action.
     event.preventDefault();
     event.stopImmediatePropagation();
     const signature = createSignature(selected);
@@ -80,6 +82,7 @@ export function resolveCalibrationRoot(path: EventTarget[]): Element | null {
   const elements = path.filter(
     (item): item is Element => item instanceof Element
   );
+  // Prefer an explicit message container; otherwise rank nearby structural ancestors.
   const semantic = elements.find(
     (element) =>
       !element.matches(EXCLUDED_CALIBRATION_TARGETS) &&

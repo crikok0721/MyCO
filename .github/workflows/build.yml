@@ -62,7 +62,7 @@ jobs:
       - name: Add release documents
         shell: pwsh
         run: |
-          Copy-Item README.md, README.zh-CN.md, PRIVACY.md, SECURITY.md, `
+          Copy-Item README.md, README.en-US.md, PRIVACY.md, SECURITY.md, `
             CHANGELOG.md, CONTRIBUTING.md, LICENSE -Destination artifacts/MyCodex-win-x64
           Copy-Item docs -Destination artifacts/MyCodex-win-x64 -Recurse
 

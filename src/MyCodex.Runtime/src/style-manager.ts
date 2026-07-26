@@ -1,11 +1,13 @@
 import type { AppearanceConfig } from "./types.js";
 
+// Owns one style element and the CSS variables used by all runtime decorations.
 const STYLE_ID = "mycodex-runtime-style";
 
 export class StyleManager {
   private styleElement: HTMLStyleElement | null = null;
 
   install(document: Document, appearance: AppearanceConfig): void {
+    // Installation is idempotent because health checks may call it after navigation.
     this.styleElement = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
     if (!this.styleElement) {
       this.styleElement = document.createElement("style");
@@ -67,6 +69,7 @@ export class StyleManager {
 }
 
 function runtimeCss(): string {
+  // Assistant prose receives a bubble; user turns keep the desktop application's native bubble.
   return `
 :root {
   --mc-avatar-size: 40px;

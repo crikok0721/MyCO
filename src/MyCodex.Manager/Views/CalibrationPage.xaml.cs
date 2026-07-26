@@ -1,3 +1,4 @@
+// Calibration UI is declarative; the renderer-selection workflow lives in the view model.
 namespace MyCodex.Manager.Views;
 
 public partial class CalibrationPage : System.Windows.Controls.UserControl

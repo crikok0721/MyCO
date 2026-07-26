@@ -1,5 +1,6 @@
 using System.Text.Json;
 
+// Typed messages exchanged between the WPF host and the injected page runtime.
 namespace MyCodex.Injection;
 
 public sealed record RuntimeHostEvent(

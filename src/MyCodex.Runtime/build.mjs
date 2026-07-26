@@ -1,5 +1,6 @@
 import { build } from "esbuild";
 
+// Bundle the TypeScript runtime into one self-contained script embedded by the WPF project.
 await build({
   entryPoints: ["src/index.ts"],
   outfile: "dist/mycodex.runtime.js",

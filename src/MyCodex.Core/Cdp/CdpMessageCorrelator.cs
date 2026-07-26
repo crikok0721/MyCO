@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 
+// Matches asynchronous CDP replies to the command task that is waiting for them.
 namespace MyCodex.Cdp;
 
 public sealed class CdpMessageCorrelator
@@ -10,6 +11,7 @@ public sealed class CdpMessageCorrelator
 
     public Task<JsonElement> Register(long id)
     {
+        // Run continuations asynchronously so the receive loop is never blocked by callers.
         var completion = new TaskCompletionSource<JsonElement>(
             TaskCreationOptions.RunContinuationsAsynchronously);
         if (!_pending.TryAdd(id, completion))

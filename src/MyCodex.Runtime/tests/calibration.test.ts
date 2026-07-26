@@ -1,3 +1,4 @@
+// Covers event-path selection so calibration chooses the whole turn, not a text leaf.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { JSDOM } from "jsdom";

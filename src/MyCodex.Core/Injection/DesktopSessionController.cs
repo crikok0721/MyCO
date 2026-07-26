@@ -5,6 +5,7 @@ using MyCodex.Configuration;
 using MyCodex.Diagnostics;
 using MyCodex.Discovery;
 
+// Owns the desktop process, renderer sessions, reinjection monitor, and visible session state.
 namespace MyCodex.Injection;
 
 public sealed record DesktopSessionState(
@@ -24,6 +25,7 @@ public sealed class DesktopSessionController : IAsyncDisposable
     private readonly IPrivacySafeLogger _logger;
     private readonly Dictionary<string, RuntimeTargetSession> _sessions =
         new(StringComparer.Ordinal);
+    // Renderer discovery runs in the background, so every access to _sessions is serialized.
     private readonly SemaphoreSlim _gate = new(1, 1);
     private CancellationTokenSource? _monitorCancellation;
     private Task? _monitorTask;
@@ -57,6 +59,7 @@ public sealed class DesktopSessionController : IAsyncDisposable
         AppConfig config,
         CancellationToken cancellationToken = default)
     {
+        // CDP flags only take effect at process start; attaching to a normal process will fail.
         if (candidate.IsRunning)
         {
             throw new ApplicationAlreadyRunningException(candidate);
@@ -94,6 +97,7 @@ public sealed class DesktopSessionController : IAsyncDisposable
 
         await WaitForEndpointAsync(_port.Value, cancellationToken).ConfigureAwait(false);
         await RefreshSessionsAsync(cancellationToken).ConfigureAwait(false);
+        // New renderer targets can appear after navigation, so keep discovery running.
         _monitorCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _monitorTask = MonitorAsync(_monitorCancellation.Token);
     }
@@ -136,6 +140,7 @@ public sealed class DesktopSessionController : IAsyncDisposable
         {
             _gate.Release();
         }
+        // Destroy outside the lock because CDP calls can take time or fail during navigation.
         foreach (var session in sessions)
         {
             await session.DestroyAsync(cancellationToken).ConfigureAwait(false);
@@ -271,6 +276,7 @@ public sealed class DesktopSessionController : IAsyncDisposable
 
     private async Task MonitorAsync(CancellationToken cancellationToken)
     {
+        // A small polling loop repairs renderer replacement without touching the desktop process.
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1.5));
         while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -295,6 +301,7 @@ public sealed class DesktopSessionController : IAsyncDisposable
         }
         var targets = await _targetDiscovery.DiscoverAsync(_port.Value, cancellationToken)
             .ConfigureAwait(false);
+        // The score threshold deliberately rejects uncertain/background renderers.
         var eligible = targets
             .Where(candidate => candidate.Score >= 55 && candidate.Target.Id is not null)
             .ToDictionary(candidate => candidate.Target.Id!, candidate => candidate);
@@ -333,6 +340,7 @@ public sealed class DesktopSessionController : IAsyncDisposable
 
             if (existing is not null)
             {
+                // Health checks repair lost style/observer state before a full reinjection.
                 var healthy = false;
                 try
                 {
@@ -366,6 +374,7 @@ public sealed class DesktopSessionController : IAsyncDisposable
                 await existing.DestroyAsync(CancellationToken.None).ConfigureAwait(false);
             }
 
+            // Only missing or unhealthy sessions reach this injection path.
             var result = await _injectionBackend.InjectAsync(
                 pair.Value.Target,
                 _runtimeScript,

@@ -2,10 +2,12 @@ using System.Text.Json;
 using MyCodex.Cdp;
 using MyCodex.Configuration;
 
+// Represents one live renderer and serializes every CDP operation performed on it.
 namespace MyCodex.Injection;
 
 public sealed class RuntimeTargetSession : IAsyncDisposable
 {
+    // Page-supplied messages are untrusted; forward only the documented event names.
     private static readonly HashSet<string> AllowedEvents =
         new(StringComparer.Ordinal)
         {
@@ -49,6 +51,7 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
             config,
             _bindingName,
             cancellationToken).ConfigureAwait(false);
+        // Configuration, health repair, and teardown must not overlap on one WebSocket.
         await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -82,6 +85,7 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
     private async Task ReplaceNewDocumentScriptAsync(
         CancellationToken cancellationToken)
     {
+        // Replace the registered source so the latest config survives future navigations.
         if (!string.IsNullOrWhiteSpace(NewDocumentScriptId))
         {
             await _client.SendCommandAsync(
@@ -208,6 +212,7 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
     {
         try
         {
+            // Only Runtime.bindingCalled for this session can cross into the manager.
             if (message.GetProperty("method").GetString() != "Runtime.bindingCalled")
             {
                 return;
@@ -240,6 +245,7 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
 
     private async Task<bool> EnsureActiveCoreAsync(CancellationToken cancellationToken)
     {
+        // Try the cheap self-repair API first; reload the bundle only when it is absent.
         if (await EvaluateHealthAsync(cancellationToken).ConfigureAwait(false))
         {
             return true;

@@ -5,6 +5,7 @@ import {
   type RuntimeDiagnostics
 } from "./types.js";
 
+// Tracks technical health counters only; it never stores message or DOM text.
 export class Diagnostics {
   private state: RuntimeDiagnostics = {
     version: RUNTIME_VERSION,
@@ -55,6 +56,7 @@ export class Diagnostics {
       error instanceof Error
         ? `${error.name}: ${error.message}`.slice(0, 240)
         : String(error).slice(0, 240);
+    // Keep only the ten most recent short errors to bound diagnostics size.
     this.state.errors = [
       ...this.state.errors.slice(-9),
       { code, message: safeMessage, at: new Date().toISOString() }

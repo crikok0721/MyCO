@@ -3,6 +3,7 @@ using Drawing = System.Drawing;
 using MyCodex.Manager.ViewModels;
 using MyCodex.Manager.Views;
 
+// Owns the Windows notification-area icon and forwards menu actions to the view model.
 namespace MyCodex.Manager.Services;
 
 internal sealed class TrayService : IDisposable
@@ -52,6 +53,7 @@ internal sealed class TrayService : IDisposable
 
     private void ShowWindow()
     {
+        // Tray callbacks are WinForms events; switch to WPF's UI dispatcher before touching Window.
         _window.Dispatcher.Invoke(() =>
         {
             if (!_window.IsVisible)

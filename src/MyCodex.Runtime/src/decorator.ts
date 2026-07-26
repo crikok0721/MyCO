@@ -1,6 +1,7 @@
 import { isInteractiveOrTool } from "./dom-utils.js";
 import type { MessageRole, RuntimeConfig } from "./types.js";
 
+// Adds MyCodex-owned identity/prose markers while preserving native tool controls.
 const PROSE_SELECTOR = [
   "p",
   "blockquote",
@@ -17,6 +18,7 @@ const PROSE_SELECTOR = [
 
 export class Decorator {
   decorate(turn: Element, role: MessageRole, config: RuntimeConfig): boolean {
+    // Repeated scans are expected; update existing decorations without duplicating nodes.
     if (turn.getAttribute("data-mycodex-role") === role) {
       this.updateIdentity(turn, role, config);
       if (role === "assistant") this.decorateProse(turn, role);
@@ -87,6 +89,7 @@ export class Decorator {
   }
 
   reconcile(root: ParentNode, activeTurns: ReadonlySet<Element>): void {
+    // Remove stale markers after virtualized or replaced conversation nodes disappear.
     for (const turn of Array.from(root.querySelectorAll("[data-mycodex-turn]"))) {
       if (!activeTurns.has(turn)) this.undecorate(turn);
     }
@@ -118,6 +121,7 @@ export class Decorator {
 
 function findProseBlocks(turn: Element): Element[] {
   const candidates = Array.from(turn.querySelectorAll(PROSE_SELECTOR));
+  // Bubble prose only. Code, tools, approvals, and buttons keep their native UI.
   const safe = candidates.filter((element) => {
     if (element.closest(".mc-nickname,.mc-avatar")) return false;
     if (isInteractiveOrTool(element)) return false;

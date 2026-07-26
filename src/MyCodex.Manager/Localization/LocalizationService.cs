@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using MyCodex.Configuration;
 
+// Swaps WPF resource dictionaries at runtime and exposes localized string helpers.
 namespace MyCodex.Manager.Localization;
 
 public sealed record LanguageOption(string Code, string DisplayName);
@@ -32,6 +33,7 @@ public static class LocalizationService
             return;
         }
 
+        // Replace exactly one language dictionary while preserving theme resources.
         var dictionaries = resources.MergedDictionaries;
         var current = dictionaries.FirstOrDefault(
             dictionary => dictionary.Source?.OriginalString.StartsWith(

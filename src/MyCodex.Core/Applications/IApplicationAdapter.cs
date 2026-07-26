@@ -1,3 +1,4 @@
+// Maps a discovered desktop application to the arguments needed to expose local CDP.
 namespace MyCodex.Applications;
 
 public interface IApplicationAdapter
@@ -70,6 +71,7 @@ public sealed class ApplicationAdapterCatalog
 
     public IApplicationAdapter? Select(ApplicationCandidate candidate)
     {
+        // Adapters score the same candidate independently; the highest positive score wins.
         return _adapters
             .Select(adapter => (Adapter: adapter, Score: adapter.Score(candidate)))
             .Where(result => result.Score > 0)

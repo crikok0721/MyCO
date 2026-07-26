@@ -1,6 +1,7 @@
 import { findBySignature } from "./matcher.js";
 import type { CalibrationConfig } from "./types.js";
 
+// Finds a bounded, non-overlapping set of likely conversation turn elements.
 const SEMANTIC_TURN_SELECTOR = [
   "[data-message-author-role]",
   "[data-role=user]",
@@ -14,6 +15,7 @@ const SEMANTIC_TURN_SELECTOR = [
 ].join(",");
 
 export function findConversationRoot(document: Document): ParentNode {
+  // Prefer semantic containers and always fall back to a connected document node.
   return (
     document.querySelector(
       "main,[role=main],[data-testid*=conversation],[data-content-type=conversation]"
@@ -27,6 +29,7 @@ export function scanTurnCandidates(
   root: ParentNode,
   calibration: CalibrationConfig
 ): Element[] {
+  // Native semantic candidates win; calibration fills gaps without creating nested duplicates.
   const nativeCandidates = new Set<Element>(
     Array.from(root.querySelectorAll(SEMANTIC_TURN_SELECTOR))
       .filter(isPlausibleTurn)
@@ -56,6 +59,7 @@ export function scanTurnCandidates(
   return Array.from(candidates)
     .filter((element) => !element.closest("[data-mycodex-inspector]"))
     .filter((element) => !hasCandidateAncestor(element, candidates))
+    // Bound the scan so malformed pages cannot make each refresh unreasonably expensive.
     .slice(0, 800);
 }
 

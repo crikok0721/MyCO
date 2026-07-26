@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 
+// Keeps all language dictionaries structurally identical and free of stale alpha labels.
 namespace MyCodex.Tests;
 
 public sealed partial class LocalizationResourceTests

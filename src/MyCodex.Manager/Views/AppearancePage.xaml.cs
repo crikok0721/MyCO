@@ -1,3 +1,4 @@
+// Appearance UI is declarative; all actions and state live in MainWindowViewModel.
 namespace MyCodex.Manager.Views;
 
 public partial class AppearancePage : System.Windows.Controls.UserControl

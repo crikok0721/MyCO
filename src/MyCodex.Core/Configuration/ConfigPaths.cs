@@ -1,3 +1,4 @@
+// Centralizes every per-user file under %APPDATA%\MyCodex by default.
 namespace MyCodex.Configuration;
 
 public sealed class ConfigPaths

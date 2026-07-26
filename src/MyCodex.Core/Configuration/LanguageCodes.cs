@@ -1,3 +1,4 @@
+// Provides canonical language codes so config and WPF resource names stay in sync.
 namespace MyCodex.Configuration;
 
 public static class LanguageCodes

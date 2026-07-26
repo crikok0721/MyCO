@@ -1,3 +1,4 @@
+// Privacy-safe DOM helpers used by calibration, matching, and tool-surface protection.
 const GENERATED_PATTERNS = [
   /^css-[a-z0-9]{5,}$/i,
   /^_[a-z0-9]{6,}$/i,
@@ -34,6 +35,7 @@ export function stableAttributes(element: Element): Record<string, string> {
   const result: Record<string, string> = {};
   for (const attribute of Array.from(element.attributes)) {
     if (attribute.name.startsWith("data-mycodex")) continue;
+    // Keep only short semantic metadata; never include arbitrary attributes or text.
     const keep =
       SAFE_ATTRIBUTE_NAMES.has(attribute.name) ||
       (attribute.name.startsWith("data-") &&
@@ -56,6 +58,7 @@ export function childTagHistogram(element: Element): Record<string, number> {
 }
 
 export function structuralFingerprint(element: Element): string {
+  // The fingerprint describes shape and capabilities, not message contents.
   const attributes = Object.entries(stableAttributes(element))
     .map(([key, value]) => `${key}=${value}`)
     .join("|");
@@ -95,6 +98,7 @@ export function layoutOf(element: Element): {
 }
 
 export function isInteractiveOrTool(element: Element): boolean {
+  // Tool and action surfaces must remain native even when nested inside a message turn.
   if (element.matches("pre,code,button,input,textarea,select,[contenteditable=true]")) {
     return true;
   }

@@ -1,3 +1,4 @@
+<!-- Technical, privacy-filtered session diagnostics; no conversation content is shown. -->
 <UserControl x:Class="MyCodex.Manager.Views.DiagnosticsPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
@@ -17,6 +18,7 @@
                     Command="{Binding RefreshDiagnosticsCommand}"
                     Style="{StaticResource PrimaryButton}" Width="108" />
         </DockPanel>
+        <!-- At-a-glance connection, runtime, and calibration state -->
         <Grid Grid.Row="1" Margin="0,22,0,14">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition />
@@ -56,6 +58,7 @@
                 </StackPanel>
             </Border>
         </Grid>
+        <!-- Copy-friendly JSON produced only when the user clicks Refresh. -->
         <TextBox Grid.Row="2" Text="{Binding DiagnosticsText}"
                  IsReadOnly="True" AcceptsReturn="True"
                  FontFamily="Cascadia Mono,Consolas" FontSize="12"

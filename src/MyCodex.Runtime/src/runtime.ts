@@ -18,6 +18,7 @@ import {
   type RuntimeVersion
 } from "./types.js";
 
+// Coordinates style, scanning, decoration, calibration, diagnostics, and self-repair.
 export class MyCodexRuntime implements MyCodexRuntimeApi {
   private config: RuntimeConfig = defaultConfig();
   private readonly styles = new StyleManager();
@@ -54,6 +55,7 @@ export class MyCodexRuntime implements MyCodexRuntimeApi {
   }
 
   ensureActive(): RuntimeHealth {
+    // Renderer navigation can replace the root or remove injected style; repair both in place.
     let repaired = false;
     if (!this.installed) {
       this.install();
@@ -90,6 +92,7 @@ export class MyCodexRuntime implements MyCodexRuntimeApi {
       if (!this.styles.isInstalled(this.document)) {
         this.styles.install(this.document, this.config.appearance);
       }
+      // Every refresh rebuilds the active set, then removes decorations from stale matches.
       const candidates = scanTurnCandidates(this.root, this.config.calibration);
       const activeTurns = new Set<Element>();
       let userTurns = 0;
@@ -137,6 +140,7 @@ export class MyCodexRuntime implements MyCodexRuntimeApi {
   }
 
   applyConfig(config: RuntimeConfig): RuntimeDiagnostics {
+    // Clone host data so later page mutations cannot change the saved configuration object.
     validateConfig(config);
     this.config = structuredClone(config);
     this.bridge.updateBinding(config.bridgeBindingName);

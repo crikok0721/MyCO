@@ -6,6 +6,7 @@ import {
   type MyCodexRuntimeApi
 } from "./types.js";
 
+// Browser entry point that installs exactly one compatible runtime per renderer realm.
 declare global {
   interface Window {
     __MYCODEX_RUNTIME__?: MyCodexRuntimeApi;
@@ -17,6 +18,7 @@ export function bootstrap(document: Document = globalThis.document): MyCodexRunt
   const registry = realm as unknown as Record<PropertyKey, unknown>;
   const existing = registry[RUNTIME_SYMBOL] as MyCodexRuntimeApi | undefined;
   if (existing) {
+    // Reuse the same build; tear down an older build before replacing its global API.
     const version = existing.getVersion?.();
     if (
       version?.version === RUNTIME_VERSION &&

@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using MyCodex.Cdp;
 
+// Ranks CDP renderer targets so injection avoids background and DevTools pages.
 namespace MyCodex.Discovery;
 
 public sealed record TargetCandidate(
@@ -38,6 +39,7 @@ public sealed class TargetDiscoveryService
         CancellationToken cancellationToken = default)
     {
         var results = new List<TargetCandidate>();
+        // Inspect candidate documents instead of trusting target titles alone.
         foreach (var target in await ListTargetsAsync(port, cancellationToken)
                      .ConfigureAwait(false))
         {

@@ -1,3 +1,4 @@
+<!-- Version, privacy, compatibility, license, and local-data entry point. -->
 <UserControl x:Class="MyCodex.Manager.Views.AboutPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">

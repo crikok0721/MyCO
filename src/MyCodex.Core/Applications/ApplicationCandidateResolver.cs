@@ -1,3 +1,4 @@
+// Keeps application selection stable when Windows reports several versions or paths.
 namespace MyCodex.Applications;
 
 public static class ApplicationCandidateResolver
@@ -8,6 +9,7 @@ public static class ApplicationCandidateResolver
     {
         var candidates = currentCandidates.ToArray();
         var stableKey = StableKey(previous);
+        // Prefer the same package or executable. Process name alone is only a fallback.
         var stableMatches = candidates
             .Where(candidate => string.Equals(
                 StableKey(candidate),
@@ -30,6 +32,7 @@ public static class ApplicationCandidateResolver
     public static IReadOnlyList<ApplicationCandidate> CollapseVersions(
         IEnumerable<ApplicationCandidate> candidates)
     {
+        // One visible entry per installation keeps the application picker predictable.
         return candidates
             .GroupBy(StableKey, StringComparer.OrdinalIgnoreCase)
             .Select(group => Best(group))
@@ -44,6 +47,7 @@ public static class ApplicationCandidateResolver
 
     public static string StableKey(ApplicationCandidate candidate)
     {
+        // Package family is stable across MSIX version upgrades.
         if (candidate.LaunchTarget?.StartsWith(
                 "shell:AppsFolder\\",
                 StringComparison.OrdinalIgnoreCase) == true)
@@ -68,6 +72,7 @@ public static class ApplicationCandidateResolver
     private static ApplicationCandidate Best(
         IEnumerable<ApplicationCandidate> candidates)
     {
+        // A real path and a running instance are stronger signals than a registry entry.
         return candidates
             .OrderByDescending(candidate =>
                 !string.IsNullOrWhiteSpace(candidate.ExecutablePath) &&

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using MyCodex.Compatibility;
 
+// Verifies fail-closed state transitions and structural signature scoring.
 namespace MyCodex.Tests;
 
 public sealed class CompatibilityTests

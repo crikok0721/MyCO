@@ -12,6 +12,7 @@ using MyCodex.Injection;
 using MyCodex.Manager.Localization;
 using MyCodex.Manager.Resources;
 
+// Main MVVM coordinator that connects WPF controls to config, discovery, and CDP sessions.
 namespace MyCodex.Manager.ViewModels;
 
 public enum ManagerPage
@@ -34,6 +35,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly ApplicationAdapterCatalog _adapters = new();
     private readonly ApplicationRestartService _restartService = new();
     private readonly DesktopSessionController _controller;
+    // Language changes, calibration, and the Save button can race; serialize disk writes.
     private readonly SemaphoreSlim _configSaveGate = new(1, 1);
     private CalibrationConfig _calibration = new();
     private AppConfig _persistedConfig = AppConfig.Default;
@@ -66,6 +68,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public MainWindowViewModel()
     {
+        // Keep service construction here so the views contain no business logic.
         _configStore = new ConfigStore(_paths);
         _avatarService = new AvatarService(_paths.AvatarsDirectory);
         _controller = new DesktopSessionController(RuntimeResourceLoader.Load());
@@ -134,6 +137,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             {
                 return;
             }
+            // Change the UI immediately; persistence follows only after initialization.
             LocalizationService.ApplyLanguage(value.Code);
             RefreshLocalizedProperties();
             if (_initialized)
@@ -348,6 +352,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public async Task InitializeAsync()
     {
+        // Load local state before detection so first-run and recovery messages are accurate.
         var load = await _configStore.LoadAsync().ConfigureAwait(true);
         WasFirstRun = load.WasCreated;
         _persistedConfig = load.Config;
@@ -396,6 +401,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var candidate = SelectedCandidate
                         ?? throw new InvalidOperationException("No Desktop candidate is selected.");
         candidate = await RefreshCandidateAsync(candidate).ConfigureAwait(true);
+        // Chromium reads CDP flags only at launch, so an ordinary running instance must restart.
         if (candidate.IsRunning)
         {
             var restart = System.Windows.MessageBox.Show(
@@ -442,6 +448,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
         catch (FileNotFoundException)
         {
+            // Store/MSIX upgrades can replace the executable path between detection and launch.
             SetStatus("StatusRefreshingDesktopEntry");
             candidate = await RefreshCandidateAsync(candidate).ConfigureAwait(true);
             adapter = _adapters.Select(candidate)
@@ -490,6 +497,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private async Task PickAvatarAsync(bool assistant)
     {
+        // AvatarService validates content and copies it into the managed data directory.
         var picker = new Microsoft.Win32.OpenFileDialog
         {
             Title = LocalizationService.Get(
@@ -518,6 +526,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private async Task RefreshDiagnosticsAsync()
     {
+        // Export technical metadata only; runtime diagnostics never contain conversation text.
         var runtime = _controller.State.IsConnected
             ? await _controller.GetDiagnosticsAsync().ConfigureAwait(true)
             : [];
@@ -605,6 +614,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void LoadConfig(AppConfig config)
     {
+        // Assign through properties so every bound preview label refreshes consistently.
         var language = LocalizationService.SupportedLanguages.First(
             option => string.Equals(
                 option.Code,
@@ -632,6 +642,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private async Task GuardAsync(Func<Task> operation, string contextKey)
     {
+        // UI commands share one localized error boundary instead of crashing the dispatcher.
         try
         {
             await operation().ConfigureAwait(true);
@@ -650,6 +661,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void HandleStateChanged(object? sender, DesktopSessionState state)
     {
+        // CDP monitoring runs off the UI thread; WPF-bound properties must update on Dispatcher.
         System.Windows.Application.Current.Dispatcher.Invoke(() =>
         {
             SessionState = state;
@@ -663,6 +675,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             return;
         }
+        // Calibration originates in the renderer and is persisted back on the UI thread.
         _ = System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
         {
             try

@@ -1,3 +1,4 @@
+// Normalizes display names before they are persisted or sent into the page runtime.
 namespace MyCodex.Configuration;
 
 public static class NicknameValidator

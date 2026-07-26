@@ -1,3 +1,4 @@
+// WPF assembly-level theme and metadata attributes live in this file.
 using System.Windows;
 
 [assembly:ThemeInfo(

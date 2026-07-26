@@ -7,6 +7,7 @@ import {
 } from "./dom-utils.js";
 import type { ElementSignature } from "./types.js";
 
+// Creates and scores text-free DOM signatures for calibration-based recovery.
 export function createSignature(element: Element): ElementSignature {
   const ancestors: ElementSignature["ancestorChain"] = [];
   let current = element.parentElement;
@@ -44,6 +45,7 @@ export function scoreSignature(
   let score = 0;
   let weight = 0;
 
+  // Weighted partial matches tolerate small upstream DOM changes.
   add(signature.tagName === candidate.tagName, 0.13);
   add(signature.role === candidate.role, signature.role ? 0.12 : 0.04);
 
@@ -123,6 +125,7 @@ export function findBySignature(
   const selector = signature.role
     ? `${signature.tagName}[role="${escapeAttribute(signature.role)}"],${signature.tagName}`
     : signature.tagName;
+  // Cap work per refresh so a bad calibration cannot scan an unbounded document.
   const candidates = Array.from(root.querySelectorAll(selector)).slice(0, 600);
   return candidates
     .map((element) => ({ element, confidence: scoreSignature(signature, element) }))

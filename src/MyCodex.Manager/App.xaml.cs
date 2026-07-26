@@ -7,6 +7,7 @@ using MyCodex.Manager.Localization;
 using MyCodex.Manager.ViewModels;
 using MyCodex.Manager.Views;
 
+// WPF application entry point: language, single-instance guard, setup, and main window.
 namespace MyCodex.Manager;
 
 public partial class App : System.Windows.Application
@@ -17,6 +18,7 @@ public partial class App : System.Windows.Application
     protected override async void OnStartup(StartupEventArgs eventArgs)
     {
         base.OnStartup(eventArgs);
+        // Apply language before any window is created so startup dialogs are localized too.
         TryApplyStoredLanguage();
         _singleInstance = new Mutex(
             initiallyOwned: true,
@@ -35,6 +37,7 @@ public partial class App : System.Windows.Application
 
         try
         {
+            // Keep the app alive while the first-run dialog temporarily owns the UI.
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
             var viewModel = new MainWindowViewModel();
             await viewModel.InitializeAsync();
@@ -70,6 +73,7 @@ public partial class App : System.Windows.Application
 
     private static void TryApplyStoredLanguage()
     {
+        // This lightweight read avoids constructing ConfigStore before the single-instance check.
         try
         {
             var path = new ConfigPaths().ConfigFile;

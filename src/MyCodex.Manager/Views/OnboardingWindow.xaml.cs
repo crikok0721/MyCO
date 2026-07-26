@@ -1,6 +1,7 @@
 using System.Windows;
 using MyCodex.Manager.ViewModels;
 
+// First-run dialog; it shares the main view model so language changes persist immediately.
 namespace MyCodex.Manager.Views;
 
 public partial class OnboardingWindow : Window

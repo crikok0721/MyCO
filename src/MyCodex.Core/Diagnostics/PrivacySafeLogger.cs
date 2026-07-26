@@ -1,5 +1,6 @@
 using System.Text.Json;
 
+// Writes local JSONL diagnostics with an allow-list and basic secret redaction.
 namespace MyCodex.Diagnostics;
 
 public interface IPrivacySafeLogger
@@ -37,6 +38,7 @@ public sealed class PrivacySafeLogger : IPrivacySafeLogger
         string eventName,
         IReadOnlyDictionary<string, object?>? properties = null)
     {
+        // Unknown property names are dropped so callers cannot accidentally log chat data.
         var safeProperties = properties?
             .Where(pair => AllowedPropertyNames.Contains(pair.Key))
             .ToDictionary(pair => pair.Key, pair => pair.Value);
@@ -73,6 +75,7 @@ public sealed class PrivacySafeLogger : IPrivacySafeLogger
 
     private static string Sanitize(string value)
     {
+        // Redaction is defense in depth; callers should still pass only technical metadata.
         var result = value;
         result = System.Text.RegularExpressions.Regex.Replace(
             result,

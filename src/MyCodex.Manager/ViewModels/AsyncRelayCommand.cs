@@ -1,5 +1,6 @@
 using System.Windows.Input;
 
+// ICommand wrapper for async UI actions; disables itself while the task is running.
 namespace MyCodex.Manager.ViewModels;
 
 internal sealed class AsyncRelayCommand : ICommand
@@ -21,6 +22,7 @@ internal sealed class AsyncRelayCommand : ICommand
 
     public async void Execute(object? parameter)
     {
+        // ICommand requires void; exceptions are handled by the view model's GuardAsync wrapper.
         if (!CanExecute(parameter))
         {
             return;

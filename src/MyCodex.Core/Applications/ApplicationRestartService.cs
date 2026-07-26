@@ -1,5 +1,6 @@
 using System.Diagnostics;
 
+// Restarts only the selected desktop installation, never every process with the same name.
 namespace MyCodex.Applications;
 
 public sealed class ApplicationRestartService
@@ -18,6 +19,7 @@ public sealed class ApplicationRestartService
             }
         }
 
+        // Give the app time to save its own state before offering a forced close.
         var deadline = DateTimeOffset.UtcNow + timeout;
         while (DateTimeOffset.UtcNow < deadline)
         {
@@ -65,6 +67,7 @@ public sealed class ApplicationRestartService
                 process.Dispose();
                 continue;
             }
+            // Child renderer processes have no main window and must not be treated as roots.
             if (path?.Equals(
                     candidate.ExecutablePath,
                     StringComparison.OrdinalIgnoreCase) == true &&

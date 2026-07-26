@@ -1,5 +1,6 @@
 using MyCodex.Applications;
 
+// Verifies discovery scoring, stable selection, and application adapter behavior.
 namespace MyCodex.Tests;
 
 public sealed class ApplicationTests

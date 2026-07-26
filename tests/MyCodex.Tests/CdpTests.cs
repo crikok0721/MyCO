@@ -2,6 +2,7 @@ using System.Text.Json;
 using MyCodex.Cdp;
 using MyCodex.Injection;
 
+// Verifies CDP reply correlation and safe runtime bootstrap source generation.
 namespace MyCodex.Tests;
 
 public sealed class CdpTests

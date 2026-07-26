@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
+// Small INotifyPropertyChanged base used by every bindable view-model property.
 namespace MyCodex.Manager.ViewModels;
 
 public abstract class ObservableObject : INotifyPropertyChanged

@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 
+// Compares calibrated DOM structure while ignoring unstable generated class names.
 namespace MyCodex.Compatibility;
 
 public static partial class SignatureMatcher
@@ -18,6 +19,7 @@ public static partial class SignatureMatcher
         var score = 0d;
         var weight = 0d;
 
+        // Weighted evidence allows small upstream DOM changes without accepting weak matches.
         Add(expected.TagName.Equals(candidate.TagName, StringComparison.OrdinalIgnoreCase), 0.13);
         Add(expected.Role == candidate.Role, expected.Role is null ? 0.04 : 0.12);
 
@@ -80,6 +82,7 @@ public static partial class SignatureMatcher
                 0.08);
         }
 
+        // Normalize by only the evidence that was available in the saved signature.
         return weight == 0 ? 0 : Math.Round(score / weight, 3);
 
         void Add(bool matches, double itemWeight)

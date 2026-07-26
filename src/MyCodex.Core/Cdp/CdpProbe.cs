@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 
+// Starts an isolated desktop instance and verifies that CDP can evaluate and edit its DOM.
 namespace MyCodex.Cdp;
 
 public sealed class CdpProbe
@@ -39,6 +40,7 @@ public sealed class CdpProbe
                 startupTimeout ?? TimeSpan.FromSeconds(30),
                 cancellationToken).ConfigureAwait(false);
 
+            // A listening endpoint is not enough; at least one renderer must allow safe DOM work.
             var renderer = await ProbeBestRendererAsync(targets, cancellationToken)
                 .ConfigureAwait(false);
             var passed = version is not null &&
@@ -115,6 +117,7 @@ public sealed class CdpProbe
             UseShellExecute = false,
             WorkingDirectory = Path.GetDirectoryName(executablePath) ?? Environment.CurrentDirectory
         };
+        // Loopback binding prevents other machines on the network from reaching the endpoint.
         startInfo.ArgumentList.Add("--remote-debugging-address=127.0.0.1");
         startInfo.ArgumentList.Add($"--remote-debugging-port={port}");
         startInfo.ArgumentList.Add($"--user-data-dir={userDataDirectory}");
@@ -135,6 +138,7 @@ public sealed class CdpProbe
         timeoutSource.CancelAfter(timeout);
         Exception? lastError = null;
 
+        // Chromium exposes /json endpoints shortly after process start, so poll briefly.
         while (!timeoutSource.IsCancellationRequested)
         {
             try
@@ -168,6 +172,7 @@ public sealed class CdpProbe
     {
         RendererProbeResult? best = null;
 
+        // DevTools, extensions, and background pages also appear here; test each defensively.
         foreach (var target in targets
                      .Where(candidate =>
                          candidate.Type is "page" or "webview" &&
@@ -206,6 +211,7 @@ public sealed class CdpProbe
                 var evaluationPassed = value.GetProperty("sum").GetInt32() == 2;
                 var score = ScoreTarget(target, readyState, bodyChildCount);
 
+                // The temporary attribute proves that a reversible DOM mutation is possible.
                 var mutation = await client.SendCommandAsync(
                     "Runtime.evaluate",
                     new

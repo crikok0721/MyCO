@@ -1,5 +1,6 @@
 using MyCodex.Avatars;
 
+// Verifies content-based avatar import, data URLs, and format rejection.
 namespace MyCodex.Tests;
 
 public sealed class AvatarTests
