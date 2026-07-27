@@ -6,6 +6,10 @@ public interface IApplicationAdapter
     string Id { get; }
     int Score(ApplicationCandidate candidate);
     IReadOnlyList<string> BuildLaunchArguments(int cdpPort);
+    IReadOnlyList<string> BuildPipeLaunchArguments() =>
+    [
+        "--remote-debugging-pipe"
+    ];
 }
 
 public sealed class ChatGptDesktopAdapter : IApplicationAdapter

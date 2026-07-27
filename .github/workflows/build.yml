@@ -38,6 +38,10 @@ jobs:
         working-directory: src/MyCodex.Runtime
         run: npm run check
 
+      - name: Audit runtime dependencies
+        working-directory: src/MyCodex.Runtime
+        run: npm audit --audit-level=high
+
       - name: Restore solution
         run: dotnet restore MyCodex.sln
 

@@ -1,0 +1,20 @@
+<Project>
+  <PropertyGroup>
+    <MyCodexVersion>0.2.0-alpha.1</MyCodexVersion>
+    <MyCodexProtocolVersion>1</MyCodexProtocolVersion>
+    <MyCodexConfigSchemaVersion>1</MyCodexConfigSchemaVersion>
+    <MyCodexCalibrationSchemaVersion>1</MyCodexCalibrationSchemaVersion>
+
+    <Version>$(MyCodexVersion)</Version>
+    <PackageVersion>$(MyCodexVersion)</PackageVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="MyCodexProtocolVersion"
+                      Value="$(MyCodexProtocolVersion)" />
+    <AssemblyMetadata Include="MyCodexConfigSchemaVersion"
+                      Value="$(MyCodexConfigSchemaVersion)" />
+    <AssemblyMetadata Include="MyCodexCalibrationSchemaVersion"
+                      Value="$(MyCodexCalibrationSchemaVersion)" />
+  </ItemGroup>
+</Project>

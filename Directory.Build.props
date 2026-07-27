@@ -1,4 +1,5 @@
 <Project>
+  <Import Project="eng\MyCodex.Version.props" />
   <PropertyGroup>
     <Authors>MyCodex Contributors</Authors>
     <Company>MyCodex Contributors</Company>

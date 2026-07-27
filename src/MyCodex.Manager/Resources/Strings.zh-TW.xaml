@@ -62,6 +62,8 @@
     <sys:String x:Key="DiagnosticsNotRefreshed">診斷資訊尚未重新整理。</sys:String>
     <sys:String x:Key="ConnectionDisconnected">本機 · 未連線</sys:String>
     <sys:String x:Key="ConnectionConnectedFormat">127.0.0.1:{0} · {1} 個轉譯器</sys:String>
+    <sys:String x:Key="ConnectionPipeFormat">私人管道 · {0} 個轉譯器</sys:String>
+    <sys:String x:Key="ConnectionTcpFormat">TCP 127.0.0.1:{0} · {1} 個轉譯器</sys:String>
 
     <sys:String x:Key="AboutTitle">關於 MyCodex</sys:String>
     <sys:String x:Key="AboutSubtitle">為 Codex / ChatGPT Desktop 提供獨立的本機介面自訂</sys:String>
@@ -87,6 +89,8 @@
 
     <sys:String x:Key="AlreadyRunningMessage">MyCodex 已經在執行。</sys:String>
     <sys:String x:Key="StartupFailedTitle">MyCodex 啟動失敗</sys:String>
+    <sys:String x:Key="UnhandledErrorFormat">MyCodex 遇到錯誤。&#x0a;錯誤編號：{0}&#x0a;&#x0a;診斷中不包含聊天正文。</sys:String>
+    <sys:String x:Key="OperationErrorFormat">{0} · 錯誤編號 {1}</sys:String>
     <sys:String x:Key="StatusStarting">正在啟動…</sys:String>
     <sys:String x:Key="StatusReady">就緒</sys:String>
     <sys:String x:Key="StatusRecoveredConfig">已復原損壞的設定，原始檔案已備份。</sys:String>
@@ -100,7 +104,11 @@
     <sys:String x:Key="ForceRestartPrompt">官方應用程式未能正常關閉。&#x0a;&#x0a;強制重新啟動只會終止所選 Desktop 的處理程序樹，未儲存的應用程式狀態可能遺失。</sys:String>
     <sys:String x:Key="ForceRestartTitle">是否強制重新啟動？</sys:String>
     <sys:String x:Key="StatusRestartCancelledUnchanged">已取消重新啟動，Desktop 保持不變。</sys:String>
-    <sys:String x:Key="StatusStartingDesktop">正在使用隨機本機 CDP 連接埠啟動 Desktop…</sys:String>
+    <sys:String x:Key="StatusStartingDesktop">正在使用本機私人管道啟動 Desktop…</sys:String>
+    <sys:String x:Key="TcpFallbackTitle">私人管道無法使用</sys:String>
+    <sys:String x:Key="TcpFallbackPromptFormat">無法建立私人管道連線。&#x0a;錯誤編號：{0}&#x0a;&#x0a;是否只在本次工作階段改用隨機的本機回送 TCP 連接埠？不會接聽任何外部位址。</sys:String>
+    <sys:String x:Key="StatusStartingTcpFallback">正在啟動已明確允許的本機回送 TCP 備援連線…</sys:String>
+    <sys:String x:Key="StatusTcpFallbackDeclined">已拒絕 TCP 備援連線；MyCodex 未留下由其啟動的 Desktop 處理程序。</sys:String>
     <sys:String x:Key="StatusRefreshingDesktopEntry">偵測到 Desktop 已更新，正在重新整理目前的啟動路徑…</sys:String>
     <sys:String x:Key="StatusAppearanceSaved">外觀已儲存至本機並套用。</sys:String>
     <sys:String x:Key="ChooseAssistantAvatarTitle">選擇助理頭像</sys:String>

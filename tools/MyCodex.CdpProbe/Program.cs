@@ -20,6 +20,8 @@ if (options.Help)
           --profile <directory>     Use a dedicated Chromium user-data directory.
           --timeout <seconds>       Startup timeout (default: 30).
           --runtime <path>          Run injection, synthetic recovery, diagnostics, and cleanup gates.
+          --transport <pipe|tcp>    CDP transport (default: tcp).
+          --hold <seconds>          Keep a successful pipe open briefly for OS inspection.
           --keep-running            Leave the probe instance running.
         """);
     return 0;
@@ -50,12 +52,28 @@ var profile = options.Profile ??
                   "CdpProbe",
                   Guid.NewGuid().ToString("N"));
 
-var probe = new CdpProbe();
-var result = await probe.RunAsync(
-    executable,
-    profile,
-    TimeSpan.FromSeconds(options.TimeoutSeconds),
-    terminateLaunchedProcess: !options.KeepRunning && options.Runtime is null);
+if (options.Transport == DesktopDebugTransport.Pipe && options.Runtime is not null)
+{
+    throw new ArgumentException(
+        "The runtime harness currently uses the TCP probe; run the pipe transport gate separately.");
+}
+if (options.Transport == DesktopDebugTransport.Pipe && options.KeepRunning)
+{
+    throw new ArgumentException(
+        "Use --hold for pipe inspection; pipe probe processes are always cleaned up.");
+}
+var result = options.Transport == DesktopDebugTransport.Pipe
+    ? await new PipeCdpProbe().RunAsync(
+        executable,
+        profile,
+        TimeSpan.FromSeconds(options.TimeoutSeconds),
+        terminateLaunchedProcess: true,
+        holdOpen: TimeSpan.FromSeconds(options.HoldSeconds))
+    : await new CdpProbe().RunAsync(
+        executable,
+        profile,
+        TimeSpan.FromSeconds(options.TimeoutSeconds),
+        terminateLaunchedProcess: !options.KeepRunning && options.Runtime is null);
 
 object? runtimeVerification = null;
 var runtimePassed = true;
@@ -69,8 +87,11 @@ if (result.Passed && options.Runtime is not null)
     var target = result.Targets.First(candidate =>
         candidate.Id == result.Renderer?.TargetId);
     var injector = new MyCodex.Injection.RuntimeInjector();
+    var injectionClient = new CdpClient();
+    await injectionClient.ConnectAsync(new Uri(target.WebSocketDebuggerUrl!));
     var injection = await injector.InjectAsync(
         target,
+        injectionClient,
         await File.ReadAllTextAsync(options.Runtime),
         MyCodex.Configuration.AppConfig.Default);
     JsonElement? diagnostics = null;
@@ -247,6 +268,8 @@ internal sealed record ProbeOptions(
     string? Executable,
     string? Profile,
     string? Runtime,
+    DesktopDebugTransport Transport,
+    int HoldSeconds,
     int TimeoutSeconds)
 {
     public static ProbeOptions Parse(string[] arguments)
@@ -257,6 +280,8 @@ internal sealed record ProbeOptions(
         string? executable = null;
         string? profile = null;
         string? runtime = null;
+        var transport = DesktopDebugTransport.Tcp;
+        var holdSeconds = 0;
         var timeout = 30;
 
         for (var index = 0; index < arguments.Length; index++)
@@ -282,6 +307,20 @@ internal sealed record ProbeOptions(
                 case "--runtime" when index + 1 < arguments.Length:
                     runtime = arguments[++index];
                     break;
+                case "--transport" when index + 1 < arguments.Length:
+                    transport = arguments[++index].ToLowerInvariant() switch
+                    {
+                        "pipe" => DesktopDebugTransport.Pipe,
+                        "tcp" => DesktopDebugTransport.Tcp,
+                        _ => throw new ArgumentException(
+                            "Transport must be 'pipe' or 'tcp'.")
+                    };
+                    break;
+                case "--hold" when
+                    index + 1 < arguments.Length &&
+                    int.TryParse(arguments[++index], out var parsedHold):
+                    holdSeconds = Math.Clamp(parsedHold, 0, 60);
+                    break;
                 case "--timeout" when
                     index + 1 < arguments.Length &&
                     int.TryParse(arguments[++index], out var parsed):
@@ -299,6 +338,8 @@ internal sealed record ProbeOptions(
             executable,
             profile,
             runtime,
+            transport,
+            holdSeconds,
             timeout);
     }
 }

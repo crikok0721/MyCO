@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using MyCodex.Applications;
 using MyCodex.Cdp;
@@ -15,7 +16,19 @@ public sealed record DesktopSessionState(
     int TargetCount,
     string Status,
     string? ApplicationVersion,
-    string? RuntimeVersion);
+    string? RuntimeVersion,
+    DesktopDebugTransport? Transport = null,
+    DesktopSessionPhase Phase = DesktopSessionPhase.Disconnected,
+    string? LastErrorCode = null);
+
+public enum DesktopSessionPhase
+{
+    Disconnected,
+    Starting,
+    Connected,
+    Stopping,
+    Faulted
+}
 
 public sealed class DesktopSessionController : IAsyncDisposable
 {
@@ -23,14 +36,19 @@ public sealed class DesktopSessionController : IAsyncDisposable
     private readonly TargetDiscoveryService _targetDiscovery;
     private readonly IInjectionBackend _injectionBackend;
     private readonly IPrivacySafeLogger _logger;
-    private readonly Dictionary<string, RuntimeTargetSession> _sessions =
+    private readonly ConcurrentDictionary<string, RuntimeTargetSession> _sessions =
         new(StringComparer.Ordinal);
     // Renderer discovery runs in the background, so every access to _sessions is serialized.
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
     private CancellationTokenSource? _monitorCancellation;
     private Task? _monitorTask;
     private Process? _launchedProcess;
-    private int? _port;
+    private IDesktopDebugConnection? _connection;
+    private DesktopSessionPhase _phase = DesktopSessionPhase.Disconnected;
+    private string? _applicationVersion;
+    private string? _runtimeVersion;
+    private string? _lastErrorCode;
     private AppConfig _config = AppConfig.Default;
     private bool _skinEnabled;
 
@@ -57,68 +75,118 @@ public sealed class DesktopSessionController : IAsyncDisposable
         ApplicationCandidate candidate,
         IApplicationAdapter adapter,
         AppConfig config,
+        DesktopDebugTransport transport = DesktopDebugTransport.Pipe,
         CancellationToken cancellationToken = default)
     {
-        // CDP flags only take effect at process start; attaching to a normal process will fail.
-        if (candidate.IsRunning)
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            throw new ApplicationAlreadyRunningException(candidate);
-        }
-        if (string.IsNullOrWhiteSpace(candidate.ExecutablePath) ||
-            !File.Exists(candidate.ExecutablePath))
-        {
-            throw new FileNotFoundException(
-                "Desktop executable was not found.",
-                candidate.ExecutablePath);
-        }
+            if (_connection is not null ||
+                _phase is DesktopSessionPhase.Starting or DesktopSessionPhase.Stopping)
+            {
+                throw new InvalidOperationException(
+                    "A Desktop session is already active or changing state.");
+            }
+            // CDP flags only take effect at process start; attaching to a normal process fails.
+            if (candidate.IsRunning)
+            {
+                throw new ApplicationAlreadyRunningException(candidate);
+            }
+            if (string.IsNullOrWhiteSpace(candidate.ExecutablePath) ||
+                !File.Exists(candidate.ExecutablePath))
+            {
+                throw new FileNotFoundException(
+                    "Desktop executable was not found.",
+                    candidate.ExecutablePath);
+            }
 
-        _config = config;
-        _skinEnabled = true;
-        _port = PortAllocator.GetRandomLoopbackPort();
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = candidate.ExecutablePath,
-            WorkingDirectory =
-                Path.GetDirectoryName(candidate.ExecutablePath) ?? Environment.CurrentDirectory,
-            UseShellExecute = false
-        };
-        foreach (var argument in adapter.BuildLaunchArguments(_port.Value))
-        {
-            startInfo.ArgumentList.Add(argument);
+            _phase = DesktopSessionPhase.Starting;
+            _lastErrorCode = null;
+            _applicationVersion = candidate.Version;
+            _config = config;
+            _skinEnabled = true;
+            UpdateState("Starting Desktop");
+
+            try
+            {
+                if (transport == DesktopDebugTransport.Pipe)
+                {
+                    (_launchedProcess, _connection) =
+                        DesktopDebugConnectionFactory.LaunchPipe(
+                            candidate.ExecutablePath,
+                            adapter.BuildPipeLaunchArguments());
+                }
+                else
+                {
+                    var port = PortAllocator.GetRandomLoopbackPort();
+                    (_launchedProcess, _connection) =
+                        DesktopDebugConnectionFactory.LaunchTcp(
+                            candidate.ExecutablePath,
+                            adapter.BuildLaunchArguments(port),
+                            port);
+                }
+
+                _logger.Info("app_started", new Dictionary<string, object?>
+                {
+                    ["appVersion"] = candidate.Version,
+                    ["adapter"] = adapter.Id,
+                    ["cdpPort"] = _connection.LoopbackPort,
+                    ["state"] = _connection.Transport.ToString()
+                });
+
+                await WaitForEndpointAsync(cancellationToken).ConfigureAwait(false);
+                await RefreshSessionsAsync(cancellationToken).ConfigureAwait(false);
+                _phase = DesktopSessionPhase.Connected;
+                UpdateState(_sessions.Count > 0
+                    ? "Skin active"
+                    : "Safe mode: no compatible renderer");
+                // New renderer targets can appear after navigation, so keep discovery running.
+                _monitorCancellation = new CancellationTokenSource();
+                _monitorTask = MonitorAsync(_monitorCancellation.Token);
+            }
+            catch (Exception exception)
+            {
+                var errorCode = ErrorCodeFactory.Create(
+                    transport == DesktopDebugTransport.Pipe ? "PIPE" : "TCP",
+                    "START");
+                _lastErrorCode = errorCode;
+                if (exception is not OperationCanceledException)
+                {
+                    _logger.Error(_lastErrorCode, exception);
+                }
+                await CleanupFailedStartAsync().ConfigureAwait(false);
+                _phase = exception is OperationCanceledException
+                    ? DesktopSessionPhase.Disconnected
+                    : DesktopSessionPhase.Faulted;
+                if (exception is OperationCanceledException)
+                {
+                    _lastErrorCode = null;
+                }
+                UpdateState(exception is OperationCanceledException
+                    ? "Disconnected"
+                    : "Connection failed");
+                if (exception is OperationCanceledException)
+                {
+                    throw;
+                }
+                if (transport == DesktopDebugTransport.Pipe)
+                {
+                    throw new SecureTransportUnavailableException(
+                        errorCode,
+                        exception);
+                }
+                throw;
+            }
         }
-        _launchedProcess = Process.Start(startInfo)
-                           ?? throw new InvalidOperationException("Desktop process did not start.");
-        _logger.Info("app_started", new Dictionary<string, object?>
+        finally
         {
-            ["appVersion"] = candidate.Version,
-            ["adapter"] = adapter.Id,
-            ["cdpPort"] = _port.Value
-        });
-
-        await WaitForEndpointAsync(_port.Value, cancellationToken).ConfigureAwait(false);
-        await RefreshSessionsAsync(cancellationToken).ConfigureAwait(false);
-        // New renderer targets can appear after navigation, so keep discovery running.
-        _monitorCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        _monitorTask = MonitorAsync(_monitorCancellation.Token);
-    }
-
-    public async Task AttachAsync(
-        int port,
-        AppConfig config,
-        CancellationToken cancellationToken = default)
-    {
-        _port = port;
-        _config = config;
-        _skinEnabled = true;
-        await WaitForEndpointAsync(port, cancellationToken).ConfigureAwait(false);
-        await RefreshSessionsAsync(cancellationToken).ConfigureAwait(false);
-        _monitorCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        _monitorTask = MonitorAsync(_monitorCancellation.Token);
+            _lifecycleGate.Release();
+        }
     }
 
     public async Task EnableSkinAsync(CancellationToken cancellationToken = default)
     {
-        if (_port is null)
+        if (_connection is null)
         {
             throw new InvalidOperationException("No CDP session is connected.");
         }
@@ -216,61 +284,93 @@ public sealed class DesktopSessionController : IAsyncDisposable
 
     public async Task DisconnectAsync(CancellationToken cancellationToken = default)
     {
-        if (_monitorCancellation is not null)
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            _monitorCancellation.Cancel();
+            _phase = DesktopSessionPhase.Stopping;
+            UpdateState("Disconnecting");
+            if (_monitorCancellation is not null)
+            {
+                _monitorCancellation.Cancel();
+            }
+            if (_monitorTask is not null)
+            {
+                try
+                {
+                    await _monitorTask.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected.
+                }
+            }
+            await DisableSkinAsync(cancellationToken).ConfigureAwait(false);
+            _monitorCancellation?.Dispose();
+            _monitorCancellation = null;
+            _monitorTask = null;
+            if (_connection is not null)
+            {
+                await _connection.DisposeAsync().ConfigureAwait(false);
+                _connection = null;
+            }
+            _launchedProcess?.Dispose();
+            _launchedProcess = null;
+            _phase = DesktopSessionPhase.Disconnected;
+            _applicationVersion = null;
+            _runtimeVersion = null;
+            _lastErrorCode = null;
+            UpdateState("Disconnected");
         }
-        if (_monitorTask is not null)
+        finally
         {
-            try
-            {
-                await _monitorTask.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected.
-            }
+            _lifecycleGate.Release();
         }
-        await DisableSkinAsync(cancellationToken).ConfigureAwait(false);
-        _monitorCancellation?.Dispose();
-        _monitorCancellation = null;
-        _monitorTask = null;
-        _port = null;
-        _launchedProcess?.Dispose();
-        _launchedProcess = null;
-        UpdateState("Disconnected");
     }
 
     public async ValueTask DisposeAsync()
     {
         await DisconnectAsync(CancellationToken.None).ConfigureAwait(false);
         _gate.Dispose();
+        _lifecycleGate.Dispose();
     }
 
-    private async Task WaitForEndpointAsync(
-        int port,
-        CancellationToken cancellationToken)
+    private async Task WaitForEndpointAsync(CancellationToken cancellationToken)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(30));
-        while (!timeout.IsCancellationRequested)
+        try
         {
-            try
+            while (!timeout.IsCancellationRequested)
             {
-                var targets = await _targetDiscovery.ListTargetsAsync(port, timeout.Token)
-                    .ConfigureAwait(false);
-                if (targets.Count > 0)
+                try
                 {
-                    return;
+                    if (_connection is null)
+                    {
+                        throw new InvalidOperationException(
+                            "The root debugger connection is not available.");
+                    }
+                    var targets = await _connection.ListTargetsAsync(timeout.Token)
+                        .ConfigureAwait(false);
+                    if (targets.Count > 0)
+                    {
+                        return;
+                    }
                 }
+                catch (Exception exception) when (
+                    exception is HttpRequestException or IOException or
+                        InvalidOperationException or TaskCanceledException)
+                {
+                    // Retry until timeout.
+                }
+                await Task.Delay(250, timeout.Token).ConfigureAwait(false);
             }
-            catch (Exception exception) when (
-                exception is HttpRequestException or TaskCanceledException)
-            {
-                // Retry until timeout.
-            }
-            await Task.Delay(250, timeout.Token).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException("Desktop did not expose a CDP renderer in time.");
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
         throw new TimeoutException("Desktop did not expose a CDP renderer in time.");
     }
 
@@ -285,7 +385,7 @@ public sealed class DesktopSessionController : IAsyncDisposable
                 await RefreshSessionsAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception exception) when (
-                exception is HttpRequestException or InvalidOperationException)
+                exception is not OperationCanceledException)
             {
                 _logger.Error("target_monitor_error", exception);
                 UpdateState("Renderer reconnect pending");
@@ -295,11 +395,11 @@ public sealed class DesktopSessionController : IAsyncDisposable
 
     private async Task RefreshSessionsAsync(CancellationToken cancellationToken)
     {
-        if (!_skinEnabled || _port is null)
+        if (!_skinEnabled || _connection is null)
         {
             return;
         }
-        var targets = await _targetDiscovery.DiscoverAsync(_port.Value, cancellationToken)
+        var targets = await _targetDiscovery.DiscoverAsync(_connection, cancellationToken)
             .ConfigureAwait(false);
         // The score threshold deliberately rejects uncertain/background renderers.
         var eligible = targets
@@ -313,7 +413,7 @@ public sealed class DesktopSessionController : IAsyncDisposable
             removed = removedIds.Select(id => _sessions[id]).ToArray();
             foreach (var id in removedIds)
             {
-                _sessions.Remove(id);
+                _sessions.TryRemove(id, out _);
             }
         }
         finally
@@ -363,7 +463,7 @@ public sealed class DesktopSessionController : IAsyncDisposable
                     if (_sessions.TryGetValue(pair.Key, out var current) &&
                         ReferenceEquals(current, existing))
                     {
-                        _sessions.Remove(pair.Key);
+                        _sessions.TryRemove(pair.Key, out _);
                     }
                 }
                 finally
@@ -375,11 +475,33 @@ public sealed class DesktopSessionController : IAsyncDisposable
             }
 
             // Only missing or unhealthy sessions reach this injection path.
-            var result = await _injectionBackend.InjectAsync(
-                pair.Value.Target,
-                _runtimeScript,
-                _config,
-                cancellationToken).ConfigureAwait(false);
+            RuntimeInjectionResult result;
+            ICdpClient? client = null;
+            try
+            {
+                client = await _connection.OpenTargetAsync(
+                    pair.Value.Target,
+                    cancellationToken).ConfigureAwait(false);
+                result = await _injectionBackend.InjectAsync(
+                    pair.Value.Target,
+                    client,
+                    _runtimeScript,
+                    _config,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                if (client is not null)
+                {
+                    await client.DisposeAsync().ConfigureAwait(false);
+                }
+                if (exception is OperationCanceledException)
+                {
+                    throw;
+                }
+                _logger.Error("runtime_client_open_failed", exception);
+                continue;
+            }
             if (result.Passed && result.Session is not null)
             {
                 result.Session.HostEventReceived += HandleRuntimeEvent;
@@ -397,6 +519,7 @@ public sealed class DesktopSessionController : IAsyncDisposable
                     ["runtimeVersion"] = result.Handshake?.Version,
                     ["targetCount"] = _sessions.Count
                 });
+                _runtimeVersion = result.Handshake?.Version;
             }
             else
             {
@@ -416,14 +539,73 @@ public sealed class DesktopSessionController : IAsyncDisposable
     private void UpdateState(string status)
     {
         State = new DesktopSessionState(
-            _port is not null,
+            _connection is not null && _phase == DesktopSessionPhase.Connected,
             _skinEnabled && _sessions.Count > 0,
-            _port,
+            _connection?.LoopbackPort,
             _sessions.Count,
             status,
-            null,
-            null);
+            _applicationVersion,
+            _runtimeVersion,
+            _connection?.Transport,
+            _phase,
+            _lastErrorCode);
         StateChanged?.Invoke(this, State);
+    }
+
+    private async Task CleanupFailedStartAsync()
+    {
+        RuntimeTargetSession[] sessions;
+        await _gate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+        try
+        {
+            sessions = _sessions.Values.ToArray();
+            _sessions.Clear();
+        }
+        finally
+        {
+            _gate.Release();
+        }
+        foreach (var session in sessions)
+        {
+            try
+            {
+                await session.DestroyAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                _logger.Error("failed_session_cleanup", exception);
+            }
+        }
+
+        if (_connection is not null)
+        {
+            await _connection.DisposeAsync().ConfigureAwait(false);
+            _connection = null;
+        }
+        if (_launchedProcess is not null)
+        {
+            try
+            {
+                if (!_launchedProcess.HasExited)
+                {
+                    _launchedProcess.Kill(entireProcessTree: true);
+                    await _launchedProcess.WaitForExitAsync().WaitAsync(
+                        TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+                }
+            }
+            catch (Exception exception) when (
+                exception is InvalidOperationException or
+                    System.ComponentModel.Win32Exception or TimeoutException)
+            {
+                _logger.Error("failed_start_cleanup", exception);
+            }
+            finally
+            {
+                _launchedProcess.Dispose();
+                _launchedProcess = null;
+            }
+        }
+        _skinEnabled = false;
     }
 }
 
@@ -436,4 +618,17 @@ public sealed class ApplicationAlreadyRunningException : InvalidOperationExcepti
     }
 
     public ApplicationCandidate Candidate { get; }
+}
+
+public sealed class SecureTransportUnavailableException : InvalidOperationException
+{
+    public SecureTransportUnavailableException(
+        string errorCode,
+        Exception innerException)
+        : base("The secure local pipe transport could not be established.", innerException)
+    {
+        ErrorCode = errorCode;
+    }
+
+    public string ErrorCode { get; }
 }

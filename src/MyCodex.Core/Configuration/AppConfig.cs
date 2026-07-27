@@ -28,15 +28,15 @@ public sealed record AppearanceConfig
 
 public sealed record CalibrationConfig
 {
-    public int SchemaVersion { get; init; } = 1;
+    public int SchemaVersion { get; init; } = BuildInfo.CalibrationSchemaVersion;
     public ElementSignature? UserTurn { get; init; }
     public ElementSignature? AssistantTurn { get; init; }
 }
 
 public sealed record AppConfig
 {
-    public int SchemaVersion { get; init; } = 1;
-    public int ProtocolVersion { get; init; } = 1;
+    public int SchemaVersion { get; init; } = BuildInfo.ConfigSchemaVersion;
+    public int ProtocolVersion { get; init; } = BuildInfo.ProtocolVersion;
     public string Language { get; init; } = LanguageCodes.English;
     public PersonConfig Assistant { get; init; } = new() { Name = "Codex" };
     public PersonConfig User { get; init; } = new() { Name = "You" };

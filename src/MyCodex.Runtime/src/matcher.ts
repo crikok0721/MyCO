@@ -6,6 +6,7 @@ import {
   structuralFingerprint
 } from "./dom-utils.js";
 import type { ElementSignature } from "./types.js";
+import { CALIBRATION_SCHEMA_VERSION } from "./types.js";
 
 // Creates and scores text-free DOM signatures for calibration-based recovery.
 export function createSignature(element: Element): ElementSignature {
@@ -20,7 +21,7 @@ export function createSignature(element: Element): ElementSignature {
   }
 
   return {
-    schemaVersion: 1,
+    schemaVersion: CALIBRATION_SCHEMA_VERSION,
     tagName: element.tagName.toLowerCase(),
     role: element.getAttribute("role"),
     stableAttributes: stableAttributes(element),

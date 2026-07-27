@@ -7,7 +7,7 @@ published version only.
 
 | Version | Supported |
 | --- | --- |
-| 0.1.x alpha | Yes |
+| 0.2.x alpha | Yes |
 | Older versions | No |
 
 ## Reporting a vulnerability
@@ -27,15 +27,17 @@ Include:
 
 ## Security boundaries
 
-- CDP is assigned an ephemeral port and accessed only through `127.0.0.1`.
+- CDP uses inherited private pipes by default and creates no listening socket.
+- Loopback TCP is used only after an explicit per-attempt user confirmation,
+  with a random port bound only to `127.0.0.1`.
 - The runtime-to-host Binding has a random per-session name and accepts only
   whitelisted event types.
 - Injected JavaScript cannot request shell execution, file access, process
   launch, or arbitrary network activity through MyCodex.
 - MyCodex does not read cookies, intercept network traffic, modify `app.asar`,
   patch official binaries, or inject native code.
-- Avatar imports are size-limited and checked by file signature before being
-  copied under a content-hash name.
+- Avatar imports are size/dimension-limited, checked by file signature, copied
+  under a content-hash name, and served only from the managed non-reparse path.
 - Low-confidence DOM matches fail closed: unknown nodes remain unmodified.
 
 ## Supply-chain guidance

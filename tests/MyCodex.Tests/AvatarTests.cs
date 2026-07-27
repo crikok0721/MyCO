@@ -18,7 +18,7 @@ public sealed class AvatarTests
         var service = new AvatarService(avatars);
 
         var result = await service.ImportAsync(source);
-        var dataUrl = await AvatarService.ToDataUrlAsync(result.StoredPath);
+        var dataUrl = await service.ToDataUrlAsync(result.StoredPath);
 
         Assert.True(File.Exists(result.StoredPath));
         Assert.StartsWith(avatars, result.StoredPath, StringComparison.OrdinalIgnoreCase);
@@ -35,5 +35,17 @@ public sealed class AvatarTests
         var service = new AvatarService(System.IO.Path.Combine(directory.Path, "avatars"));
 
         await Assert.ThrowsAsync<ArgumentException>(() => service.ImportAsync(source));
+    }
+
+    [Fact]
+    public async Task DataUrlRejectsFilesOutsideManagedDirectory()
+    {
+        using var directory = new TempDirectory();
+        var source = System.IO.Path.Combine(directory.Path, "external.png");
+        await File.WriteAllBytesAsync(source, Convert.FromBase64String(OnePixelPng));
+        var service = new AvatarService(
+            System.IO.Path.Combine(directory.Path, "avatars"));
+
+        Assert.Equal(string.Empty, await service.ToDataUrlAsync(source));
     }
 }

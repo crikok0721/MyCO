@@ -43,8 +43,8 @@ local renderer session.
 ## Diagnostics and logs
 
 Allowed diagnostic fields include component versions, application metadata,
-loopback CDP port, target counts, match counts, confidence, compatibility
-state, observer state, and exception type/stack.
+CDP transport (and loopback port only when used), target counts, match counts,
+confidence, compatibility state, observer state, and exception type.
 
 Message text, prompts, code content, email addresses, account identifiers,
 tokens, cookies, authorization values, and unnecessary file paths are excluded
@@ -52,8 +52,9 @@ or redacted. Review any diagnostic file before attaching it to a public issue.
 
 ## Network behavior
 
-MyCodex communicates with Chromium DevTools Protocol endpoints on a randomly
-selected `127.0.0.1` port. It does not expose CDP on a LAN interface. Dependency
+MyCodex communicates with Chromium DevTools Protocol over private inherited
+pipes by default. If the user explicitly approves the fallback, it uses a
+randomly selected `127.0.0.1` port and never a LAN interface. Dependency
 downloads occur only while developers build the project; the published app has
 no MyCodex update or telemetry endpoint.
 

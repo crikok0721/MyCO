@@ -38,7 +38,7 @@ public sealed class ConfigurationTests
               "schemaVersion": 0,
               "assistantName": "Luna",
               "assistantAvatar": "luna.png",
-              "userName": "crikok",
+              "userName": "Avery",
               "userAvatar": "user.png"
             }
             """);
@@ -48,7 +48,7 @@ public sealed class ConfigurationTests
         Assert.True(result.WasMigrated);
         Assert.Equal(1, result.Config.SchemaVersion);
         Assert.Equal("Luna", result.Config.Assistant.Name);
-        Assert.Equal("crikok", result.Config.User.Name);
+        Assert.Equal("Avery", result.Config.User.Name);
         Assert.Equal("luna.png", result.Config.Assistant.Avatar);
     }
 

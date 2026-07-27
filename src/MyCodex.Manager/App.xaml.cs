@@ -3,6 +3,7 @@ using System.Threading;
 using System.Text.Json;
 using System.Windows;
 using MyCodex.Configuration;
+using MyCodex.Diagnostics;
 using MyCodex.Manager.Localization;
 using MyCodex.Manager.ViewModels;
 using MyCodex.Manager.Views;
@@ -14,10 +15,15 @@ public partial class App : System.Windows.Application
 {
     private Mutex? _singleInstance;
     private bool _ownsMutex;
+    private IPrivacySafeLogger? _logger;
 
     protected override async void OnStartup(StartupEventArgs eventArgs)
     {
         base.OnStartup(eventArgs);
+        _logger = TryCreateLogger();
+        DispatcherUnhandledException += HandleDispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += HandleDomainUnhandledException;
+        TaskScheduler.UnobservedTaskException += HandleUnobservedTaskException;
         // Apply language before any window is created so startup dialogs are localized too.
         TryApplyStoredLanguage();
         _singleInstance = new Mutex(
@@ -52,8 +58,10 @@ public partial class App : System.Windows.Application
         }
         catch (Exception exception)
         {
+            var errorCode = ErrorCodeFactory.Create("APP", "STARTUP");
+            _logger?.Error(errorCode, exception);
             System.Windows.MessageBox.Show(
-                exception.ToString(),
+                LocalizationService.Format("UnhandledErrorFormat", errorCode),
                 LocalizationService.Get("StartupFailedTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
@@ -68,7 +76,58 @@ public partial class App : System.Windows.Application
             _singleInstance?.ReleaseMutex();
         }
         _singleInstance?.Dispose();
+        DispatcherUnhandledException -= HandleDispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException -= HandleDomainUnhandledException;
+        TaskScheduler.UnobservedTaskException -= HandleUnobservedTaskException;
         base.OnExit(eventArgs);
+    }
+
+    private void HandleDispatcherUnhandledException(
+        object sender,
+        System.Windows.Threading.DispatcherUnhandledExceptionEventArgs eventArgs)
+    {
+        var errorCode = ErrorCodeFactory.Create("UI", "UNHANDLED");
+        _logger?.Error(errorCode, eventArgs.Exception);
+        eventArgs.Handled = true;
+        System.Windows.MessageBox.Show(
+            LocalizationService.Format("UnhandledErrorFormat", errorCode),
+            "MyCodex",
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
+        Shutdown(1);
+    }
+
+    private void HandleDomainUnhandledException(
+        object? sender,
+        UnhandledExceptionEventArgs eventArgs)
+    {
+        if (eventArgs.ExceptionObject is Exception exception)
+        {
+            _logger?.Error(ErrorCodeFactory.Create("APP", "FATAL"), exception);
+        }
+    }
+
+    private void HandleUnobservedTaskException(
+        object? sender,
+        UnobservedTaskExceptionEventArgs eventArgs)
+    {
+        _logger?.Error(
+            ErrorCodeFactory.Create("TASK", "UNOBSERVED"),
+            eventArgs.Exception);
+        eventArgs.SetObserved();
+    }
+
+    private static IPrivacySafeLogger? TryCreateLogger()
+    {
+        try
+        {
+            return new PrivacySafeLogger(new ConfigPaths().LogsDirectory);
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     private static void TryApplyStoredLanguage()

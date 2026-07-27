@@ -1,6 +1,6 @@
 # MyCodex
 
-MyCodex `0.1.1-alpha` 是一个本地 Windows 管理器，为官方 Codex /
+MyCodex `0.2.0-alpha.1` 是一个本地 Windows 管理器，为官方 Codex /
 ChatGPT Desktop 对话界面增加可自定义的 Assistant/User 头像和昵称，并仅为
 Assistant 正文增加紧凑气泡；User 继续使用官方原生气泡。
 
@@ -40,16 +40,18 @@ prose/Markdown 文本进入气泡，代码块、Diff、Tool Card、处理状态�
 
 ```mermaid
 flowchart LR
-  M["MyCodex WPF 管理器"] -->|"随机 127.0.0.1 CDP 端口启动"| D["官方 Desktop"]
-  M -->|"CDP WebSocket"| R["Chromium Renderer"]
+  M["MyCodex WPF 管理器"] -->|"默认：私有 CDP Pipe"| D["官方 Desktop"]
+  M -. "用户明确同意后：随机 127.0.0.1 TCP" .-> D
+  M -->|"传输无关的 CDP 会话"| R["Chromium Renderer"]
   R --> I["幂等 Skin Runtime"]
   I --> P["能力探测 + DOM Matcher"]
   P -->|"高置信度"| S["头像、昵称、Prose 气泡"]
   P -->|"低置信度"| F["Safe Mode：不修改页面"]
 ```
 
-管理器发现官方安装，使用随机回环端口启动应用，结合 URL、类型、标题和 DOM
-能力选择 Renderer，注入内置 Runtime 并完成版本化协议握手。Runtime 不拥有宿主
+管理器发现官方安装，默认通过仅由父子进程持有的私有 Pipe 启动应用，结合 URL、
+类型、标题和 DOM 能力选择 Renderer，注入内置 Runtime 并完成版本化协议握手。
+只有 Pipe 不可用且用户明确同意时，才为本次会话改用随机 `127.0.0.1` TCP 端口。Runtime 不拥有宿主
 权限；随机命名的 Binding 只能向管理器发送白名单事件，不能执行 Shell、读文件或
 发起任意网络请求。
 
@@ -75,7 +77,7 @@ Alpha 版本暂未签名，Windows 可能显示信誉提示；请先核对发布
    结束所选进程。
 5. 打开一个对话；若自动识别置信度不足，完成 Assistant 与 User 两步校准。
 
-MyCodex 仅绑定 `127.0.0.1`，每次托管启动都选择新的临时端口。
+默认 Pipe 模式不监听 TCP；显式备用模式仅绑定 `127.0.0.1` 并为每次会话选择新端口。
 
 ## 自定义
 
@@ -159,7 +161,7 @@ MyCodex 由原生管理器和一个小型浏览器 Runtime 组成。管理器负
 flowchart LR
     UI["MyCodex.Manager<br/>WPF 界面与 MVVM"] --> Core["MyCodex.Core<br/>发现、配置、兼容性"]
     Core --> Desktop["ChatGPT / Codex Desktop"]
-    Core --> CDP["本机 CDP<br/>仅绑定 127.0.0.1"]
+    Core --> CDP["本机 CDP<br/>私有 Pipe 优先 / 回环 TCP 备用"]
     CDP --> Runtime["MyCodex.Runtime<br/>注入的 TypeScript Bundle"]
     Runtime --> DOM["Renderer DOM<br/>身份与助手正文样式"]
     Runtime -->|"白名单事件"| Core
@@ -186,7 +188,7 @@ flowchart LR
 
 1. `MyCodex.Manager` 读取 `%APPDATA%\MyCodex\config.json`，并通过
    `MyCodex.Core` 查找支持的 Desktop 安装。
-2. 使用仅限回环地址的 CDP 端口启动所选 Desktop。
+2. 优先使用私有 CDP Pipe 启动所选 Desktop；只有用户确认后才使用回环 TCP 备用。
 3. Core 对 Renderer 进行评分，注入生成后的 Runtime Bundle，并验证协议握手。
 4. Runtime 识别消息、装饰安全的正文与身份区域、监听 DOM 更新，只上报白名单
    技术事件。
@@ -211,15 +213,16 @@ flowchart LR
   更新后的 Bundle。
 - 先构建 Runtime，再构建 WPF。WPF 项目会嵌入当前的
   `dist/mycodex.runtime.js`，MSBuild 不会自动生成它。
-- 修改 Host/Runtime 通信时，必须同步 C# `ProtocolVersion`、TypeScript
-  `PROTOCOL_VERSION` 以及两端配置 Schema 版本。
+- 修改 Host/Runtime 通信时，只在 `eng/MyCodex.Version.props` 更新版本和 Schema；
+  C#、TypeScript Bundle、界面与发行包均从该文件生成或读取。
 - `Strings.en-US.xaml`、`Strings.zh-CN.xaml` 和 `Strings.zh-TW.xaml` 的全部
   `x:Key` 必须保持一致。
 - 用户配置、头像、日志、校准数据与备份只能放在 `%APPDATA%\MyCodex`，不得放入
   仓库。
 - 禁止提交 OpenAI 官方二进制、Bundle、真实 DOM Snapshot、图标、源码、凭据或
   用户聊天数据；兼容性 Fixture 必须人工合成。
-- CDP 必须继续绑定 `127.0.0.1`，不得向局域网暴露调试端口。
+- CDP 必须保持私有 Pipe 优先；TCP 只能作为用户明确同意的备用方式，并且必须仅
+  绑定 `127.0.0.1`，不得向局域网暴露调试端口。
 - 分类与校准必须保持 Fail-Closed：无法确定角色的元素应保留原生外观，不能猜测。
 
 ## 开发流程
@@ -259,7 +262,8 @@ dotnet publish src\MyCodex.Manager\MyCodex.Manager.csproj `
 .\scripts\build-release.ps1 -UseChinaMirrors
 ```
 
-该开关使用 npmmirror 与华为云 NuGet 镜像，不修改全局包管理器设置。
+该开关使用 npmmirror 与华为云 NuGet 镜像，不修改全局包管理器设置，也不会把
+地域镜像地址写入仓库的 lockfile。
 
 ## 参与贡献
 

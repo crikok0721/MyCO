@@ -1,20 +1,23 @@
 {
   "name": "@mycodex/runtime",
-  "version": "0.1.1-alpha",
+  "version": "0.2.0-alpha.1",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
     "build:test": "tsc -p tsconfig.test.json",
     "lint": "tsc --noEmit -p tsconfig.json",
-    "test": "npm run build:test && node --test .test-dist/tests/*.test.js",
+    "test": "npm run build:test && node --import ./.test-dist/tests/setup.js --test .test-dist/tests/*.test.js",
     "check": "npm run lint && npm test && npm run build"
   },
   "devDependencies": {
     "@types/jsdom": "21.1.7",
     "@types/node": "22.10.5",
-    "esbuild": "0.24.2",
+    "esbuild": "0.28.1",
     "jsdom": "25.0.1",
     "typescript": "5.7.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
   }
 }

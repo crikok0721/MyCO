@@ -37,7 +37,7 @@ test("runtime bubbles prose only and preserves native tool surfaces", () => {
   const runtime = new MyCodexRuntime(dom.window.document);
   const config = defaultConfig();
   config.assistant.name = "Luna";
-  config.user.name = "crikok";
+  config.user.name = "Avery";
   runtime.applyConfig(config);
 
   const assistant = dom.window.document.querySelector(
@@ -69,7 +69,7 @@ test("runtime bubbles prose only and preserves native tool surfaces", () => {
   assert.equal(user.querySelector('[data-mycodex-prose="user"]'), null);
   assert.equal(nativeUserBubble.hasAttribute("data-mycodex-prose"), false);
   assert.equal(nativeUserBubble.classList.contains("rounded-2xl"), true);
-  assert.equal(user.querySelector(".mc-nickname")!.textContent, "crikok");
+  assert.equal(user.querySelector(".mc-nickname")!.textContent, "Avery");
 });
 
 test("install is idempotent and destroy restores injected DOM", () => {
