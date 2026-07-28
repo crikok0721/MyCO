@@ -103,9 +103,10 @@
     <sys:String x:Key="RestartTitle">Restart with MyCodex</sys:String>
     <sys:String x:Key="StatusRestartCancelled">Restart cancelled.</sys:String>
     <sys:String x:Key="StatusNormalShutdown">Requesting a normal Desktop shutdown…</sys:String>
-    <sys:String x:Key="ForceRestartPrompt">The official app did not close normally.&#x0a;&#x0a;Force Restart will terminate only the selected Desktop process tree. Unsaved app state may be lost.</sys:String>
+    <sys:String x:Key="ForceRestartPrompt">The official app is still running in the tray or background.&#x0a;&#x0a;Force Restart will terminate only the exact verified Desktop process tree. Unsaved app state may be lost.</sys:String>
     <sys:String x:Key="ForceRestartTitle">Force Restart?</sys:String>
-    <sys:String x:Key="StatusRestartCancelledUnchanged">Restart cancelled; Desktop remains unchanged.</sys:String>
+    <sys:String x:Key="StatusRestartCancelledUnchanged">Force restart cancelled; Desktop remains running in the background.</sys:String>
+    <sys:String x:Key="StatusForceClosingDesktop">Closing the verified Desktop background process…</sys:String>
     <sys:String x:Key="StatusStartingDesktop">Starting Desktop with a private local pipe…</sys:String>
     <sys:String x:Key="TcpFallbackTitle">Private pipe unavailable</sys:String>
     <sys:String x:Key="TcpFallbackPromptFormat">The private pipe transport could not be established.&#x0a;Error code: {0}&#x0a;&#x0a;Use a random loopback-only TCP port for this session instead? No external address will be bound.</sys:String>

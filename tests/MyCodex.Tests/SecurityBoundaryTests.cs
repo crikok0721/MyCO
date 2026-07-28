@@ -11,7 +11,7 @@ public sealed class SecurityBoundaryTests
     [Fact]
     public void BuildMetadataComesFromTheSharedVersionSource()
     {
-        Assert.Equal("0.2.0-alpha.3", BuildInfo.Version);
+        Assert.Equal("0.2.0-alpha.4", BuildInfo.Version);
         Assert.Equal(1, BuildInfo.ProtocolVersion);
         Assert.Equal(1, BuildInfo.ConfigSchemaVersion);
         Assert.Equal(1, BuildInfo.CalibrationSchemaVersion);

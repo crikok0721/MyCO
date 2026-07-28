@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <MyCodexVersion>0.2.0-alpha.3</MyCodexVersion>
+    <MyCodexVersion>0.2.0-alpha.4</MyCodexVersion>
     <MyCodexProtocolVersion>1</MyCodexProtocolVersion>
     <MyCodexConfigSchemaVersion>1</MyCodexConfigSchemaVersion>
     <MyCodexCalibrationSchemaVersion>1</MyCodexCalibrationSchemaVersion>

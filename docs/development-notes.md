@@ -1,7 +1,7 @@
 # Development and verification notes
 
 Date: 2026-07-26  
-MyCodex: `0.2.0-alpha.3`
+MyCodex: `0.2.0-alpha.4`
 
 ## Environment inspected
 

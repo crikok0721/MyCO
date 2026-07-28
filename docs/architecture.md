@@ -57,6 +57,8 @@ close an official Desktop process it launched.
 - `IInjectionBackend` and the initial `CdpInjectionBackend`;
 - runtime session lifecycle and target monitoring;
 - configuration migration/recovery and avatar import;
+- exact-identity production restart tracking across visible and tray-only
+  states, with multi-root and PID-reuse fail-closed guards;
 - compatibility signatures/state machine and privacy-safe logging.
 
 The skin engine has no compile-time dependency on a particular Desktop version.

@@ -521,11 +521,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 return;
             }
             SetStatus("StatusNormalShutdown");
-            var closed = await _restartService.RequestGracefulCloseAsync(
+            var closeAttempt = await _restartService.RequestGracefulCloseAsync(
                 candidate,
                 TimeSpan.FromSeconds(12)).ConfigureAwait(true);
-            if (!closed)
+            if (!closeAttempt.IsClosed)
             {
+                if (!closeAttempt.CanForceClose)
+                {
+                    throw new InvalidOperationException(
+                        "Desktop process identity became uncertain during restart.");
+                }
                 var force = System.Windows.MessageBox.Show(
                     LocalizationService.Get("ForceRestartPrompt"),
                     LocalizationService.Get("ForceRestartTitle"),
@@ -536,7 +541,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     SetStatus("StatusRestartCancelledUnchanged");
                     return;
                 }
-                await _restartService.ForceCloseAsync(candidate).ConfigureAwait(true);
+                SetStatus("StatusForceClosingDesktop");
+                await _restartService.ForceCloseAsync(
+                    candidate,
+                    closeAttempt,
+                    TimeSpan.FromSeconds(10)).ConfigureAwait(true);
             }
             await DetectAsync().ConfigureAwait(true);
             candidate = SelectedCandidate

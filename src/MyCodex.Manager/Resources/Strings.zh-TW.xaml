@@ -103,9 +103,10 @@
     <sys:String x:Key="RestartTitle">使用 MyCodex 重新啟動</sys:String>
     <sys:String x:Key="StatusRestartCancelled">已取消重新啟動。</sys:String>
     <sys:String x:Key="StatusNormalShutdown">正在要求 Desktop 正常關閉…</sys:String>
-    <sys:String x:Key="ForceRestartPrompt">官方應用程式未能正常關閉。&#x0a;&#x0a;強制重新啟動只會終止所選 Desktop 的處理程序樹，未儲存的應用程式狀態可能遺失。</sys:String>
+    <sys:String x:Key="ForceRestartPrompt">官方應用程式仍在系統匣或背景執行。&#x0a;&#x0a;強制重新啟動只會終止經過精確驗證的 Desktop 處理程序樹，未儲存的應用程式狀態可能遺失。</sys:String>
     <sys:String x:Key="ForceRestartTitle">是否強制重新啟動？</sys:String>
-    <sys:String x:Key="StatusRestartCancelledUnchanged">已取消重新啟動，Desktop 保持不變。</sys:String>
+    <sys:String x:Key="StatusRestartCancelledUnchanged">已取消強制重新啟動，Desktop 仍在背景執行。</sys:String>
+    <sys:String x:Key="StatusForceClosingDesktop">正在關閉經過驗證的 Desktop 背景處理程序…</sys:String>
     <sys:String x:Key="StatusStartingDesktop">正在使用本機私人管道啟動 Desktop…</sys:String>
     <sys:String x:Key="TcpFallbackTitle">私人管道無法使用</sys:String>
     <sys:String x:Key="TcpFallbackPromptFormat">無法建立私人管道連線。&#x0a;錯誤編號：{0}&#x0a;&#x0a;是否只在本次工作階段改用隨機的本機回送 TCP 連接埠？不會接聽任何外部位址。</sys:String>

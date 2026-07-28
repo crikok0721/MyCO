@@ -2,6 +2,19 @@
 
 All notable project changes are documented here.
 
+## [0.2.0-alpha.4] - 2026-07-28
+
+### Fixed
+
+- Track the exact Desktop root PID, executable path, and start time across
+  graceful window close so a tray-resident Codex is never mistaken for an
+  exited application.
+- Force Restart now terminates only the previously verified root tree, waits
+  for the full selected application process family to exit, and fails closed
+  on PID reuse, identity uncertainty, or multiple matching roots.
+- Handle the race where Desktop exits naturally between force-restart
+  validation and termination without killing a replacement process.
+
 ## [0.2.0-alpha.3] - 2026-07-28
 
 ### Added

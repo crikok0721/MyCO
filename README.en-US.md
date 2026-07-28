@@ -77,9 +77,10 @@ release source and checksum before choosing to run it.
 1. Start MyCodex and complete the local-only introduction.
 2. Confirm the detected official Desktop installation.
 3. Select **Start Codex with MyCodex**.
-4. If Desktop is already running, allow a normal restart. Force termination is
-   only offered after normal shutdown times out and requires a second explicit
-   confirmation.
+4. If Desktop is already running, allow a normal restart. If its window closes
+   but the app remains in the tray, MyCodex keeps tracking the exact pre-close
+   PID, path, and start time before offering a separately confirmed tree
+   termination. Multiple roots or uncertain identity fail closed.
 5. Open a conversation. If automatic matching is not confident, complete both
    calibration steps.
 
