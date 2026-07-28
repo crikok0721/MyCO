@@ -5,6 +5,7 @@ using System.Windows;
 using MyCodex.Configuration;
 using MyCodex.Diagnostics;
 using MyCodex.Manager.Localization;
+using MyCodex.Manager.Services;
 using MyCodex.Manager.ViewModels;
 using MyCodex.Manager.Views;
 
@@ -13,9 +14,17 @@ namespace MyCodex.Manager;
 
 public partial class App : System.Windows.Application
 {
+    private const string MutexName = "Local\\MyCodex.Manager.0.2";
+    private const string ActivationEventName = "Local\\MyCodex.Manager.Activate.0.2";
     private Mutex? _singleInstance;
+    private EventWaitHandle? _activationEvent;
+    private EventWaitHandle? _activationStop;
+    private Task? _activationTask;
     private bool _ownsMutex;
     private IPrivacySafeLogger? _logger;
+    private TrayService? _trayService;
+
+    internal ThemeService ThemeService { get; private set; } = null!;
 
     protected override async void OnStartup(StartupEventArgs eventArgs)
     {
@@ -24,37 +33,49 @@ public partial class App : System.Windows.Application
         DispatcherUnhandledException += HandleDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += HandleDomainUnhandledException;
         TaskScheduler.UnobservedTaskException += HandleUnobservedTaskException;
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        ThemeService = new ThemeService();
+        ThemeService.ApplyMode(ManagerThemeMode.System);
         // Apply language before any window is created so startup dialogs are localized too.
         TryApplyStoredLanguage();
         _singleInstance = new Mutex(
             initiallyOwned: true,
-            "Local\\MyCodex.Manager.0.1",
+            MutexName,
             out _ownsMutex);
+        _activationEvent = new EventWaitHandle(
+            false,
+            EventResetMode.AutoReset,
+            ActivationEventName);
         if (!_ownsMutex)
         {
-            System.Windows.MessageBox.Show(
-                LocalizationService.Get("AlreadyRunningMessage"),
-                "MyCodex",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            _activationEvent.Set();
             Shutdown();
             return;
         }
 
         try
         {
-            // Keep the app alive while the first-run dialog temporarily owns the UI.
-            ShutdownMode = ShutdownMode.OnExplicitShutdown;
             var viewModel = new MainWindowViewModel();
             await viewModel.InitializeAsync();
-            if (viewModel.WasFirstRun)
+            var background = StartupPresentation.StartsInBackground(eventArgs.Args);
+            if (viewModel.WasFirstRun && !background)
             {
                 new OnboardingWindow(viewModel).ShowDialog();
             }
             var window = new MainWindow(viewModel);
             MainWindow = window;
             ShutdownMode = ShutdownMode.OnMainWindowClose;
-            window.Show();
+            _trayService = new TrayService(window, viewModel, ThemeService);
+            StartActivationListener();
+            if (background)
+            {
+                window.PrepareForBackground();
+            }
+            else
+            {
+                window.Show();
+            }
+            await viewModel.StartAutomaticallyIfConfiguredAsync().ConfigureAwait(true);
         }
         catch (Exception exception)
         {
@@ -71,6 +92,19 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs eventArgs)
     {
+        _activationStop?.Set();
+        try
+        {
+            _activationTask?.Wait(TimeSpan.FromSeconds(2));
+        }
+        catch (AggregateException)
+        {
+            // The process is already exiting; activation listener errors are non-fatal.
+        }
+        _activationStop?.Dispose();
+        _activationEvent?.Dispose();
+        _trayService?.Dispose();
+        ThemeService?.Dispose();
         if (_ownsMutex)
         {
             _singleInstance?.ReleaseMutex();
@@ -80,6 +114,19 @@ public partial class App : System.Windows.Application
         AppDomain.CurrentDomain.UnhandledException -= HandleDomainUnhandledException;
         TaskScheduler.UnobservedTaskException -= HandleUnobservedTaskException;
         base.OnExit(eventArgs);
+    }
+
+    private void StartActivationListener()
+    {
+        _activationStop = new EventWaitHandle(false, EventResetMode.ManualReset);
+        _activationTask = Task.Run(() =>
+        {
+            var handles = new WaitHandle[] { _activationEvent!, _activationStop };
+            while (WaitHandle.WaitAny(handles) == 0)
+            {
+                _ = Dispatcher.InvokeAsync(() => _trayService?.ShowWindow());
+            }
+        });
     }
 
     private void HandleDispatcherUnhandledException(

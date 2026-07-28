@@ -2,6 +2,32 @@
 
 All notable project changes are documented here.
 
+## [0.2.0-alpha.5] - 2026-07-28
+
+### Added
+
+- Follow the active Codex renderer's light/dark theme through a bounded hybrid
+  detector with confidence/evidence, last-trusted fallback, and separate
+  contrast-validated bubble palettes.
+- Add independent Manager Dark, Light, and Windows System themes through
+  semantic WPF resource dictionaries and a disposable system-theme service.
+- Complete the App-owned notification-area lifecycle, minimize-to-tray,
+  restore/focus actions, and hidden single-instance activation.
+- Add independent per-user login startup and post-Manager Codex launch
+  settings. Login startup uses an exact `HKCU Run` value with background mode,
+  path-drift correction, and no administrator requirement.
+- Add Config schema 2 migration, startup abstraction/policy tests, theme and
+  tray state tests, and Runtime theme-change/leak regression tests.
+
+### Security and compatibility
+
+- Keep renderer theme changes CSS-variable-only: no full conversation rescan,
+  User bubble override, or new host capability.
+- Keep background launch non-interactive and private-pipe-only; an uncontrolled
+  running Codex is reported instead of duplicated.
+- Preserve schema 0/1 identity, avatar, layout, language, custom dark colors,
+  and calibration data during migration.
+
 ## [0.2.0-alpha.4] - 2026-07-28
 
 ### Fixed

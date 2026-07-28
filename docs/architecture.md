@@ -41,9 +41,12 @@ flowchart TB
 ### Manager
 
 `MyCodex.Manager` is a single-instance WPF application. It owns user consent for
-restarts, preview/editing, calibration commands, diagnostics, and orderly
-shutdown. Exiting calls runtime `destroy()` and disconnects CDP; it does not
-close an official Desktop process it launched.
+restarts, preview/editing, calibration commands, diagnostics, its independent
+WPF theme, and orderly shutdown. An App-owned `NotifyIcon` keeps the process
+available after minimize; a named activation event restores the same window
+when the executable is launched again. Exiting calls runtime `destroy()`,
+disconnects CDP, unsubscribes system-theme events, and disposes the icon; it
+does not close an official Desktop process it launched.
 
 ### Core
 
@@ -57,6 +60,9 @@ close an official Desktop process it launched.
 - `IInjectionBackend` and the initial `CdpInjectionBackend`;
 - runtime session lifecycle and target monitoring;
 - configuration migration/recovery and avatar import;
+- per-user `HKCU\...\Run` registration through
+  `IStartupRegistrationService`, including exact-value removal and path-drift
+  correction;
 - exact-identity production restart tracking across visible and tray-only
   states, with multi-root and PID-reuse fail-closed guards;
 - compatibility signatures/state machine and privacy-safe logging.
@@ -89,6 +95,7 @@ attributes, injected identity elements/styles, and new-document registration.
 
 The runtime:
 
+- resolves the current host theme through `HostThemeDetector`;
 - finds a conversation root by semantic/capability selectors;
 - scans bounded turn candidates;
 - classifies role using stable semantics and current renderer structure first,
@@ -100,6 +107,69 @@ The runtime:
 - excludes `pre`, `code`, diffs, tool/status/command cards, toolbars, buttons,
   editors, and input controls;
 - rescans incrementally through a debounced `MutationObserver`.
+
+Theme changes update only five project-scoped palette variables. They do not
+rescan or redecorate the conversation. `HostThemeDetector` owns bounded
+root/body attribute observers, a root child-list observer for renderer
+reconstruction, and one media-query listener; `destroy()` removes all of them.
+
+## Theme route decisions
+
+### Codex renderer theme
+
+Four routes were compared:
+
+| Route | Benefit | Reason not selected alone |
+| --- | --- | --- |
+| `prefers-color-scheme` only | Small and stable API | Describes Windows/Chromium preference and can disagree with Codex's in-app choice |
+| Codex DOM token only | Fast response | A private class or attribute can change across official releases |
+| Computed background only | Avoids generated class names | Transparent/local panels and transitions can be ambiguous |
+| Hybrid detector | Cross-checks independent signals and can fail closed | Selected; slightly more code, kept in a separately tested component |
+
+The hybrid order is a recognized root/body theme attribute or semantic class,
+then luminance from bounded root/body/main surfaces, then
+`prefers-color-scheme` as low-confidence fallback. A result contains
+`light`, `dark`, or `unknown`, confidence, and short text-free evidence.
+Conflicting explicit/surface evidence lowers confidence. `unknown` preserves
+the last trusted palette and performs no risky override. Changes are debounced
+at 50 ms, below the 250 ms interaction target.
+
+### Manager theme
+
+Per-page color copies were rejected because they drift and cannot atomically
+cover control states. A third-party theme framework was rejected because the
+required surface is small and a large UI dependency would add maintenance and
+supply-chain cost. Two semantic WPF `ResourceDictionary` palettes plus
+`DynamicResource` and `ThemeService` were selected. `ThemeService` resolves
+Dark/Light/System, swaps one dictionary on the UI Dispatcher, and owns the
+static Windows preference subscription.
+
+The Manager effective theme and renderer bubble theme are deliberately
+independent configuration and service states.
+
+## Startup and tray route decisions
+
+For a self-contained ZIP application, per-user `HKCU Run` was selected:
+
+| Route | Decision |
+| --- | --- |
+| `HKCU\...\Run` | Selected: standard-user, reversible, simple background command |
+| Startup-folder shortcut | Rejected: extra Shell-link lifecycle and path-drift handling |
+| Task Scheduler | Rejected: unnecessary persistence/complexity and possible policy friction |
+| MSIX `StartupTask` | Deferred until MyCodex is actually packaged as MSIX |
+
+The fixed value is `MyCodex`; its data is the fully quoted current executable
+plus `--background`. Save is transactional with the versioned config, and
+startup reconciliation corrects a moved executable or precisely removes only
+that value. Background launch never asks for TCP consent or shows a blocking
+dialog. It starts Codex over the existing private-pipe route only when no
+Desktop is already running; an uncontrolled running Desktop is reported rather
+than duplicated.
+
+The existing `TrayService` is the single notification-icon owner. Minimize
+hides the window and taskbar button; double-click, the tray menu, or the
+single-instance activation event restores/focuses it. Close retains exit
+semantics, and tray Exit invokes the same orderly close path.
 
 ## CDP lifecycle
 
@@ -139,12 +209,15 @@ shell, filesystem, process, credential, or networking capability.
 
 `%APPDATA%\MyCodex` contains `config.json`, `calibration.json`, `avatars/`,
 `logs/`, and `backups/`. Writes use a unique temporary file followed by an
-atomic move. Schema 0 appearance names/avatars migrate to schema 1. Legacy
-avatars are validated and copied into the managed directory. Invalid JSON is
+atomic move. Config schema 2 separates Manager theme/startup options and
+Dark/Light bubble palettes. Schema 0/1 names, avatar paths, layout, language,
+custom Assistant colors, and calibration migrate without reset; legacy colors
+become the Dark palette and the Light palette receives contrast-safe defaults.
+Legacy avatars are validated and copied into the managed directory. Invalid JSON is
 moved to a bounded timestamped backup set and defaults are restored without
 crashing.
 
-The schema 1 `language` field accepts `en-US`, `zh-CN`, or `zh-TW`. Missing
+The `language` field accepts `en-US`, `zh-CN`, or `zh-TW`. Missing
 values remain backward-compatible with English. WPF dynamic resources switch
 immediately, while language persistence is serialized through the same atomic
 configuration store and does not implicitly save in-progress appearance edits.

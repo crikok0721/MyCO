@@ -20,6 +20,22 @@ export interface PersonConfig {
   avatar: string;
 }
 
+export type HostTheme = "light" | "dark" | "unknown";
+
+export interface HostThemeResult {
+  theme: HostTheme;
+  confidence: number;
+  evidence: string[];
+}
+
+export interface BubblePalette {
+  assistantBubble: string;
+  assistantText: string;
+  nicknameColor: string;
+  avatarBackground: string;
+  avatarBorder: string;
+}
+
 export interface AppearanceConfig {
   preset: "ReferenceDark" | "Minimal";
   avatarSize: number;
@@ -31,11 +47,8 @@ export interface AppearanceConfig {
   nicknameVisible: boolean;
   messageGap: number;
   messageMaxWidth: number;
-  userBubble: string;
-  assistantBubble: string;
-  userText: string;
-  assistantText: string;
-  nicknameColor: string;
+  darkBubblePalette: BubblePalette;
+  lightBubblePalette: BubblePalette;
 }
 
 export interface ElementSignature {
@@ -140,11 +153,20 @@ export function defaultConfig(): RuntimeConfig {
       nicknameVisible: true,
       messageGap: 28,
       messageMaxWidth: 66,
-      userBubble: "#242424",
-      assistantBubble: "#222222",
-      userText: "#f5f5f5",
-      assistantText: "#f2f2f2",
-      nicknameColor: "#9a9a9a"
+      darkBubblePalette: {
+        assistantBubble: "#222222",
+        assistantText: "#f2f2f2",
+        nicknameColor: "#9a9a9a",
+        avatarBackground: "#303030",
+        avatarBorder: "#FFFFFF14"
+      },
+      lightBubblePalette: {
+        assistantBubble: "#f1f3f5",
+        assistantText: "#202124",
+        nicknameColor: "#5f6672",
+        avatarBackground: "#e5e7eb",
+        avatarBorder: "#00000024"
+      }
     },
     calibration: {
       schemaVersion: CALIBRATION_SCHEMA_VERSION,

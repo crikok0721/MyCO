@@ -206,11 +206,14 @@ public sealed class ApplicationRestartService
     internal static IReadOnlyList<ApplicationProcessSnapshot> SelectRoots(
         IReadOnlyList<ApplicationProcessSnapshot> matching)
     {
-        var matchingIds = matching
-            .Select(process => process.ProcessId)
-            .ToHashSet();
+        var matchingById = matching.ToDictionary(
+            process => process.ProcessId);
         return matching
-            .Where(process => !matchingIds.Contains(process.ParentProcessId))
+            .Where(process =>
+                !matchingById.TryGetValue(
+                    process.ParentProcessId,
+                    out var possibleParent) ||
+                possibleParent.StartedAt > process.StartedAt)
             .OrderBy(process => process.StartedAt)
             .ToArray();
     }
@@ -304,7 +307,12 @@ internal sealed class WindowsApplicationProcessBackend : IApplicationProcessBack
                         System.ComponentModel.Win32Exception or
                         NotSupportedException)
                 {
-                    // An unreadable process cannot become a restart target.
+                    // Any same-name process with an unreadable identity could
+                    // be another matching root. Skipping it would turn
+                    // uncertainty into permission to close a different root.
+                    throw new InvalidOperationException(
+                        "A Desktop process identity could not be read safely.",
+                        exception);
                 }
             }
         }

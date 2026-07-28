@@ -183,6 +183,54 @@ public sealed class ApplicationRestartTests
     }
 
     [Fact]
+    public async Task RecycledParentPidCannotHideASecondRoot()
+    {
+        var recycledParent = new ApplicationProcessSnapshot(
+            450,
+            45,
+            ExecutablePath,
+            DateTimeOffset.UtcNow.AddMinutes(-1),
+            HasMainWindow: true);
+        var olderIndependentRoot = new ApplicationProcessSnapshot(
+            550,
+            450,
+            ExecutablePath,
+            DateTimeOffset.UtcNow.AddMinutes(-5),
+            HasMainWindow: true);
+        var backend = new FakeProcessBackend(
+            recycledParent,
+            olderIndependentRoot);
+        var service = new ApplicationRestartService(backend);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.RequestGracefulCloseAsync(
+                Candidate(),
+                TimeSpan.FromSeconds(1)));
+
+        Assert.Empty(backend.CloseRequests);
+        Assert.Empty(backend.KillRequests);
+    }
+
+    [Fact]
+    public async Task UnreadableSameNameIdentityFailsClosed()
+    {
+        var backend = new FakeProcessBackend
+        {
+            SnapshotException = new InvalidOperationException(
+                "Identity unreadable.")
+        };
+        var service = new ApplicationRestartService(backend);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.RequestGracefulCloseAsync(
+                Candidate(),
+                TimeSpan.FromSeconds(1)));
+
+        Assert.Empty(backend.CloseRequests);
+        Assert.Empty(backend.KillRequests);
+    }
+
+    [Fact]
     public async Task NormalWindowCloseStillCompletesWithoutForce()
     {
         var backend = new FakeProcessBackend(
@@ -230,9 +278,16 @@ public sealed class ApplicationRestartTests
         public List<ApplicationProcessIdentity> KillRequests { get; } = [];
         public Func<ApplicationProcessIdentity, bool>? OnClose { get; set; }
         public Action<ApplicationProcessIdentity>? OnKill { get; set; }
+        public Exception? SnapshotException { get; set; }
 
-        public IReadOnlyList<ApplicationProcessSnapshot> Snapshot(string processName) =>
-            Snapshots.ToArray();
+        public IReadOnlyList<ApplicationProcessSnapshot> Snapshot(string processName)
+        {
+            if (SnapshotException is not null)
+            {
+                throw SnapshotException;
+            }
+            return Snapshots.ToArray();
+        }
 
         public bool RequestClose(ApplicationProcessIdentity identity)
         {

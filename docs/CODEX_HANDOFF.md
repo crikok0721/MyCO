@@ -1,5 +1,19 @@
 # Codex project handoff
 
+> **alpha.5 continuation update (2026-07-28):** the current local HEAD is
+> `a4f072895cf5bf21fbaa2c81eecc2351948b9eee` on the same branch. The dirty
+> working tree now also contains the uncommitted `0.2.0-alpha.5` Renderer
+> theme, independent Manager theme, tray lifecycle, and startup-settings work.
+> Config schema is `2`; protocol/calibration remain `1`. Runtime check is
+> 24/24, xUnit is 86/86, Release build is 0 warnings/errors, and the
+> self-contained release script passed. Manager Computer Use acceptance and
+> isolated Codex B automated acceptance are recorded in
+> `docs/development-notes.md`. Codex UI Computer Use screenshots and the
+> taskbar+tray screenshot remain explicitly blocked; do not reinterpret the
+> older alpha.4 P0 section below as alpha.5 visual completion.
+>
+> The alpha.4 material is retained below as historical restart-fix context.
+
 Last verified: 2026-07-28 (Asia/Hong_Kong)
 
 Repository: `C:\Users\crikok\Documents\MyCodex`
@@ -8,10 +22,10 @@ Branch: `codex/fix-pipe-runtime-compat`
 
 Upstream: `origin/codex/fix-pipe-runtime-compat`
 
-HEAD: `123f350 Avatar position customize`
+HEAD: `a4f0728 save`
 
-Working tree: dirty; the `0.2.0-alpha.4` restart fix and this handoff are not
-committed.
+Working tree: dirty; the alpha.4 restart fix, alpha.5 continuation, and this
+handoff are not committed.
 
 This document describes the repository and working tree as inspected locally,
 not only the preceding chat history.
@@ -26,8 +40,8 @@ navigation, composer, User bubble, code, Diff, tools, status, action controls,
 credentials, profile, and network behavior.
 
 The project is in a functional pre-release Alpha phase. The shared working-tree
-version is `0.2.0-alpha.4`, protocol/config/calibration schema versions are all
-`1`. Phase-one architecture, localization, appearance editing, calibration,
+version is `0.2.0-alpha.5`; protocol/config/calibration schema versions are
+`1`/`2`/`1`. Phase-one architecture, localization, appearance editing, calibration,
 private-pipe injection, Safe Mode, diagnostics, isolated visual acceptance, and
 the latest tray-resident restart repair are implemented. It is not yet a
 signed, generally released production application.
@@ -314,7 +328,7 @@ The following list was produced from `git status`, `git diff --name-status`,
 | `src/MyCodex.Runtime/package-lock.json` | modified | Keeps locked root package metadata at alpha.4; dependency versions are unchanged. |
 | `src/MyCodex.Runtime/dist/mycodex.runtime.js` | modified/generated | Regenerated bundle with alpha.4 version metadata; no corresponding Runtime feature-source change is part of this repair. |
 | `tests/MyCodex.Tests/SecurityBoundaryTests.cs` | modified | Updates shared-version assertion to alpha.4. |
-| `tests/MyCodex.Tests/ApplicationRestartTests.cs` | untracked/new | Seven regression tests for tray-only roots, visible-to-tray transition, exact force close, natural-exit race, PID reuse, multiple roots, and normal close. |
+| `tests/MyCodex.Tests/ApplicationRestartTests.cs` | untracked/new | Nine regression tests for tray-only roots, visible-to-tray transition, exact force close, natural-exit race, target PID reuse, recycled parent PID, unreadable identity, multiple roots, and normal close. |
 | `AGENTS.md` | untracked/new | Long-term repository rules, commands, code standards, and security constraints only. |
 | `docs/CODEX_HANDOFF.md` | untracked/new | This complete cross-session working-state handoff. |
 

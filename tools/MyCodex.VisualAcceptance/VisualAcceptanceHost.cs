@@ -146,8 +146,12 @@ internal sealed class VisualAcceptanceHost : IAsyncDisposable
                 BubbleRadius = 16,
                 MessageGap = 30,
                 MessageMaxWidth = 66,
-                AssistantBubble = "#262930",
-                NicknameColor = "#aeb4c3"
+                DarkBubblePalette =
+                    AppConfig.Default.Appearance.DarkBubblePalette with
+                    {
+                        AssistantBubble = "#262930",
+                        NicknameColor = "#AEB4C3"
+                    }
             }
         };
         await UpdateStateAsync(_state, cancellationToken).ConfigureAwait(false);
@@ -254,6 +258,7 @@ internal sealed class VisualAcceptanceHost : IAsyncDisposable
                 Phase = "ready",
                 RuntimeVersion = injection.Handshake.Version,
                 ProtocolVersion = injection.Handshake.ProtocolVersion,
+                CurrentTheme = "dark",
                 AutomatedChecks = automated,
                 RestartCount = isRestart
                     ? _state.RestartCount + 1
@@ -431,6 +436,10 @@ internal sealed class VisualAcceptanceHost : IAsyncDisposable
                 case "restart":
                     await RestartAsync(cancellationToken).ConfigureAwait(false);
                     return new AcceptanceCommandResult(true, "restarted", _state);
+                case "theme":
+                    await SetThemeAsync(command.Result, cancellationToken)
+                        .ConfigureAwait(false);
+                    return new AcceptanceCommandResult(true, "theme-changed", _state);
                 case "disable":
                     await DisableAsync(cancellationToken).ConfigureAwait(false);
                     return new AcceptanceCommandResult(true, "disabled", _state);
@@ -506,6 +515,38 @@ internal sealed class VisualAcceptanceHost : IAsyncDisposable
             _state with
             {
                 Phase = "disabled",
+                AutomatedChecks = checks
+            },
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task SetThemeAsync(
+        string? theme,
+        CancellationToken cancellationToken)
+    {
+        if (theme is not ("dark" or "light"))
+        {
+            throw new ArgumentException("Theme must be dark or light.");
+        }
+        await using var client = await _root!.AttachAsync(
+            _target!,
+            cancellationToken).ConfigureAwait(false);
+        var value = await EvaluateAsync(
+            client,
+            AcceptanceFixture.BuildThemeScript(theme),
+            cancellationToken).ConfigureAwait(false);
+        var checks = new Dictionary<string, bool>(
+            _state.AutomatedChecks,
+            StringComparer.Ordinal);
+        foreach (var property in value.EnumerateObject())
+        {
+            checks[$"theme.{theme}.{property.Name}"] =
+                property.Value.ValueKind == JsonValueKind.True;
+        }
+        await UpdateStateAsync(
+            _state with
+            {
+                CurrentTheme = theme,
                 AutomatedChecks = checks
             },
             cancellationToken).ConfigureAwait(false);

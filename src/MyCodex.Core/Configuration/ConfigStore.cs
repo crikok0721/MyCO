@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using MyCodex.Compatibility;
 
@@ -11,7 +12,8 @@ public sealed class ConfigStore
     private const long MaximumConfigurationBytes = 256 * 1024;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
-        WriteIndented = true
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     private readonly ConfigPaths _paths;
@@ -39,10 +41,10 @@ public sealed class ConfigStore
                 .ConfigureAwait(false);
             var node = JsonNode.Parse(json)?.AsObject()
                        ?? throw new JsonException("Configuration root must be an object.");
-            // Missing or older schema values are handled by the narrow legacy migrator below.
             var schemaVersion = node["schemaVersion"]?.GetValue<int>() ?? 0;
-            var migrated = schemaVersion != BuildInfo.ConfigSchemaVersion;
-            var config = migrated ? ConfigMigration.Migrate(node) : Deserialize(node);
+            var migration = ConfigMigration.Migrate(node, schemaVersion);
+            var migrated = migration.WasMigrated;
+            var config = migration.Config;
             if (!LanguageCodes.IsSupported(config.Language))
             {
                 config = config with { Language = LanguageCodes.English };
@@ -171,14 +173,10 @@ public sealed class ConfigStore
         {
             throw new ArgumentException("Avatar paths are too long.");
         }
-        foreach (var color in new[]
-                 {
-                     config.Appearance.UserBubble,
-                     config.Appearance.AssistantBubble,
-                     config.Appearance.UserText,
-                     config.Appearance.AssistantText,
-                     config.Appearance.NicknameColor
-                 })
+        foreach (var color in PaletteColors(config.Appearance.DarkBubblePalette)
+                     .Concat(PaletteColors(config.Appearance.LightBubblePalette))
+                     .Append(config.Appearance.UserBubble)
+                     .Append(config.Appearance.UserText))
         {
             if (!Regex.IsMatch(
                     color ?? string.Empty,
@@ -188,6 +186,14 @@ public sealed class ConfigStore
                 throw new ArgumentException("Appearance colors must be hexadecimal values.");
             }
         }
+        EnsureReadablePalette(
+            config.Appearance.DarkBubblePalette,
+            "#111214",
+            "Dark");
+        EnsureReadablePalette(
+            config.Appearance.LightBubblePalette,
+            "#FFFFFF",
+            "Light");
 
         return config with
         {
@@ -223,6 +229,31 @@ public sealed class ConfigStore
                 "User and assistant calibration signatures are ambiguous.");
         }
         return normalized;
+    }
+
+    private static IEnumerable<string> PaletteColors(BubblePalette palette)
+    {
+        yield return palette.AssistantBubble;
+        yield return palette.AssistantText;
+        yield return palette.NicknameColor;
+        yield return palette.AvatarBackground;
+        yield return palette.AvatarBorder;
+    }
+
+    private static void EnsureReadablePalette(
+        BubblePalette palette,
+        string hostBackground,
+        string name)
+    {
+        var ratio = ColorContrast.Calculate(
+            palette.AssistantText,
+            palette.AssistantBubble,
+            hostBackground);
+        if (ratio < 4.5)
+        {
+            throw new ArgumentException(
+                $"{name} assistant text contrast must be at least 4.5:1.");
+        }
     }
 
     private static void EnsureFileSize(string path)
@@ -289,9 +320,67 @@ public sealed class ConfigStore
 
 internal static class ConfigMigration
 {
-    public static AppConfig Migrate(JsonObject source)
+    private static readonly JsonSerializerOptions JsonOptions =
+        new(JsonSerializerDefaults.Web)
+        {
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+    public static ConfigMigrationResult Migrate(JsonObject source, int schemaVersion)
     {
-        // Version 0 used flat person fields; version 1 stores nested person objects.
+        if (schemaVersion > BuildInfo.ConfigSchemaVersion)
+        {
+            throw new InvalidOperationException("Configuration schema is newer than MyCodex.");
+        }
+
+        var migrated = (JsonObject)source.DeepClone();
+        var changed = schemaVersion != BuildInfo.ConfigSchemaVersion;
+
+        if (schemaVersion == 0)
+        {
+            MigrateSchemaZero(migrated);
+            changed = true;
+        }
+
+        var appearance = migrated["appearance"] as JsonObject ?? new JsonObject();
+        if (migrated["appearance"] is not JsonObject)
+        {
+            migrated["appearance"] = appearance;
+            changed = true;
+        }
+        if (appearance["darkBubblePalette"] is null)
+        {
+            appearance["darkBubblePalette"] = BuildLegacyDarkPalette(appearance);
+            changed = true;
+        }
+        if (appearance["lightBubblePalette"] is null)
+        {
+            appearance["lightBubblePalette"] = JsonSerializer.SerializeToNode(
+                BubblePalette.LightDefault,
+                JsonOptions);
+            changed = true;
+        }
+
+        changed |= EnsureValue(
+            migrated,
+            "managerThemeMode",
+            JsonValue.Create(ManagerThemeMode.System.ToString()));
+        changed |= EnsureValue(migrated, "launchAtLogin", JsonValue.Create(false));
+        changed |= EnsureValue(
+            migrated,
+            "launchCodexOnMyCodexStart",
+            JsonValue.Create(false));
+        migrated["schemaVersion"] = BuildInfo.ConfigSchemaVersion;
+        migrated["protocolVersion"] = BuildInfo.ProtocolVersion;
+
+        var config = migrated.Deserialize<AppConfig>(JsonOptions)
+                     ?? throw new JsonException(
+                         "Migrated configuration could not be deserialized.");
+        return new ConfigMigrationResult(config, changed);
+    }
+
+    private static void MigrateSchemaZero(JsonObject source)
+    {
         var assistantName =
             source["assistantName"]?.GetValue<string>() ??
             source["assistant"]?["name"]?.GetValue<string>() ??
@@ -309,18 +398,57 @@ internal static class ConfigMigration
             source["user"]?["avatar"]?.GetValue<string>() ??
             string.Empty;
 
-        return AppConfig.Default with
-        {
-            Assistant = new PersonConfig
+        source["assistant"] = JsonSerializer.SerializeToNode(
+            new PersonConfig
             {
                 Name = assistantName,
                 Avatar = assistantAvatar
             },
-            User = new PersonConfig
+            JsonOptions);
+        source["user"] = JsonSerializer.SerializeToNode(
+            new PersonConfig
             {
                 Name = userName,
                 Avatar = userAvatar
-            }
+            },
+            JsonOptions);
+        source["language"] ??= LanguageCodes.English;
+        source["calibration"] ??= JsonSerializer.SerializeToNode(
+            new CalibrationConfig(),
+            JsonOptions);
+    }
+
+    private static JsonObject BuildLegacyDarkPalette(JsonObject appearance)
+    {
+        var defaults = new BubblePalette();
+        return new JsonObject
+        {
+            ["assistantBubble"] =
+                appearance["assistantBubble"]?.DeepClone() ??
+                JsonValue.Create(defaults.AssistantBubble),
+            ["assistantText"] =
+                appearance["assistantText"]?.DeepClone() ??
+                JsonValue.Create(defaults.AssistantText),
+            ["nicknameColor"] =
+                appearance["nicknameColor"]?.DeepClone() ??
+                JsonValue.Create(defaults.NicknameColor),
+            ["avatarBackground"] = JsonValue.Create(defaults.AvatarBackground),
+            ["avatarBorder"] = JsonValue.Create(defaults.AvatarBorder)
         };
     }
+
+    private static bool EnsureValue(
+        JsonObject target,
+        string property,
+        JsonNode? value)
+    {
+        if (target[property] is not null)
+        {
+            return false;
+        }
+        target[property] = value;
+        return true;
+    }
 }
+
+internal sealed record ConfigMigrationResult(AppConfig Config, bool WasMigrated);

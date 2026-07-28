@@ -32,6 +32,7 @@ internal static class Program
                 "host" => await HostAsync(args[1..]).ConfigureAwait(false),
                 "status" => await SendAsync("status", args[1..]).ConfigureAwait(false),
                 "restart" => await SendAsync("restart", args[1..]).ConfigureAwait(false),
+                "theme" => await SendAsync("theme", args[1..]).ConfigureAwait(false),
                 "disable" => await SendAsync("disable", args[1..]).ConfigureAwait(false),
                 "record" => await SendAsync("record", args[1..]).ConfigureAwait(false),
                 "stop" => await SendAsync("stop", args[1..]).ConfigureAwait(false),
@@ -244,6 +245,9 @@ internal static class Program
                 RequireOption(args, "--check"),
                 RequireOption(args, "--result").ToLowerInvariant(),
                 GetOption(args, "--note")),
+            "theme" => new AcceptanceCommand(
+                commandName,
+                Result: RequireOption(args, "--mode").ToLowerInvariant()),
             "stop" => new AcceptanceCommand(
                 commandName,
                 PreserveArtifacts: HasFlag(args, "--preserve-artifacts")),
@@ -296,6 +300,10 @@ internal static class Program
         new(StringComparer.Ordinal)
         {
             ["restart"] = $"dotnet MyCodex.VisualAcceptance.dll restart --run-id {runId}",
+            ["themeLight"] =
+                $"dotnet MyCodex.VisualAcceptance.dll theme --run-id {runId} --mode light",
+            ["themeDark"] =
+                $"dotnet MyCodex.VisualAcceptance.dll theme --run-id {runId} --mode dark",
             ["status"] = $"dotnet MyCodex.VisualAcceptance.dll status --run-id {runId}",
             ["disable"] = $"dotnet MyCodex.VisualAcceptance.dll disable --run-id {runId}",
             ["stop"] = $"dotnet MyCodex.VisualAcceptance.dll stop --run-id {runId}"
@@ -348,6 +356,7 @@ internal static class Program
 
             start   [--executable PATH] [--runtime PATH] [--timeout-seconds N]
             restart --run-id RUN_ID
+            theme   --run-id RUN_ID --mode dark|light
             status  --run-id RUN_ID
             disable --run-id RUN_ID
             record  --run-id RUN_ID --check NAME --result pass|fail|blocked [--note TEXT]

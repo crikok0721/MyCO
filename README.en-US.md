@@ -1,6 +1,6 @@
 # MyCodex
 
-MyCodex `0.2.0-alpha.1` is a local Windows manager that adds custom assistant and
+MyCodex `0.2.0-alpha.5` is a local Windows manager that adds custom assistant and
 user avatars and nicknames plus compact assistant prose bubbles to the official
 Codex / ChatGPT Desktop conversation view. Official user bubbles stay native.
 
@@ -22,7 +22,11 @@ application bundle, or conversation data.
 - Assistant and user avatars and nicknames
 - Circular, center-cropped avatars by default
 - Instant, persisted English, Simplified Chinese, and Traditional Chinese UI
-- Parameterized Reference Dark assistant bubbles with compact short messages
+- Assistant bubbles that follow the current Codex renderer theme with separate
+  validated dark and light palettes
+- Independent Manager Dark, Light, and live Windows System modes
+- Minimize-to-tray, tray restore, and activation of an already-hidden instance
+- Optional per-user login startup and safe Codex startup after MyCodex starts
 - Left-aligned assistant and right-aligned user layout
 - Prose-only assistant bubbles: code, diffs, tool cards, status, toolbars, and
   native controls remain under the official UI
@@ -95,14 +99,25 @@ edits are not affected. The same selector is available during first-run setup.
 
 The Appearance page controls names, avatars, avatar size, symmetric horizontal
 avatar position, shared vertical avatar position, assistant bubble radius,
-horizontal and vertical padding, message gap, maximum width, and nickname
-visibility. Image imports accept PNG, JPEG, GIF, and BMP files up to 10 MiB.
+horizontal and vertical padding, message gap, maximum width, nickname
+visibility, and separate Dark/Light bubble, text, nickname, and avatar colors.
+Assistant text/background contrast is validated at 4.5:1. The bubble theme
+always follows the Codex renderer and is independent of the Manager theme.
+Image imports accept PNG, JPEG, GIF, and BMP files up to 10 MiB.
 Files are signature-checked, copied to the local avatar directory under a
 content-hash filename, and sent to the runtime as a data URL.
 
 **Save & apply** writes the configuration atomically and updates connected
 renderers without a page reload. **Disable skin** calls runtime cleanup and
 restores the original DOM/CSS without closing Desktop.
+
+Settings provides Manager Dark, Light, and Windows System modes plus independent
+options to start MyCodex at Windows sign-in and to start Codex after MyCodex
+starts. Per-user startup uses `HKCU\...\Run` with `--background`, requires no
+administrator rights, and corrects path drift after moving a release. MyCodex
+does not modify official shortcuts, protocol associations, or installation
+files. Minimize hides to the tray; Close retains its exit semantics and releases
+the session. See [Settings](docs/settings.md).
 
 ## Calibration
 
@@ -178,8 +193,9 @@ Read [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md).
   MyCodex release.
 - Calibration is per local configuration and currently targets the visible
   renderer.
-- System tray, startup registration, and advanced color pickers are planned
-  post-MVP features.
+- Windows ARM64, Windows 10 22H2, every DPI/language combination, and contrast
+  themes were not all exercised on this development machine; see the
+  [support matrix](docs/compatibility.md).
 - Signed-in real-conversation behavior varies by Desktop version; safe mode is
   intentionally conservative.
 

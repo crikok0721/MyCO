@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
 using MyCodex.Manager.ViewModels;
+using MyCodex.Manager.Services;
 
 // Code-behind is limited to window chrome and orderly asynchronous shutdown.
 namespace MyCodex.Manager.Views;
@@ -11,11 +12,13 @@ public partial class MainWindow : Window
 {
     private bool _allowClose;
     private bool _shutdownInProgress;
+    private readonly TrayWindowStateMachine _presentation = new();
 
     public MainWindow(MainWindowViewModel viewModel)
     {
         InitializeComponent();
         DataContext = viewModel;
+        StateChanged += HandleWindowStateChanged;
     }
 
     public MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext;
@@ -40,6 +43,44 @@ public partial class MainWindow : Window
     private void Close_Click(object sender, RoutedEventArgs eventArgs)
     {
         Close();
+    }
+
+    public void PrepareForBackground()
+    {
+        _presentation.Hide();
+        ShowInTaskbar = false;
+        WindowState = WindowState.Normal;
+        Hide();
+    }
+
+    public void RestoreFromTray()
+    {
+        _presentation.Restore();
+        ShowInTaskbar = true;
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+        if (!IsVisible)
+        {
+            Show();
+        }
+        Activate();
+        Topmost = true;
+        Topmost = false;
+        Focus();
+    }
+
+    private void HandleWindowStateChanged(object? sender, EventArgs eventArgs)
+    {
+        if (WindowState != WindowState.Minimized)
+        {
+            return;
+        }
+        _presentation.Hide();
+        ShowInTaskbar = false;
+        Hide();
+        WindowState = WindowState.Normal;
     }
 
     protected override async void OnClosing(CancelEventArgs eventArgs)

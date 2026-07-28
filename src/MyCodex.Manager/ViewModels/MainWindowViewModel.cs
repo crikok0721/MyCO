@@ -13,6 +13,8 @@ using MyCodex.Injection;
 using MyCodex.Diagnostics;
 using MyCodex.Manager.Localization;
 using MyCodex.Manager.Resources;
+using MyCodex.Manager.Services;
+using MyCodex.Startup;
 
 // Main MVVM coordinator that connects WPF controls to config, discovery, and CDP sessions.
 namespace MyCodex.Manager.ViewModels;
@@ -22,7 +24,16 @@ public enum ManagerPage
     Appearance,
     Calibration,
     Diagnostics,
-    About
+    About,
+    Settings
+}
+
+public sealed class ManagerThemeOption(
+    ManagerThemeMode mode,
+    string displayName)
+{
+    public ManagerThemeMode Mode { get; } = mode;
+    public string DisplayName { get; } = displayName;
 }
 
 public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
@@ -38,6 +49,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly ApplicationRestartService _restartService = new();
     private readonly DesktopSessionController _controller;
     private readonly IPrivacySafeLogger _logger;
+    private readonly ThemeService _themeService;
+    private readonly IStartupRegistrationService _startupRegistration;
     // Language changes, calibration, and the Save button can race; serialize disk writes.
     private readonly SemaphoreSlim _configSaveGate = new(1, 1);
     private CalibrationConfig _calibration = new();
@@ -61,6 +74,18 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private bool _nicknameVisible = true;
     private string _userBubble = "#242424";
     private string _assistantBubble = "#222222";
+    private string _darkAssistantText = "#F2F2F2";
+    private string _darkNicknameColor = "#9A9A9A";
+    private string _darkAvatarBackground = "#303030";
+    private string _darkAvatarBorder = "#FFFFFF14";
+    private string _lightAssistantBubble = "#F1F3F5";
+    private string _lightAssistantText = "#202124";
+    private string _lightNicknameColor = "#5F6672";
+    private string _lightAvatarBackground = "#E5E7EB";
+    private string _lightAvatarBorder = "#00000024";
+    private ManagerThemeOption? _selectedManagerThemeOption;
+    private bool _launchAtLogin;
+    private bool _launchCodexOnMyCodexStart;
     private string _status = LocalizationService.Get("StatusStarting");
     private string? _statusKey = "StatusStarting";
     private object?[] _statusArguments = [];
@@ -77,6 +102,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _configStore = new ConfigStore(_paths);
         _avatarService = new AvatarService(_paths.AvatarsDirectory);
         _logger = new PrivacySafeLogger(_paths.LogsDirectory);
+        _themeService = (System.Windows.Application.Current as App)?.ThemeService
+                        ?? throw new InvalidOperationException(
+                            "The app-level theme service is unavailable.");
+        _startupRegistration = new StartupRegistrationService();
         _controller = new DesktopSessionController(
             RuntimeResourceLoader.Load(),
             logger: _logger);
@@ -87,6 +116,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         SelectCalibrationCommand = new RelayCommand(() => CurrentPage = ManagerPage.Calibration);
         SelectDiagnosticsCommand = new RelayCommand(() => CurrentPage = ManagerPage.Diagnostics);
         SelectAboutCommand = new RelayCommand(() => CurrentPage = ManagerPage.About);
+        SelectSettingsCommand = new RelayCommand(() => CurrentPage = ManagerPage.Settings);
         DetectCommand = new AsyncRelayCommand(
             () => GuardAsync(DetectAsync, "ErrorDesktopDetection"),
             CanDetect);
@@ -122,16 +152,21 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             () => SessionState.IsConnected);
         ResetAppearanceCommand = new RelayCommand(ResetAppearance);
         OpenConfigFolderCommand = new RelayCommand(OpenConfigFolder);
+        SaveSettingsCommand = new AsyncRelayCommand(() => GuardAsync(
+            SaveSettingsAsync,
+            "ErrorSaveSettings"));
     }
 
     public ObservableCollection<ApplicationCandidate> Candidates { get; } = [];
     public IReadOnlyList<LanguageOption> SupportedLanguages =>
         LocalizationService.SupportedLanguages;
+    public ObservableCollection<ManagerThemeOption> ManagerThemeOptions { get; } = [];
 
     public ICommand SelectAppearanceCommand { get; }
     public ICommand SelectCalibrationCommand { get; }
     public ICommand SelectDiagnosticsCommand { get; }
     public ICommand SelectAboutCommand { get; }
+    public ICommand SelectSettingsCommand { get; }
     public ICommand DetectCommand { get; }
     public ICommand StartCommand { get; }
     public ICommand SaveCommand { get; }
@@ -144,6 +179,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public ICommand RefreshDiagnosticsCommand { get; }
     public ICommand ResetAppearanceCommand { get; }
     public ICommand OpenConfigFolderCommand { get; }
+    public ICommand SaveSettingsCommand { get; }
 
     public LanguageOption SelectedLanguage
     {
@@ -189,6 +225,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Raise(nameof(IsCalibrationPage));
             Raise(nameof(IsDiagnosticsPage));
             Raise(nameof(IsAboutPage));
+            Raise(nameof(IsSettingsPage));
         }
     }
 
@@ -196,6 +233,32 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public bool IsCalibrationPage => CurrentPage == ManagerPage.Calibration;
     public bool IsDiagnosticsPage => CurrentPage == ManagerPage.Diagnostics;
     public bool IsAboutPage => CurrentPage == ManagerPage.About;
+    public bool IsSettingsPage => CurrentPage == ManagerPage.Settings;
+
+    public ManagerThemeOption? SelectedManagerThemeOption
+    {
+        get => _selectedManagerThemeOption;
+        set
+        {
+            if (value is null || !Set(ref _selectedManagerThemeOption, value))
+            {
+                return;
+            }
+            _themeService.ApplyMode(value.Mode);
+        }
+    }
+
+    public bool LaunchAtLogin
+    {
+        get => _launchAtLogin;
+        set => Set(ref _launchAtLogin, value);
+    }
+
+    public bool LaunchCodexOnMyCodexStart
+    {
+        get => _launchCodexOnMyCodexStart;
+        set => Set(ref _launchCodexOnMyCodexStart, value);
+    }
 
     public string AssistantName
     {
@@ -338,6 +401,60 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         set => Set(ref _assistantBubble, value);
     }
 
+    public string DarkAssistantText
+    {
+        get => _darkAssistantText;
+        set => Set(ref _darkAssistantText, value);
+    }
+
+    public string DarkNicknameColor
+    {
+        get => _darkNicknameColor;
+        set => Set(ref _darkNicknameColor, value);
+    }
+
+    public string DarkAvatarBackground
+    {
+        get => _darkAvatarBackground;
+        set => Set(ref _darkAvatarBackground, value);
+    }
+
+    public string DarkAvatarBorder
+    {
+        get => _darkAvatarBorder;
+        set => Set(ref _darkAvatarBorder, value);
+    }
+
+    public string LightAssistantBubble
+    {
+        get => _lightAssistantBubble;
+        set => Set(ref _lightAssistantBubble, value);
+    }
+
+    public string LightAssistantText
+    {
+        get => _lightAssistantText;
+        set => Set(ref _lightAssistantText, value);
+    }
+
+    public string LightNicknameColor
+    {
+        get => _lightNicknameColor;
+        set => Set(ref _lightNicknameColor, value);
+    }
+
+    public string LightAvatarBackground
+    {
+        get => _lightAvatarBackground;
+        set => Set(ref _lightAvatarBackground, value);
+    }
+
+    public string LightAvatarBorder
+    {
+        get => _lightAvatarBorder;
+        set => Set(ref _lightAvatarBorder, value);
+    }
+
     public string Status
     {
         get => _status;
@@ -362,6 +479,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Raise(nameof(ConnectionSummary));
             Raise(nameof(IsConnected));
             Raise(nameof(IsSkinEnabled));
+            Raise(nameof(IsSkinRequested));
             Raise(nameof(SessionStatus));
             RaiseCommandCanExecute();
         }
@@ -418,13 +536,64 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         WasFirstRun = load.WasCreated;
         var config = await MigrateLegacyAvatarsAsync(load.Config).ConfigureAwait(true);
         _persistedConfig = config;
+        RefreshManagerThemeOptions(config.ManagerThemeMode);
         LoadConfig(config);
+        var startupRegistrationRecovered =
+            await ReconcileStartupRegistrationAsync().ConfigureAwait(true);
         await DetectAsync().ConfigureAwait(true);
         SetStatus(
-            load.CorruptBackupPath is null
+            startupRegistrationRecovered
+                ? "StatusStartupRegistrationRecovered"
+                : load.CorruptBackupPath is null
                 ? "StatusReady"
                 : "StatusRecoveredConfig");
         _initialized = true;
+    }
+
+    public async Task StartAutomaticallyIfConfiguredAsync()
+    {
+        try
+        {
+            await DetectAsync().ConfigureAwait(true);
+            var candidate = SelectedCandidate;
+            var decision = AutomaticCodexLaunchPolicy.Decide(
+                _persistedConfig.LaunchCodexOnMyCodexStart,
+                candidate is not null,
+                candidate?.IsRunning == true,
+                SessionState.IsConnected);
+            if (decision is AutomaticCodexLaunchDecision.Disabled or
+                AutomaticCodexLaunchDecision.AlreadyControlled)
+            {
+                return;
+            }
+            if (decision == AutomaticCodexLaunchDecision.DesktopNotFound)
+            {
+                SetStatus("StatusAutoStartAppNotFound");
+                _logger.Info("auto_start_codex_not_found");
+                return;
+            }
+            if (decision == AutomaticCodexLaunchDecision.AlreadyRunningUncontrolled)
+            {
+                SetStatus("StatusAutoStartSkippedRunning");
+                _logger.Info("auto_start_codex_already_running");
+                return;
+            }
+
+            var adapter = _adapters.Select(candidate!)
+                          ?? throw new NotSupportedException(
+                              "No compatible application adapter is available.");
+            SetStatus("StatusAutoStartingDesktop");
+            await StartControllerWithFallbackAsync(
+                candidate!,
+                adapter,
+                allowInteractiveFallback: false).ConfigureAwait(true);
+        }
+        catch (Exception exception)
+        {
+            var errorCode = ErrorCodeFactory.Create("AUTO", "START");
+            _logger.Error(errorCode, exception);
+            SetStatus("StatusAutoStartFailedFormat", errorCode);
+        }
     }
 
     private async Task<AppConfig> MigrateLegacyAvatarsAsync(AppConfig config)
@@ -559,7 +728,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         SetStatus("StatusStartingDesktop");
         try
         {
-            await StartControllerWithFallbackAsync(candidate, adapter).ConfigureAwait(true);
+            await StartControllerWithFallbackAsync(
+                candidate,
+                adapter,
+                allowInteractiveFallback: true).ConfigureAwait(true);
         }
         catch (FileNotFoundException)
         {
@@ -569,13 +741,17 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             adapter = _adapters.Select(candidate)
                       ?? throw new NotSupportedException(
                           "No compatible application adapter is available.");
-            await StartControllerWithFallbackAsync(candidate, adapter).ConfigureAwait(true);
+            await StartControllerWithFallbackAsync(
+                candidate,
+                adapter,
+                allowInteractiveFallback: true).ConfigureAwait(true);
         }
     }
 
     private async Task StartControllerWithFallbackAsync(
         ApplicationCandidate candidate,
-        IApplicationAdapter adapter)
+        IApplicationAdapter adapter,
+        bool allowInteractiveFallback)
     {
         try
         {
@@ -587,6 +763,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
         catch (SecureTransportUnavailableException exception)
         {
+            if (!allowInteractiveFallback)
+            {
+                throw;
+            }
             var useTcp = System.Windows.MessageBox.Show(
                 LocalizationService.Format(
                     "TcpFallbackPromptFormat",
@@ -642,6 +822,77 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             await _controller.ApplyConfigAsync(config).ConfigureAwait(true);
         }
         SetStatus("StatusAppearanceSaved");
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        var executable = Environment.ProcessPath
+                         ?? throw new InvalidOperationException(
+                             "The MyCodex executable path is unavailable.");
+        var previousConfig = _persistedConfig;
+        var previousRegistration = _startupRegistration.GetStatus(executable);
+        try
+        {
+            _startupRegistration.SetEnabled(executable, LaunchAtLogin);
+            var config = BuildConfig();
+            await SaveConfigAsync(config).ConfigureAwait(true);
+            _themeService.ApplyMode(config.ManagerThemeMode);
+            SetStatus("StatusSettingsSaved");
+        }
+        catch
+        {
+            try
+            {
+                _startupRegistration.Restore(previousRegistration);
+            }
+            catch (Exception rollbackException)
+            {
+                _logger.Error("startup_registration_rollback_failed", rollbackException);
+            }
+            RefreshManagerThemeOptions(previousConfig.ManagerThemeMode);
+            LoadConfig(previousConfig);
+            throw;
+        }
+    }
+
+    private async Task<bool> ReconcileStartupRegistrationAsync()
+    {
+        var executable = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(executable))
+        {
+            return false;
+        }
+        try
+        {
+            var status = _startupRegistration.GetStatus(executable);
+            if (_persistedConfig.LaunchAtLogin)
+            {
+                if (!status.MatchesCurrentExecutable)
+                {
+                    _startupRegistration.SetEnabled(executable, enabled: true);
+                }
+            }
+            else if (status.IsRegistered)
+            {
+                _startupRegistration.SetEnabled(executable, enabled: false);
+            }
+            return false;
+        }
+        catch (Exception exception) when (
+            exception is InvalidOperationException or
+                UnauthorizedAccessException or
+                System.Security.SecurityException or
+                IOException)
+        {
+            _logger.Error("startup_registration_reconcile_failed", exception);
+            if (_persistedConfig.LaunchAtLogin)
+            {
+                _persistedConfig = _persistedConfig with { LaunchAtLogin = false };
+                LaunchAtLogin = false;
+                await SaveConfigAsync(_persistedConfig).ConfigureAwait(true);
+            }
+            return true;
+        }
     }
 
     private async Task PickAvatarAsync(bool assistant)
@@ -713,6 +964,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             defaults with
             {
                 Language = SelectedLanguage.Code,
+                ManagerThemeMode =
+                    SelectedManagerThemeOption?.Mode ?? ManagerThemeMode.System,
+                LaunchAtLogin = LaunchAtLogin,
+                LaunchCodexOnMyCodexStart = LaunchCodexOnMyCodexStart,
                 Calibration = _calibration
             });
         SetStatus("StatusDefaultsRestored");
@@ -734,6 +989,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         return new AppConfig
         {
             Language = SelectedLanguage.Code,
+            ManagerThemeMode =
+                SelectedManagerThemeOption?.Mode ?? ManagerThemeMode.System,
+            LaunchAtLogin = LaunchAtLogin,
+            LaunchCodexOnMyCodexStart = LaunchCodexOnMyCodexStart,
             Assistant = new PersonConfig
             {
                 Name = NicknameValidator.Normalize(AssistantName),
@@ -756,8 +1015,24 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 NicknameVisible = NicknameVisible,
                 MessageGap = (int)Math.Round(MessageGap),
                 MessageMaxWidth = (int)Math.Round(MessageMaxWidth),
-                UserBubble = UserBubble,
-                AssistantBubble = AssistantBubble
+                UserBubble = _persistedConfig.Appearance.UserBubble,
+                UserText = _persistedConfig.Appearance.UserText,
+                DarkBubblePalette = new BubblePalette
+                {
+                    AssistantBubble = AssistantBubble,
+                    AssistantText = DarkAssistantText,
+                    NicknameColor = DarkNicknameColor,
+                    AvatarBackground = DarkAvatarBackground,
+                    AvatarBorder = DarkAvatarBorder
+                },
+                LightBubblePalette = new BubblePalette
+                {
+                    AssistantBubble = LightAssistantBubble,
+                    AssistantText = LightAssistantText,
+                    NicknameColor = LightNicknameColor,
+                    AvatarBackground = LightAvatarBackground,
+                    AvatarBorder = LightAvatarBorder
+                }
             },
             Calibration = _calibration
         };
@@ -774,6 +1049,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _selectedLanguage = language;
         LocalizationService.ApplyLanguage(language.Code);
         Raise(nameof(SelectedLanguage));
+        SelectedManagerThemeOption = ManagerThemeOptions.First(
+            option => option.Mode == config.ManagerThemeMode);
+        LaunchAtLogin = config.LaunchAtLogin;
+        LaunchCodexOnMyCodexStart = config.LaunchCodexOnMyCodexStart;
         AssistantName = config.Assistant.Name;
         UserName = config.User.Name;
         AssistantAvatar = config.Assistant.Avatar;
@@ -787,8 +1066,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         MessageGap = config.Appearance.MessageGap;
         MessageMaxWidth = config.Appearance.MessageMaxWidth;
         NicknameVisible = config.Appearance.NicknameVisible;
-        UserBubble = config.Appearance.UserBubble;
-        AssistantBubble = config.Appearance.AssistantBubble;
+        AssistantBubble = config.Appearance.DarkBubblePalette.AssistantBubble;
+        DarkAssistantText = config.Appearance.DarkBubblePalette.AssistantText;
+        DarkNicknameColor = config.Appearance.DarkBubblePalette.NicknameColor;
+        DarkAvatarBackground = config.Appearance.DarkBubblePalette.AvatarBackground;
+        DarkAvatarBorder = config.Appearance.DarkBubblePalette.AvatarBorder;
+        LightAssistantBubble = config.Appearance.LightBubblePalette.AssistantBubble;
+        LightAssistantText = config.Appearance.LightBubblePalette.AssistantText;
+        LightNicknameColor = config.Appearance.LightBubblePalette.NicknameColor;
+        LightAvatarBackground = config.Appearance.LightBubblePalette.AvatarBackground;
+        LightAvatarBorder = config.Appearance.LightBubblePalette.AvatarBorder;
         _calibration = config.Calibration;
         RefreshLocalizedProperties();
     }
@@ -963,6 +1250,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void RefreshLocalizedProperties()
     {
+        RefreshManagerThemeOptions(
+            SelectedManagerThemeOption?.Mode ?? ManagerThemeMode.System);
         Raise(nameof(ConnectionSummary));
         Raise(nameof(CalibrationSummary));
         Raise(nameof(SessionStatus));
@@ -982,6 +1271,25 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             DiagnosticsText = LocalizationService.Get("DiagnosticsNotRefreshed");
         }
+    }
+
+    private void RefreshManagerThemeOptions(ManagerThemeMode selectedMode)
+    {
+        ManagerThemeOptions.Clear();
+        ManagerThemeOptions.Add(
+            new ManagerThemeOption(
+                ManagerThemeMode.Dark,
+                LocalizationService.Get("ManagerThemeDark")));
+        ManagerThemeOptions.Add(
+            new ManagerThemeOption(
+                ManagerThemeMode.Light,
+                LocalizationService.Get("ManagerThemeLight")));
+        ManagerThemeOptions.Add(
+            new ManagerThemeOption(
+                ManagerThemeMode.System,
+                LocalizationService.Get("ManagerThemeSystem")));
+        SelectedManagerThemeOption = ManagerThemeOptions.First(
+            option => option.Mode == selectedMode);
     }
 
     private void SetStatus(string key, params object?[] arguments)

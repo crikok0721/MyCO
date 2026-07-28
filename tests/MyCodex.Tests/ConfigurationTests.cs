@@ -1,5 +1,7 @@
 using System.Text.Json;
+using MyCodex.Avatars;
 using MyCodex.Configuration;
+using MyCodex.Injection;
 
 // Verifies config creation, migration, validation, recovery, and atomic persistence.
 namespace MyCodex.Tests;
@@ -46,7 +48,7 @@ public sealed class ConfigurationTests
         var result = await new ConfigStore(paths).LoadAsync();
 
         Assert.True(result.WasMigrated);
-        Assert.Equal(1, result.Config.SchemaVersion);
+        Assert.Equal(2, result.Config.SchemaVersion);
         Assert.Equal("Luna", result.Config.Assistant.Name);
         Assert.Equal("Avery", result.Config.User.Name);
         Assert.Equal("luna.png", result.Config.Assistant.Avatar);
@@ -121,6 +123,225 @@ public sealed class ConfigurationTests
     }
 
     [Fact]
+    public async Task SchemaOneMigratesCustomAppearanceAndCalibrationWithoutLoss()
+    {
+        using var directory = new TempDirectory();
+        var paths = new ConfigPaths(directory.Path);
+        paths.EnsureDirectories();
+        await File.WriteAllTextAsync(
+            paths.ConfigFile,
+            """
+            {
+              "schemaVersion": 1,
+              "protocolVersion": 1,
+              "language": "zh-TW",
+              "assistant": { "name": "露娜", "avatar": "C:\\头像\\assistant.png" },
+              "user": { "name": "Avery", "avatar": "C:\\头像\\user.png" },
+              "appearance": {
+                "preset": "ReferenceDark",
+                "avatarSize": 52,
+                "avatarOffsetX": 7,
+                "avatarOffsetY": 13,
+                "bubbleRadius": 19,
+                "bubblePaddingX": 17,
+                "bubblePaddingY": 12,
+                "nicknameVisible": false,
+                "messageGap": 33,
+                "messageMaxWidth": 72,
+                "userBubble": "#242424",
+                "assistantBubble": "#123456",
+                "userText": "#F5F5F5",
+                "assistantText": "#FFFFFF",
+                "nicknameColor": "#ABCDEF"
+              },
+              "calibration": {
+                "schemaVersion": 1,
+                "assistantTurn": {
+                  "schemaVersion": 1,
+                  "tagName": "article",
+                  "role": "article",
+                  "stableAttributes": { "data-role": "assistant" },
+                  "stableClasses": [],
+                  "ancestorChain": [],
+                  "childTagHistogram": { "p": 1 },
+                  "capabilities": {
+                    "hasMarkdown": true,
+                    "hasCode": false,
+                    "hasButtons": false
+                  },
+                  "layout": { "alignment": "left", "widthRatio": 0.7 },
+                  "fingerprint": "article;assistant"
+                }
+              }
+            }
+            """);
+
+        var loaded = await new ConfigStore(paths).LoadAsync();
+
+        Assert.True(loaded.WasMigrated);
+        Assert.Equal(2, loaded.Config.SchemaVersion);
+        Assert.Equal("露娜", loaded.Config.Assistant.Name);
+        Assert.Equal(@"C:\头像\assistant.png", loaded.Config.Assistant.Avatar);
+        Assert.Equal(52, loaded.Config.Appearance.AvatarSize);
+        Assert.Equal(7, loaded.Config.Appearance.AvatarOffsetX);
+        Assert.Equal(13, loaded.Config.Appearance.AvatarOffsetY);
+        Assert.Equal(19, loaded.Config.Appearance.BubbleRadius);
+        Assert.False(loaded.Config.Appearance.NicknameVisible);
+        Assert.Equal(
+            "#123456",
+            loaded.Config.Appearance.DarkBubblePalette.AssistantBubble);
+        Assert.Equal(
+            "#FFFFFF",
+            loaded.Config.Appearance.DarkBubblePalette.AssistantText);
+        Assert.Equal(
+            "#ABCDEF",
+            loaded.Config.Appearance.DarkBubblePalette.NicknameColor);
+        Assert.Equal("#242424", loaded.Config.Appearance.UserBubble);
+        Assert.Equal("#F5F5F5", loaded.Config.Appearance.UserText);
+        Assert.Equal(
+            BubblePalette.LightDefault,
+            loaded.Config.Appearance.LightBubblePalette);
+        Assert.NotNull(loaded.Config.Calibration.AssistantTurn);
+        Assert.Equal(ManagerThemeMode.System, loaded.Config.ManagerThemeMode);
+        Assert.False(loaded.Config.LaunchAtLogin);
+        Assert.False(loaded.Config.LaunchCodexOnMyCodexStart);
+    }
+
+    [Theory]
+    [InlineData(ManagerThemeMode.Dark)]
+    [InlineData(ManagerThemeMode.Light)]
+    [InlineData(ManagerThemeMode.System)]
+    public async Task ManagerThemeAndStartupOptionsRoundTrip(
+        ManagerThemeMode theme)
+    {
+        using var directory = new TempDirectory();
+        var store = new ConfigStore(new ConfigPaths(directory.Path));
+        await store.SaveAsync(
+            AppConfig.Default with
+            {
+                ManagerThemeMode = theme,
+                LaunchAtLogin = true,
+                LaunchCodexOnMyCodexStart = true
+            });
+
+        var loaded = await store.LoadAsync();
+
+        Assert.Equal(theme, loaded.Config.ManagerThemeMode);
+        Assert.True(loaded.Config.LaunchAtLogin);
+        Assert.True(loaded.Config.LaunchCodexOnMyCodexStart);
+    }
+
+    [Fact]
+    public async Task CurrentSchemaWithMissingNewFieldsIsRepairedWithoutLosingIdentity()
+    {
+        using var directory = new TempDirectory();
+        var paths = new ConfigPaths(directory.Path);
+        paths.EnsureDirectories();
+        await File.WriteAllTextAsync(
+            paths.ConfigFile,
+            """
+            {
+              "schemaVersion": 2,
+              "protocolVersion": 1,
+              "language": "zh-CN",
+              "assistant": { "name": "小助手", "avatar": "C:\\资料 空格\\a.png" },
+              "user": { "name": "用户", "avatar": "" },
+              "appearance": {
+                "preset": "ReferenceDark",
+                "avatarSize": 40,
+                "avatarOffsetX": 0,
+                "avatarOffsetY": 11,
+                "bubbleRadius": 14,
+                "bubblePaddingX": 14,
+                "bubblePaddingY": 10,
+                "nicknameVisible": true,
+                "messageGap": 28,
+                "messageMaxWidth": 66
+              },
+              "calibration": { "schemaVersion": 1 }
+            }
+            """);
+
+        var loaded = await new ConfigStore(paths).LoadAsync();
+
+        Assert.True(loaded.WasMigrated);
+        Assert.Equal("小助手", loaded.Config.Assistant.Name);
+        Assert.Equal(@"C:\资料 空格\a.png", loaded.Config.Assistant.Avatar);
+        Assert.Equal(new BubblePalette(), loaded.Config.Appearance.DarkBubblePalette);
+        Assert.Equal(
+            BubblePalette.LightDefault,
+            loaded.Config.Appearance.LightBubblePalette);
+        Assert.Equal(ManagerThemeMode.System, loaded.Config.ManagerThemeMode);
+    }
+
+    [Fact]
+    public async Task RuntimeSerializationCarriesBothPalettesAtSchemaTwo()
+    {
+        using var directory = new TempDirectory();
+        var paths = new ConfigPaths(directory.Path);
+        paths.EnsureDirectories();
+        var config = AppConfig.Default with
+        {
+            Appearance = AppConfig.Default.Appearance with
+            {
+                DarkBubblePalette = new BubblePalette
+                {
+                    AssistantBubble = "#101214",
+                    AssistantText = "#F4F5F6"
+                },
+                LightBubblePalette = BubblePalette.LightDefault with
+                {
+                    AssistantBubble = "#FAFBFC",
+                    AssistantText = "#202124"
+                }
+            }
+        };
+
+        var json = await RuntimeConfigSerializer.SerializeAsync(
+            config,
+            "__mc_test",
+            new AvatarService(paths.AvatarsDirectory));
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+
+        Assert.Equal(2, root.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(
+            "#101214",
+            root.GetProperty("appearance")
+                .GetProperty("darkBubblePalette")
+                .GetProperty("assistantBubble")
+                .GetString());
+        Assert.Equal(
+            "#FAFBFC",
+            root.GetProperty("appearance")
+                .GetProperty("lightBubblePalette")
+                .GetProperty("assistantBubble")
+                .GetString());
+        Assert.Equal("__mc_test", root.GetProperty("bridgeBindingName").GetString());
+    }
+
+    [Fact]
+    public async Task UnreadableBubblePaletteContrastIsRejected()
+    {
+        using var directory = new TempDirectory();
+        var store = new ConfigStore(new ConfigPaths(directory.Path));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            store.SaveAsync(
+                AppConfig.Default with
+                {
+                    Appearance = AppConfig.Default.Appearance with
+                    {
+                        LightBubblePalette =
+                            BubblePalette.LightDefault with
+                            {
+                                AssistantBubble = "#FFFFFF",
+                                AssistantText = "#FFFFFF"
+                            }
+                    }
+                }));
+    }
+
+    [Fact]
     public async Task AvatarOffsetsOutsideSliderRangeAreRejected()
     {
         using var directory = new TempDirectory();
@@ -160,7 +381,7 @@ public sealed class ConfigurationTests
         Assert.True(File.Exists(result.CorruptBackupPath));
         Assert.Equal("Codex", result.Config.Assistant.Name);
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(paths.ConfigFile));
-        Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(2, document.RootElement.GetProperty("schemaVersion").GetInt32());
     }
 
     [Fact]

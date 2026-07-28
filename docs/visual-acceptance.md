@@ -50,6 +50,13 @@ dotnet $va status --run-id $run
 # Keep Codex A open. Use Computer Use to select the window whose exact PID is
 # start.state.targetPid, verify the visible RUN <run-id> marker, and inspect it.
 
+# Start is dark. Switch the same renderer without restarting MyCodex or Codex B.
+dotnet $va theme --run-id $run --mode light
+dotnet $va status --run-id $run
+# Inspect/capture light, then prove the transition is reversible.
+dotnet $va theme --run-id $run --mode dark
+dotnet $va status --run-id $run
+
 dotnet $va restart --run-id $run
 dotnet $va status --run-id $run
 
@@ -76,6 +83,25 @@ dotnet $va record --run-id $run `
 
 Valid results are `pass`, `fail`, and `blocked`. A DOM assertion is stored in
 `automatedChecks`; it must never be recorded as a visual observation.
+
+For alpha.5, record separate Computer Use checks for `codex-dark`,
+`codex-light`, `codex-light-to-dark`, `user-bubble-native`,
+`native-surfaces`, and `no-layout-jump`. The `theme` command changes only the
+synthetic renderer's visible theme, waits for the debounced detector, and adds
+automated theme-marker/singleton/readability checks. It is not a visual pass.
+
+Manager/tray/startup screenshots are a separate real-Windows pass against the
+self-contained `MyCodex.exe`. Store evidence under:
+
+```text
+artifacts\visual-acceptance\<run-id>\
+```
+
+Expected names are `codex-dark.png`, `codex-light.png`,
+`manager-dark.png`, `manager-light.png`, `manager-system.png`,
+`minimized-to-tray.png`, `restored-from-tray.png`, and
+`startup-settings.png`. Do not use this fixture, an HTML render, a DOM dump, or
+an automated assertion as a substitute for those screenshots.
 
 ## Fixture coverage
 

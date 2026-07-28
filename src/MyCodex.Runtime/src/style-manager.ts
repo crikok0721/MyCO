@@ -1,4 +1,8 @@
-import type { AppearanceConfig } from "./types.js";
+import type {
+  AppearanceConfig,
+  BubblePalette,
+  HostTheme
+} from "./types.js";
 
 // Owns one style element and the CSS variables used by all runtime decorations.
 const STYLE_ID = "mycodex-runtime-style";
@@ -6,7 +10,11 @@ const STYLE_ID = "mycodex-runtime-style";
 export class StyleManager {
   private styleElement: HTMLStyleElement | null = null;
 
-  install(document: Document, appearance: AppearanceConfig): void {
+  install(
+    document: Document,
+    appearance: AppearanceConfig,
+    theme: Exclude<HostTheme, "unknown"> = "dark"
+  ): void {
     // Installation is idempotent because health checks may call it after navigation.
     this.styleElement = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
     if (!this.styleElement) {
@@ -16,21 +24,25 @@ export class StyleManager {
       (document.head ?? document.documentElement).append(this.styleElement);
     }
     this.styleElement.textContent = runtimeCss();
-    this.applyVariables(document, appearance);
+    this.applyVariables(document, appearance, theme);
   }
 
-  applyVariables(document: Document, appearance: AppearanceConfig): void {
+  applyVariables(
+    document: Document,
+    appearance: AppearanceConfig,
+    theme: Exclude<HostTheme, "unknown">
+  ): void {
     const root = document.documentElement.style;
+    const palette =
+      theme === "light"
+        ? appearance.lightBubblePalette
+        : appearance.darkBubblePalette;
     const values: Record<string, string> = {
       "--mc-avatar-size": `${appearance.avatarSize}px`,
       "--mc-avatar-offset-x": `${appearance.avatarOffsetX}px`,
       "--mc-avatar-offset-y": `${appearance.avatarOffsetY}px`,
       "--mc-bubble-radius": `${appearance.bubbleRadius}px`,
-      "--mc-user-bubble": appearance.userBubble,
-      "--mc-assistant-bubble": appearance.assistantBubble,
-      "--mc-user-text": appearance.userText,
-      "--mc-assistant-text": appearance.assistantText,
-      "--mc-nickname-color": appearance.nicknameColor,
+      ...paletteVariables(palette),
       "--mc-message-max-width": `${appearance.messageMaxWidth}%`,
       "--mc-message-gap": `${appearance.messageGap}px`,
       "--mc-bubble-padding-x": `${appearance.bubblePaddingX}px`,
@@ -40,6 +52,25 @@ export class StyleManager {
     for (const [property, value] of Object.entries(values)) {
       root.setProperty(property, value);
     }
+    document.documentElement.setAttribute("data-mycodex-host-theme", theme);
+  }
+
+  applyTheme(
+    document: Document,
+    appearance: AppearanceConfig,
+    theme: Exclude<HostTheme, "unknown">
+  ): void {
+    const root = document.documentElement.style;
+    for (const [property, value] of Object.entries(
+      paletteVariables(
+        theme === "light"
+          ? appearance.lightBubblePalette
+          : appearance.darkBubblePalette
+      )
+    )) {
+      root.setProperty(property, value);
+    }
+    document.documentElement.setAttribute("data-mycodex-host-theme", theme);
   }
 
   isInstalled(document: Document): boolean {
@@ -56,11 +87,11 @@ export class StyleManager {
       "--mc-avatar-offset-x",
       "--mc-avatar-offset-y",
       "--mc-bubble-radius",
-      "--mc-user-bubble",
       "--mc-assistant-bubble",
-      "--mc-user-text",
       "--mc-assistant-text",
       "--mc-nickname-color",
+      "--mc-avatar-background",
+      "--mc-avatar-border",
       "--mc-message-max-width",
       "--mc-message-gap",
       "--mc-bubble-padding-x",
@@ -69,6 +100,7 @@ export class StyleManager {
     ]) {
       document.documentElement.style.removeProperty(property);
     }
+    document.documentElement.removeAttribute("data-mycodex-host-theme");
   }
 }
 
@@ -80,11 +112,11 @@ function runtimeCss(): string {
   --mc-avatar-offset-x: 0px;
   --mc-avatar-offset-y: 11px;
   --mc-bubble-radius: 14px;
-  --mc-user-bubble: #242424;
   --mc-assistant-bubble: #222222;
-  --mc-user-text: #f5f5f5;
   --mc-assistant-text: #f2f2f2;
   --mc-nickname-color: #9a9a9a;
+  --mc-avatar-background: #303030;
+  --mc-avatar-border: #FFFFFF14;
   --mc-message-max-width: 66%;
   --mc-message-gap: 28px;
   --mc-bubble-padding-x: 14px;
@@ -111,8 +143,8 @@ function runtimeCss(): string {
   height: var(--mc-avatar-size) !important;
   border-radius: 50% !important;
   object-fit: cover !important;
-  background: #303030 !important;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.08) !important;
+  background: var(--mc-avatar-background) !important;
+  box-shadow: 0 0 0 1px var(--mc-avatar-border) !important;
   pointer-events: none !important;
   user-select: none !important;
   z-index: 2 !important;
@@ -168,4 +200,14 @@ function runtimeCss(): string {
   outline-offset: 2px !important;
 }
 `;
+}
+
+function paletteVariables(palette: BubblePalette): Record<string, string> {
+  return {
+    "--mc-assistant-bubble": palette.assistantBubble,
+    "--mc-assistant-text": palette.assistantText,
+    "--mc-nickname-color": palette.nicknameColor,
+    "--mc-avatar-background": palette.avatarBackground,
+    "--mc-avatar-border": palette.avatarBorder
+  };
 }

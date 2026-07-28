@@ -21,6 +21,7 @@ public sealed record VisualAcceptanceState
     public string ProfilePath { get; init; } = string.Empty;
     public string RuntimeVersion { get; init; } = string.Empty;
     public int ProtocolVersion { get; init; }
+    public string CurrentTheme { get; init; } = "dark";
     public DateTimeOffset StartedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
     public int RestartCount { get; init; }
@@ -93,7 +94,17 @@ public sealed class VisualAcceptanceStateStore
         string stateFile,
         CancellationToken cancellationToken = default)
     {
-        var json = await File.ReadAllTextAsync(stateFile, cancellationToken)
+        // The host atomically replaces this file while `start` polls it.
+        // Delete sharing prevents a Windows reader from blocking that rename.
+        await using var stream = new FileStream(
+            stateFile,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite | FileShare.Delete,
+            bufferSize: 4096,
+            useAsync: true);
+        using var reader = new StreamReader(stream);
+        var json = await reader.ReadToEndAsync(cancellationToken)
             .ConfigureAwait(false);
         return JsonSerializer.Deserialize<VisualAcceptanceState>(json, JsonOptions)
                ?? throw new JsonException("Visual acceptance state is invalid.");

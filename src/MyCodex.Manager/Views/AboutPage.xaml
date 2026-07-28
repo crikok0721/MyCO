@@ -7,17 +7,18 @@
             <StackPanel>
                 <TextBlock Text="{DynamicResource AboutTitle}" FontSize="26" FontWeight="SemiBold" />
                 <TextBlock Text="{DynamicResource AboutSubtitle}"
-                           Foreground="{StaticResource MutedTextBrush}" Margin="0,5,0,0" />
+                           Foreground="{DynamicResource MutedTextBrush}" Margin="0,5,0,0" />
 
-                <Border Margin="0,24,0,16" Background="{StaticResource PanelBrush}"
-                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                <Border Margin="0,24,0,16" Background="{DynamicResource PanelBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                         CornerRadius="12" Padding="22">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="58" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Border Width="46" Height="46" CornerRadius="13" Background="#8B7CF6">
+                        <Border Width="46" Height="46" CornerRadius="13"
+                                Background="{DynamicResource PrimaryBrush}">
                             <Grid>
                                 <Path Data="M7,9 H39 V32 H25 L17,39 V32 H7 Z"
                                       Stroke="White" StrokeThickness="2" Fill="Transparent" />
@@ -34,7 +35,7 @@
                                            FontWeight="SemiBold" FontSize="18" />
                             </StackPanel>
                             <TextBlock Text="{DynamicResource AboutTagline}"
-                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
                                        Margin="0,5,0,0" />
                         </StackPanel>
                     </Grid>
@@ -43,9 +44,11 @@
                 <TextBlock Text="{DynamicResource PrivacyByConstruction}" FontSize="18"
                            FontWeight="SemiBold" Margin="0,14,0,8" />
                 <TextBlock Text="{DynamicResource PrivacyParagraphOne}"
-                           TextWrapping="Wrap" Foreground="#C1C5CE" LineHeight="22" />
+                           TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"
+                           LineHeight="22" />
                 <TextBlock Text="{DynamicResource PrivacyParagraphTwo}"
-                           TextWrapping="Wrap" Foreground="#C1C5CE" LineHeight="22"
+                           TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"
+                           LineHeight="22"
                            Margin="0,8,0,0" />
                 <Button Content="{DynamicResource OpenConfigFolder}"
                         Command="{Binding OpenConfigFolderCommand}"
@@ -54,14 +57,15 @@
                 <TextBlock Text="{DynamicResource CompatibilityTitle}" FontSize="18"
                            FontWeight="SemiBold" Margin="0,28,0,8" />
                 <TextBlock Text="{DynamicResource CompatibilityParagraph}"
-                           TextWrapping="Wrap" Foreground="#C1C5CE" LineHeight="22" />
+                           TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}"
+                           LineHeight="22" />
 
                 <TextBlock Text="{DynamicResource LicenseDisclaimer}" FontSize="18"
                            FontWeight="SemiBold" Margin="0,28,0,8" />
                 <TextBlock Text="{DynamicResource LicenseCopyright}"
-                           Foreground="#C1C5CE" />
+                           Foreground="{DynamicResource SecondaryTextBrush}" />
                 <TextBlock Text="{DynamicResource DisclaimerParagraph}"
-                           TextWrapping="Wrap" Foreground="{StaticResource MutedTextBrush}"
+                           TextWrapping="Wrap" Foreground="{DynamicResource MutedTextBrush}"
                            LineHeight="21" Margin="0,8,0,0" />
             </StackPanel>
         </Grid>

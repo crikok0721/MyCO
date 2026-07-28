@@ -1,8 +1,8 @@
 <Project>
   <PropertyGroup>
-    <MyCodexVersion>0.2.0-alpha.4</MyCodexVersion>
+    <MyCodexVersion>0.2.0-alpha.5</MyCodexVersion>
     <MyCodexProtocolVersion>1</MyCodexProtocolVersion>
-    <MyCodexConfigSchemaVersion>1</MyCodexConfigSchemaVersion>
+    <MyCodexConfigSchemaVersion>2</MyCodexConfigSchemaVersion>
     <MyCodexCalibrationSchemaVersion>1</MyCodexCalibrationSchemaVersion>
 
     <Version>$(MyCodexVersion)</Version>

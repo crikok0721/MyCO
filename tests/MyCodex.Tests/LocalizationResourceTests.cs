@@ -37,8 +37,12 @@ public sealed partial class LocalizationResourceTests
     {
         var root = FindRepositoryRoot();
         var manager = Path.Combine(root, "src", "MyCodex.Manager");
-        var english = ReadKeys(
+        var available = ReadKeys(
             Path.Combine(manager, "Resources", "Strings.en-US.xaml"));
+        available.UnionWith(ReadKeys(
+            Path.Combine(manager, "Themes", "Theme.Dark.xaml")));
+        available.UnionWith(ReadKeys(
+            Path.Combine(manager, "Themes", "Theme.Light.xaml")));
         var used = Directory
             .GetFiles(Path.Combine(manager, "Views"), "*.xaml")
             .Append(Path.Combine(manager, "App.xaml"))
@@ -47,7 +51,7 @@ public sealed partial class LocalizationResourceTests
                 .Select(match => match.Groups[1].Value))
             .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Empty(used.Except(english, StringComparer.Ordinal));
+        Assert.Empty(used.Except(available, StringComparer.Ordinal));
     }
 
     private static HashSet<string> ReadKeys(string path)

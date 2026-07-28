@@ -11,8 +11,9 @@
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         ResizeMode="CanResize"
-        Background="{StaticResource WindowBrush}">
-    <Border BorderBrush="#30333A" BorderThickness="1" Background="{StaticResource WindowBrush}">
+        Background="{DynamicResource WindowBrush}">
+    <Border BorderBrush="{DynamicResource WindowBorderBrush}" BorderThickness="1"
+            Background="{DynamicResource WindowBrush}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="44" />
@@ -21,8 +22,8 @@
             </Grid.RowDefinitions>
 
             <!-- Custom title bar -->
-            <Border Grid.Row="0" Background="#141518"
-                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
+            <Border Grid.Row="0" Background="{DynamicResource TitleBarBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
                     MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid Margin="14,0,8,0">
                     <Grid.ColumnDefinitions>
@@ -30,7 +31,8 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Width="26" Height="26" CornerRadius="8" Background="#8B7CF6">
+                        <Border Width="26" Height="26" CornerRadius="8"
+                                Background="{DynamicResource PrimaryBrush}">
                             <Grid>
                                 <Path Data="M5,6 H21 V17 H14 L10,21 V17 H5 Z"
                                       Stroke="White" StrokeThickness="1.5" Fill="Transparent" />
@@ -40,18 +42,21 @@
                         </Border>
                         <TextBlock Text="MyCodex" FontWeight="SemiBold" FontSize="14"
                                    Margin="10,0,0,0" VerticalAlignment="Center" />
-                        <Border Background="#24212F" CornerRadius="6" Padding="7,3"
+                        <Border Background="{DynamicResource PrimaryMutedBrush}"
+                                CornerRadius="6" Padding="7,3"
                                 Margin="9,0,0,0">
                             <TextBlock Text="{Binding VersionLabel}"
-                                       Foreground="#B9AFFA" FontSize="10" />
+                                       Foreground="{DynamicResource PrimaryTextBrush}" FontSize="10" />
                         </Border>
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
                         <Button Content="—" Width="42" Height="32" Padding="0"
                                 Background="Transparent" BorderBrush="Transparent"
+                                ToolTip="{DynamicResource MinimizeToTray}"
                                 Click="Minimize_Click" />
                         <Button Content="×" Width="42" Height="32" Padding="0"
                                 Background="Transparent" BorderBrush="Transparent"
+                                ToolTip="{DynamicResource ExitMyCodex}"
                                 Click="Close_Click" />
                     </StackPanel>
                 </Grid>
@@ -64,8 +69,8 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Navigation, language, application picker, and session actions -->
-                <Border Grid.Column="0" Background="{StaticResource SidebarBrush}"
-                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+                <Border Grid.Column="0" Background="{DynamicResource SidebarBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
                     <Grid Margin="14">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -73,7 +78,7 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <StackPanel>
-                            <TextBlock Text="{DynamicResource NavPersonalize}" Foreground="{StaticResource MutedTextBrush}"
+                            <TextBlock Text="{DynamicResource NavPersonalize}" Foreground="{DynamicResource MutedTextBrush}"
                                        FontSize="10" FontWeight="SemiBold" Margin="10,8,0,7" />
                             <Button Style="{StaticResource SidebarButton}"
                                     Command="{Binding SelectAppearanceCommand}"
@@ -81,7 +86,7 @@
                             <Button Style="{StaticResource SidebarButton}"
                                     Command="{Binding SelectCalibrationCommand}"
                                     Content="{DynamicResource NavCalibration}" />
-                            <TextBlock Text="{DynamicResource NavSystem}" Foreground="{StaticResource MutedTextBrush}"
+                            <TextBlock Text="{DynamicResource NavSystem}" Foreground="{DynamicResource MutedTextBrush}"
                                        FontSize="10" FontWeight="SemiBold" Margin="10,22,0,7" />
                             <Button Style="{StaticResource SidebarButton}"
                                     Command="{Binding SelectDiagnosticsCommand}"
@@ -89,23 +94,27 @@
                             <Button Style="{StaticResource SidebarButton}"
                                     Command="{Binding SelectAboutCommand}"
                                     Content="{DynamicResource NavAbout}" />
+                            <Button Style="{StaticResource SidebarButton}"
+                                    Command="{Binding SelectSettingsCommand}"
+                                    Content="{DynamicResource NavSettings}" />
                         </StackPanel>
 
                         <StackPanel Grid.Row="2">
                             <TextBlock Text="{DynamicResource LanguageLabel}"
-                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
                                        FontSize="10" FontWeight="SemiBold" Margin="10,0,0,6" />
                             <ComboBox ItemsSource="{Binding SupportedLanguages}"
                                       SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}"
                                       Margin="0,0,0,10">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding DisplayName}" Foreground="#202124" />
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   Foreground="{DynamicResource ControlTextBrush}" />
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
-                            <Border Background="{StaticResource PanelBrush}"
-                                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                            <Border Background="{DynamicResource PanelBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                                     CornerRadius="10" Padding="11" Margin="0,0,0,10">
                                 <StackPanel>
                                     <DockPanel>
@@ -113,7 +122,7 @@
                                                  Fill="{StaticResource SuccessBrush}"
                                                  Margin="0,0,7,0" />
                                         <TextBlock Text="{Binding ConnectionSummary}"
-                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   Foreground="{DynamicResource MutedTextBrush}"
                                                    FontSize="11" TextTrimming="CharacterEllipsis" />
                                     </DockPanel>
                                     <ComboBox ItemsSource="{Binding Candidates}"
@@ -121,7 +130,8 @@
                                               Margin="0,10,0,0">
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding DisplayName}" Foreground="#202124" />
+                                                <TextBlock Text="{Binding DisplayName}"
+                                                           Foreground="{DynamicResource ControlTextBrush}" />
                                             </DataTemplate>
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
@@ -159,14 +169,16 @@
                         Converter={StaticResource BooleanToVisibilityConverter}}" />
                     <views:AboutPage Visibility="{Binding IsAboutPage,
                         Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <views:SettingsPage Visibility="{Binding IsSettingsPage,
+                        Converter={StaticResource BooleanToVisibilityConverter}}" />
                 </Grid>
             </Grid>
 
             <!-- Short operation and error status visible from every page -->
-            <Border Grid.Row="2" Background="#0E0F11"
-                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+            <Border Grid.Row="2" Background="{DynamicResource StatusBarBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
                 <TextBlock Text="{Binding Status}"
-                           Foreground="{StaticResource MutedTextBrush}"
+                           Foreground="{DynamicResource MutedTextBrush}"
                            FontSize="11" Margin="12,0" VerticalAlignment="Center"
                            TextTrimming="CharacterEllipsis" />
             </Border>

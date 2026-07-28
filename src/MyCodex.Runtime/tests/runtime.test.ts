@@ -89,6 +89,51 @@ test("install is idempotent and destroy restores injected DOM", () => {
   assert.ok(dom.window.document.querySelector("button"));
 });
 
+test("theme changes update palette variables without duplicating decorations", async () => {
+  const dom = fixture();
+  dom.window.document.documentElement.dataset.theme = "dark";
+  const runtime = new MyCodexRuntime(dom.window.document);
+  const config = defaultConfig();
+  runtime.applyConfig(config);
+
+  for (let index = 0; index < 30; index++) {
+    dom.window.document.documentElement.dataset.theme =
+      index % 2 === 0 ? "light" : "dark";
+    await new Promise((resolve) => dom.window.setTimeout(resolve, 60));
+  }
+
+  const root = dom.window.document.documentElement;
+  assert.equal(root.getAttribute("data-mycodex-host-theme"), "dark");
+  assert.equal(
+    root.style.getPropertyValue("--mc-assistant-bubble"),
+    config.appearance.darkBubblePalette.assistantBubble
+  );
+  assert.equal(dom.window.document.querySelectorAll("#mycodex-runtime-style").length, 1);
+  assert.equal(dom.window.document.querySelectorAll(".mc-avatar").length, 2);
+  assert.equal(dom.window.document.querySelectorAll(".mc-nickname").length, 2);
+
+  runtime.destroy();
+  assert.equal(root.hasAttribute("data-mycodex-host-theme"), false);
+  assert.equal(root.style.getPropertyValue("--mc-assistant-bubble"), "");
+});
+
+test("runtime rejects an unreadable bubble palette", () => {
+  const dom = fixture();
+  const runtime = new MyCodexRuntime(dom.window.document);
+  const config = defaultConfig();
+  config.appearance.lightBubblePalette.assistantBubble = "#ffffff";
+  config.appearance.lightBubblePalette.assistantText = "#ffffff";
+
+  assert.throws(
+    () => runtime.applyConfig(config),
+    /contrast must be at least 4\.5:1/
+  );
+  assert.equal(
+    dom.window.document.getElementById("mycodex-runtime-style"),
+    null
+  );
+});
+
 test("assistant and user avatars use circular crop and configurable offsets", () => {
   const dom = fixture();
   const runtime = new MyCodexRuntime(dom.window.document);

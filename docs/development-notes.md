@@ -1,7 +1,7 @@
 # Development and verification notes
 
-Date: 2026-07-26  
-MyCodex: `0.2.0-alpha.4`
+Date: 2026-07-28
+MyCodex: `0.2.0-alpha.5`
 
 ## Environment inspected
 
@@ -14,6 +14,51 @@ MyCodex: `0.2.0-alpha.4`
 
 No official executable, bundle, source, icon, DOM snapshot, or user chat data
 was copied into this repository.
+
+## alpha.5 theme, tray, and startup verification
+
+The final Runtime check reported 24/24 passing tests. It covers host theme
+startup, in-app theme differing from Windows, computed-surface fallback,
+unknown/last-trusted behavior, renderer body replacement, 30 theme changes
+without duplicate style/identity nodes, observer/media cleanup, and runtime
+contrast rejection.
+
+The final Release solution build completed with zero warnings and errors; xUnit
+reported 86/86 passing tests. New coverage includes schema 1/partial schema 2
+migration, legacy color preservation, C# Runtime serialization, all three
+Manager themes, System event/fallback cleanup, 20 tray state cycles, quoted
+Chinese/space paths, exact Run-value reconciliation/restore/delete, a
+test-specific registry integration value with `finally` cleanup, and the
+no-duplicate automatic Codex launch policy.
+The restart regression set also fails closed when a same-name process identity
+is unreadable and when a recycled parent PID would otherwise hide a second
+root.
+
+`scripts\build-release.ps1` completed and produced the self-contained
+`MyCodex-win-x64` directory/ZIP plus a SHA-256 hash. The ZIP was extracted to a
+new directory and its executable remained running without a machine-wide .NET
+installation.
+
+Computer Use directly observed the Manager Dark and Light palettes, the custom
+title bar, Settings page, readable closed/open ComboBoxes, both startup
+switches, System mode responding to a real Windows dark-to-light event, and the
+return to dark after the user setting was restored. It also observed the
+restored window after minimize/hidden single-instance activation. A production
+background launch had no visible main window; its restored status said that an
+already-running uncontrolled Codex was left unchanged. Process identities
+confirmed no duplicate Codex process during that check. The temporary
+production Run value and both startup settings were returned to disabled.
+
+Isolated Codex B run `48e8f8397a1d473c9ba02d74092b8d86` passed exact
+PID/path/start-time/profile ownership, dark/light/dark automated theme checks,
+singleton/readability assertions, one exact-target restart, destroy checks,
+and complete run/profile cleanup with Runtime `0.2.0-alpha.5`, protocol `1`.
+Computer Use inspection of the Codex Desktop UI was blocked by the automation
+tool's non-negotiable safety policy and was recorded as blocked, not passed.
+The same window-bounded API could not capture the Windows taskbar and
+notification area together, so a tray-icon screenshot also remains blocked.
+Manager screenshots and a machine-readable distinction are stored under the
+ignored local `artifacts\visual-acceptance\alpha5-20260728-1148` directory.
 
 ## CDP feasibility gate
 

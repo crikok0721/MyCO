@@ -14,6 +14,15 @@ internal static class AcceptanceFixture
             StringComparison.Ordinal);
     }
 
+    public static string BuildThemeScript(string theme)
+    {
+        var themeJson = JsonSerializer.Serialize(theme);
+        return ThemeTemplate.Replace(
+            "__THEME_JSON__",
+            themeJson,
+            StringComparison.Ordinal);
+    }
+
     public const string AutomatedCheckScript =
         """
         (() => {
@@ -74,11 +83,39 @@ internal static class AcceptanceFixture
         }))()
         """;
 
+    private const string ThemeTemplate =
+        """
+        (async () => {
+          const theme = __THEME_JSON__;
+          if (theme !== "dark" && theme !== "light") {
+            throw new TypeError("Unsupported fixture theme");
+          }
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.style.background =
+            theme === "light" ? "#f7f7f8" : "#0f1012";
+          await new Promise(resolve => setTimeout(resolve, 180));
+          const prose = document.getElementById("acceptance-markdown");
+          return {
+            hostAttributeApplied:
+              document.documentElement.dataset.theme === theme,
+            runtimeThemeApplied:
+              document.documentElement.getAttribute("data-mycodex-host-theme") === theme,
+            styleSingleton:
+              document.querySelectorAll("#mycodex-runtime-style").length === 1,
+            assistantBubbleReadable:
+              !!prose &&
+              getComputedStyle(prose).color !==
+                getComputedStyle(prose).backgroundColor
+          };
+        })()
+        """;
+
     private const string FixtureTemplate =
         """
         (() => {
           const runId = __RUN_ID_JSON__;
           document.title = `MyCodex Visual Acceptance ${runId}`;
+          document.documentElement.dataset.theme = "dark";
           document.documentElement.style.background = "#0f1012";
           document.body.innerHTML = `
             <div id="mycodex-visual-acceptance">
@@ -199,6 +236,48 @@ internal static class AcceptanceFixture
                   }
                   .acceptance-native-user-bubble { max-width: 86%; }
                   .acceptance-header { align-items: flex-start; flex-direction: column; }
+                }
+                html[data-theme="light"] body {
+                  background: #f7f7f8;
+                  color: #202124;
+                }
+                html[data-theme="light"] #mycodex-visual-acceptance {
+                  background:
+                    radial-gradient(circle at 15% 0%, #e7eafb 0, transparent 34rem),
+                    #f7f7f8;
+                }
+                html[data-theme="light"] .acceptance-header {
+                  border-bottom-color: #d7d9df;
+                  background: rgba(247,247,248,.96);
+                }
+                html[data-theme="light"] .acceptance-subtitle {
+                  color: #646b77;
+                }
+                html[data-theme="light"] .acceptance-native-user-bubble {
+                  border-color: #d6d9e0;
+                  background: #e9eaed;
+                  color: #202124;
+                }
+                html[data-theme="light"] .acceptance-native-panel {
+                  border-color: #d7d9df;
+                  background: #ffffff;
+                }
+                html[data-theme="light"] .acceptance-panel-title {
+                  border-bottom-color: #d7d9df;
+                  color: #606773;
+                }
+                html[data-theme="light"] pre {
+                  background: #f2f3f5;
+                  color: #24262b;
+                }
+                html[data-theme="light"] .acceptance-status {
+                  color: #646b77;
+                }
+                html[data-theme="light"] .acceptance-toolbar button,
+                html[data-theme="light"] .acceptance-tool-body button {
+                  border-color: #cfd2d9;
+                  background: #f5f6f8;
+                  color: #25272c;
                 }
               </style>
               <header class="acceptance-header">
