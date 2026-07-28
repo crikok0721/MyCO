@@ -24,7 +24,11 @@ public sealed class PrivacySafeLogger : IPrivacySafeLogger
             "compatibility",
             "matchCount",
             "confidence",
-            "state"
+            "state",
+            "candidateCount",
+            "eligibleCount",
+            "conversationTargets",
+            "visibleTargets"
         };
 
     private readonly string _logsDirectory;
@@ -58,13 +62,14 @@ public sealed class PrivacySafeLogger : IPrivacySafeLogger
 
     public void Error(string eventName, Exception exception)
     {
+        // Exception messages can contain renderer text or local paths. The event
+        // code and exception type are sufficient for public diagnostics.
         Write(new
         {
             at = DateTimeOffset.UtcNow,
             level = "error",
             @event = Sanitize(eventName),
-            errorType = exception.GetType().Name,
-            message = Sanitize(exception.Message)
+            errorType = exception.GetType().Name
         });
     }
 

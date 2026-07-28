@@ -92,7 +92,8 @@ Choose **English**, **简体中文**, or **繁體中文** from the sidebar langu
 selector. The change is immediate and saved independently, so unsaved appearance
 edits are not affected. The same selector is available during first-run setup.
 
-The Appearance page controls names, avatars, avatar size, assistant bubble radius,
+The Appearance page controls names, avatars, avatar size, symmetric horizontal
+avatar position, shared vertical avatar position, assistant bubble radius,
 horizontal and vertical padding, message gap, maximum width, and nickname
 visibility. Image imports accept PNG, JPEG, GIF, and BMP files up to 10 MiB.
 Files are signature-checked, copied to the local avatar directory under a

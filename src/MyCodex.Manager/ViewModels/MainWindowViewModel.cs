@@ -51,6 +51,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string _assistantAvatar = string.Empty;
     private string _userAvatar = string.Empty;
     private double _avatarSize = 40;
+    private double _avatarOffsetX;
+    private double _avatarOffsetY = 11;
     private double _bubbleRadius = 14;
     private double _bubblePaddingX = 14;
     private double _bubblePaddingY = 10;
@@ -67,7 +69,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private bool _diagnosticsGenerated;
     private bool _initialized;
     private DesktopSessionState _sessionState =
-        new(false, false, null, 0, "Not connected", null, null);
+        new(false, false, false, null, 0, "Not connected", null, null);
 
     public MainWindowViewModel()
     {
@@ -85,15 +87,21 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         SelectCalibrationCommand = new RelayCommand(() => CurrentPage = ManagerPage.Calibration);
         SelectDiagnosticsCommand = new RelayCommand(() => CurrentPage = ManagerPage.Diagnostics);
         SelectAboutCommand = new RelayCommand(() => CurrentPage = ManagerPage.About);
-        DetectCommand = new AsyncRelayCommand(() => GuardAsync(DetectAsync, "ErrorDesktopDetection"));
-        StartCommand = new AsyncRelayCommand(() => GuardAsync(StartAsync, "ErrorStartDesktop"));
+        DetectCommand = new AsyncRelayCommand(
+            () => GuardAsync(DetectAsync, "ErrorDesktopDetection"),
+            CanDetect);
+        StartCommand = new AsyncRelayCommand(
+            () => GuardAsync(StartAsync, "ErrorStartDesktop"),
+            CanStart);
         SaveCommand = new AsyncRelayCommand(() => GuardAsync(SaveAndApplyAsync, "ErrorSaveAppearance"));
         EnableCommand = new AsyncRelayCommand(() => GuardAsync(
             () => _controller.EnableSkinAsync(),
-            "ErrorEnableSkin"));
+            "ErrorEnableSkin"),
+            () => SessionState.IsConnected && !SessionState.IsSkinRequested);
         DisableCommand = new AsyncRelayCommand(() => GuardAsync(
             () => _controller.DisableSkinAsync(),
-            "ErrorDisableSkin"));
+            "ErrorDisableSkin"),
+            () => SessionState.IsConnected && SessionState.IsSkinRequested);
         PickAssistantAvatarCommand = new AsyncRelayCommand(() => GuardAsync(
             () => PickAvatarAsync(true),
             "ErrorImportAssistantAvatar"));
@@ -102,13 +110,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             "ErrorImportUserAvatar"));
         CalibrateAssistantCommand = new AsyncRelayCommand(() => GuardAsync(
             () => _controller.StartCalibrationAsync("assistant"),
-            "ErrorCalibrateAssistant"));
+            "ErrorCalibrateAssistant"),
+            CanCalibrate);
         CalibrateUserCommand = new AsyncRelayCommand(() => GuardAsync(
             () => _controller.StartCalibrationAsync("user"),
-            "ErrorCalibrateUser"));
+            "ErrorCalibrateUser"),
+            CanCalibrate);
         RefreshDiagnosticsCommand = new AsyncRelayCommand(() => GuardAsync(
             RefreshDiagnosticsAsync,
-            "ErrorReadDiagnostics"));
+            "ErrorReadDiagnostics"),
+            () => SessionState.IsConnected);
         ResetAppearanceCommand = new RelayCommand(ResetAppearance);
         OpenConfigFolderCommand = new RelayCommand(OpenConfigFolder);
     }
@@ -156,7 +167,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public ApplicationCandidate? SelectedCandidate
     {
         get => _selectedCandidate;
-        set => Set(ref _selectedCandidate, value);
+        set
+        {
+            if (Set(ref _selectedCandidate, value))
+            {
+                RaiseCommandCanExecute();
+            }
+        }
     }
 
     public ManagerPage CurrentPage
@@ -212,6 +229,33 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             if (Set(ref _avatarSize, value))
             {
                 Raise(nameof(AvatarSizeLabel));
+            }
+        }
+    }
+
+    public double AvatarOffsetX
+    {
+        get => _avatarOffsetX;
+        set
+        {
+            if (Set(ref _avatarOffsetX, value))
+            {
+                Raise(nameof(AvatarOffsetXLabel));
+                Raise(nameof(UserAvatarOffsetX));
+            }
+        }
+    }
+
+    public double UserAvatarOffsetX => -AvatarOffsetX;
+
+    public double AvatarOffsetY
+    {
+        get => _avatarOffsetY;
+        set
+        {
+            if (Set(ref _avatarOffsetY, value))
+            {
+                Raise(nameof(AvatarOffsetYLabel));
             }
         }
     }
@@ -319,11 +363,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Raise(nameof(IsConnected));
             Raise(nameof(IsSkinEnabled));
             Raise(nameof(SessionStatus));
+            RaiseCommandCanExecute();
         }
     }
 
     public bool IsConnected => SessionState.IsConnected;
     public bool IsSkinEnabled => SessionState.IsSkinEnabled;
+    public bool IsSkinRequested => SessionState.IsSkinRequested;
     public string ConnectionSummary =>
         SessionState.IsConnected
             ? SessionState.Transport == DesktopDebugTransport.Pipe
@@ -347,6 +393,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public string SessionStatus => LocalizeSessionStatus(SessionState.Status);
     public string AvatarSizeLabel =>
         LocalizationService.Format("AvatarSizeFormat", AvatarSize);
+    public string AvatarOffsetXLabel =>
+        LocalizationService.Format("AvatarOffsetXFormat", AvatarOffsetX);
+    public string AvatarOffsetYLabel =>
+        LocalizationService.Format("AvatarOffsetYFormat", AvatarOffsetY);
     public string BubbleRadiusLabel =>
         LocalizationService.Format("BubbleRadiusFormat", BubbleRadius);
     public string BubblePaddingXLabel =>
@@ -689,6 +739,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             {
                 Preset = "ReferenceDark",
                 AvatarSize = (int)Math.Round(AvatarSize),
+                AvatarOffsetX = (int)Math.Round(AvatarOffsetX),
+                AvatarOffsetY = (int)Math.Round(AvatarOffsetY),
                 BubbleRadius = (int)Math.Round(BubbleRadius),
                 BubblePaddingX = (int)Math.Round(BubblePaddingX),
                 BubblePaddingY = (int)Math.Round(BubblePaddingY),
@@ -718,6 +770,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         AssistantAvatar = config.Assistant.Avatar;
         UserAvatar = config.User.Avatar;
         AvatarSize = config.Appearance.AvatarSize;
+        AvatarOffsetX = config.Appearance.AvatarOffsetX;
+        AvatarOffsetY = config.Appearance.AvatarOffsetY;
         BubbleRadius = config.Appearance.BubbleRadius;
         BubblePaddingX = config.Appearance.BubblePaddingX;
         BubblePaddingY = config.Appearance.BubblePaddingY;
@@ -728,6 +782,38 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         AssistantBubble = config.Appearance.AssistantBubble;
         _calibration = config.Calibration;
         RefreshLocalizedProperties();
+    }
+
+    private bool CanDetect() =>
+        SessionState.Phase is not (
+            DesktopSessionPhase.Starting or DesktopSessionPhase.Stopping);
+
+    private bool CanStart() =>
+        SelectedCandidate is not null &&
+        SessionState.Phase is DesktopSessionPhase.Disconnected or
+            DesktopSessionPhase.Faulted;
+
+    private bool CanCalibrate() =>
+        SessionState.IsConnected && SessionState.IsSkinEnabled;
+
+    private void RaiseCommandCanExecute()
+    {
+        foreach (var command in new[]
+                 {
+                     DetectCommand,
+                     StartCommand,
+                     EnableCommand,
+                     DisableCommand,
+                     CalibrateAssistantCommand,
+                     CalibrateUserCommand,
+                     RefreshDiagnosticsCommand
+                 })
+        {
+            if (command is AsyncRelayCommand asyncCommand)
+            {
+                asyncCommand.RaiseCanExecuteChanged();
+            }
+        }
     }
 
     private async Task GuardAsync(Func<Task> operation, string contextKey)
@@ -787,9 +873,18 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     throw new InvalidOperationException(
                         "Calibration signature is not supported.");
                 }
-                _calibration = role == "assistant"
-                    ? _calibration with { AssistantTurn = signature }
-                    : _calibration with { UserTurn = signature };
+                var normalized = ElementSignatureValidator.Normalize(signature);
+                var candidate = role == "assistant"
+                    ? _calibration with { AssistantTurn = normalized }
+                    : _calibration with { UserTurn = normalized };
+                if (!ElementSignatureValidator.AreDistinctRoles(
+                        candidate.UserTurn,
+                        candidate.AssistantTurn))
+                {
+                    throw new InvalidOperationException(
+                        "Calibration roles are structurally ambiguous.");
+                }
+                _calibration = candidate;
                 Raise(nameof(CalibrationSummary));
                 var config = BuildConfig();
                 await SaveConfigAsync(config).ConfigureAwait(true);
@@ -863,6 +958,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Raise(nameof(CalibrationSummary));
         Raise(nameof(SessionStatus));
         Raise(nameof(AvatarSizeLabel));
+        Raise(nameof(AvatarOffsetXLabel));
+        Raise(nameof(AvatarOffsetYLabel));
         Raise(nameof(BubbleRadiusLabel));
         Raise(nameof(BubblePaddingXLabel));
         Raise(nameof(BubblePaddingYLabel));
@@ -917,6 +1014,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             "Disconnected" => "StatusDisconnected",
             "Renderer reconnect pending" => "StatusReconnectPending",
             "Skin active" => "StatusSkinActive",
+            "Runtime ready: waiting for conversation" => "StatusRuntimeWaiting",
+            "Compatibility degraded: no decorated turns" =>
+                "StatusCompatibilityDegraded",
             "Safe mode: no compatible renderer" => "StatusSafeMode",
             _ => null
         };
@@ -953,6 +1053,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             "Disconnected" => "StatusDisconnected",
             "Renderer reconnect pending" => "StatusReconnectPending",
             "Skin active" => "StatusSkinActive",
+            "Runtime ready: waiting for conversation" => "StatusRuntimeWaiting",
+            "Compatibility degraded: no decorated turns" =>
+                "StatusCompatibilityDegraded",
             "Safe mode: no compatible renderer" => "StatusSafeMode",
             _ => null
         };

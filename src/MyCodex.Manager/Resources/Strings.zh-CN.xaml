@@ -29,6 +29,8 @@
     <sys:String x:Key="ChooseUserAvatar">选择用户头像…</sys:String>
     <sys:String x:Key="Geometry">尺寸与间距</sys:String>
     <sys:String x:Key="AvatarSizeFormat">头像大小 · {0:F0}px</sys:String>
+    <sys:String x:Key="AvatarOffsetXFormat">头像水平位置 · {0:+0;-0;0}px</sys:String>
+    <sys:String x:Key="AvatarOffsetYFormat">头像垂直位置 · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="BubbleRadiusFormat">气泡圆角 · {0:F0}px</sys:String>
     <sys:String x:Key="MessageGapFormat">消息间距 · {0:F0}px</sys:String>
     <sys:String x:Key="BubbleBehavior">气泡布局</sys:String>
@@ -123,6 +125,8 @@
     <sys:String x:Key="StatusDisconnected">已断开连接</sys:String>
     <sys:String x:Key="StatusReconnectPending">正在等待渲染器重新连接</sys:String>
     <sys:String x:Key="StatusSkinActive">皮肤已启用</sys:String>
+    <sys:String x:Key="StatusRuntimeWaiting">运行时已就绪：正在等待对话</sys:String>
+    <sys:String x:Key="StatusCompatibilityDegraded">兼容性下降：尚未装饰任何消息</sys:String>
     <sys:String x:Key="StatusSafeMode">安全模式：没有兼容的渲染器</sys:String>
     <sys:String x:Key="RoleAssistant">助手</sys:String>
     <sys:String x:Key="RoleUser">用户</sys:String>

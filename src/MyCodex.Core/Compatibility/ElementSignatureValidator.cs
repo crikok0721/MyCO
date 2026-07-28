@@ -14,7 +14,11 @@ public static partial class ElementSignatureValidator
             "data-testid",
             "data-role",
             "data-author",
-            "data-content-type"
+            "data-content-type",
+            "data-content-search-turn-key",
+            "data-content-search-unit-key",
+            "data-user-message-bubble",
+            "data-virtualized-turn-content"
         };
 
     private static readonly HashSet<string> AllowedRoles =
@@ -106,6 +110,27 @@ public static partial class ElementSignatureValidator
             Fingerprint = string.Empty
         };
         return normalized with { Fingerprint = BuildFingerprint(normalized) };
+    }
+
+    public static bool AreDistinctRoles(
+        ElementSignature? user,
+        ElementSignature? assistant)
+    {
+        if (user is null || assistant is null)
+        {
+            return true;
+        }
+        if (string.Equals(
+                user.Fingerprint,
+                assistant.Fingerprint,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var userToAssistant = SignatureMatcher.Score(user, assistant);
+        var assistantToUser = SignatureMatcher.Score(assistant, user);
+        return userToAssistant < 0.86 || assistantToUser < 0.86;
     }
 
     private static string NormalizeTag(string value)

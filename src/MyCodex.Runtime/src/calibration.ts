@@ -68,6 +68,8 @@ export class CalibrationController {
 const EXCLUDED_CALIBRATION_TARGETS =
   "button,[role=button],pre,code,textarea,input,select,svg,path";
 const SEMANTIC_TURN_TARGETS = [
+  "[data-content-search-unit-key]",
+  "[data-user-message-bubble]",
   "[data-message-author-role]",
   "[data-role=user]",
   "[data-role=assistant]",
@@ -88,7 +90,12 @@ export function resolveCalibrationRoot(path: EventTarget[]): Element | null {
       !element.matches(EXCLUDED_CALIBRATION_TARGETS) &&
       element.matches(SEMANTIC_TURN_TARGETS)
   );
-  if (semantic) return semantic;
+  if (semantic) {
+    if (semantic.matches("[data-user-message-bubble]")) {
+      return semantic.closest("[data-content-search-unit-key]") ?? semantic;
+    }
+    return semantic;
+  }
 
   const candidates = elements
     .filter((element) => !element.matches(EXCLUDED_CALIBRATION_TARGETS))

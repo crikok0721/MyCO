@@ -23,6 +23,8 @@ export class StyleManager {
     const root = document.documentElement.style;
     const values: Record<string, string> = {
       "--mc-avatar-size": `${appearance.avatarSize}px`,
+      "--mc-avatar-offset-x": `${appearance.avatarOffsetX}px`,
+      "--mc-avatar-offset-y": `${appearance.avatarOffsetY}px`,
       "--mc-bubble-radius": `${appearance.bubbleRadius}px`,
       "--mc-user-bubble": appearance.userBubble,
       "--mc-assistant-bubble": appearance.assistantBubble,
@@ -51,6 +53,8 @@ export class StyleManager {
     this.styleElement = null;
     for (const property of [
       "--mc-avatar-size",
+      "--mc-avatar-offset-x",
+      "--mc-avatar-offset-y",
       "--mc-bubble-radius",
       "--mc-user-bubble",
       "--mc-assistant-bubble",
@@ -73,6 +77,8 @@ function runtimeCss(): string {
   return `
 :root {
   --mc-avatar-size: 40px;
+  --mc-avatar-offset-x: 0px;
+  --mc-avatar-offset-y: 11px;
   --mc-bubble-radius: 14px;
   --mc-user-bubble: #242424;
   --mc-assistant-bubble: #222222;
@@ -88,10 +94,19 @@ function runtimeCss(): string {
 [data-mycodex-turn="true"] {
   position: relative !important;
   box-sizing: border-box !important;
+  min-height: calc(var(--mc-avatar-size) + 22px) !important;
+  padding-top: 22px !important;
+  overflow: visible !important;
+}
+[data-mycodex-role="assistant"] {
+  padding-left: calc(var(--mc-avatar-size) + 12px) !important;
+}
+[data-mycodex-role="user"] {
+  padding-right: calc(var(--mc-avatar-size) + 12px) !important;
 }
 .mc-avatar {
   position: absolute !important;
-  top: 0 !important;
+  top: var(--mc-avatar-offset-y) !important;
   width: var(--mc-avatar-size) !important;
   height: var(--mc-avatar-size) !important;
   border-radius: 50% !important;
@@ -103,10 +118,10 @@ function runtimeCss(): string {
   z-index: 2 !important;
 }
 [data-mycodex-role="assistant"] > .mc-avatar {
-  left: calc(-1 * (var(--mc-avatar-size) + 12px)) !important;
+  left: var(--mc-avatar-offset-x) !important;
 }
 [data-mycodex-role="user"] > .mc-avatar {
-  right: calc(-1 * (var(--mc-avatar-size) + 12px)) !important;
+  right: var(--mc-avatar-offset-x) !important;
 }
 .mc-nickname {
   display: var(--mc-nickname-display) !important;
@@ -121,12 +136,12 @@ function runtimeCss(): string {
   z-index: 2 !important;
 }
 [data-mycodex-role="assistant"] > .mc-nickname {
-  left: 0 !important;
-  top: -22px !important;
+  left: calc(var(--mc-avatar-size) + 12px) !important;
+  top: 0 !important;
 }
 [data-mycodex-role="user"] > .mc-nickname {
-  right: 0 !important;
-  top: -22px !important;
+  right: calc(var(--mc-avatar-size) + 12px) !important;
+  top: 0 !important;
 }
 [data-mycodex-prose="assistant"] {
   display: block !important;
@@ -144,16 +159,8 @@ function runtimeCss(): string {
 [data-mycodex-prose] > :first-child { margin-top: 0 !important; }
 [data-mycodex-prose] > :last-child { margin-bottom: 0 !important; }
 @media (max-width: 760px) {
-  [data-mycodex-role="assistant"] > .mc-avatar {
-    left: 0 !important;
-  }
   [data-mycodex-prose="assistant"] {
-    margin-left: calc(var(--mc-avatar-size) + 12px) !important;
-    max-width: calc(100% - var(--mc-avatar-size) - 12px) !important;
-  }
-  [data-mycodex-role="user"] > .mc-avatar,
-  [data-mycodex-role="user"] > .mc-nickname {
-    display: none !important;
+    max-width: 100% !important;
   }
 }
 [data-mycodex-inspector="hover"] {

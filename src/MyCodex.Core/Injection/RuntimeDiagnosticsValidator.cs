@@ -30,6 +30,11 @@ public static class RuntimeDiagnosticsValidator
                 "decoratedAssistantTurns",
                 0,
                 100_000),
+            assistantBubbleBlocks = Int(
+                payload,
+                "assistantBubbleBlocks",
+                0,
+                100_000),
             unknownTurns = Int(payload, "unknownTurns", 0, 100_000),
             averageConfidence = Math.Round(confidence, 3),
             observerActive = Bool(payload, "observerActive"),

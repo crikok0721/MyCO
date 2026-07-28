@@ -99,6 +99,7 @@ export class MyCodexRuntime implements MyCodexRuntimeApi {
       const activeTurns = new Set<Element>();
       let userTurns = 0;
       let assistantTurns = 0;
+      let assistantBubbleBlocks = 0;
       let unknownTurns = 0;
       const confidences: number[] = [];
 
@@ -113,7 +114,12 @@ export class MyCodexRuntime implements MyCodexRuntimeApi {
         activeTurns.add(turn);
         this.decorator.decorate(turn, result.role, this.config);
         if (result.role === "user") userTurns++;
-        else assistantTurns++;
+        else {
+          assistantTurns++;
+          assistantBubbleBlocks += turn.querySelectorAll(
+            '[data-mycodex-prose="assistant"]'
+          ).length;
+        }
       }
       this.decorator.reconcile(this.document, activeTurns);
 
@@ -121,6 +127,7 @@ export class MyCodexRuntime implements MyCodexRuntimeApi {
         candidates.length,
         userTurns,
         assistantTurns,
+        assistantBubbleBlocks,
         unknownTurns,
         confidences,
         this.observer.active
@@ -219,5 +226,13 @@ function validateConfig(config: RuntimeConfig): void {
   }
   if (!config.user.name.trim() || !config.assistant.name.trim()) {
     throw new TypeError("Nicknames must not be empty.");
+  }
+  if (
+    config.calibration.userTurn &&
+    config.calibration.assistantTurn &&
+    config.calibration.userTurn.fingerprint ===
+      config.calibration.assistantTurn.fingerprint
+  ) {
+    throw new TypeError("Calibration roles must have distinct signatures.");
   }
 }

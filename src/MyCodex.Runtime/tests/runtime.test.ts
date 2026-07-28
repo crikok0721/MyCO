@@ -89,15 +89,26 @@ test("install is idempotent and destroy restores injected DOM", () => {
   assert.ok(dom.window.document.querySelector("button"));
 });
 
-test("assistant and user avatars use a circular cover crop by default", () => {
+test("assistant and user avatars use circular crop and configurable offsets", () => {
   const dom = fixture();
   const runtime = new MyCodexRuntime(dom.window.document);
   const config = defaultConfig();
   config.assistant.avatar = "data:image/png;base64,AA==";
   config.user.avatar = "data:image/png;base64,AA==";
+  config.appearance.avatarOffsetX = 7;
+  config.appearance.avatarOffsetY = 13;
 
   runtime.applyConfig(config);
 
+  const rootStyle = dom.window.document.documentElement.style;
+  assert.equal(rootStyle.getPropertyValue("--mc-avatar-offset-x"), "7px");
+  assert.equal(rootStyle.getPropertyValue("--mc-avatar-offset-y"), "13px");
+  const runtimeStyle = dom.window.document.querySelector<HTMLStyleElement>(
+    "#mycodex-runtime-style"
+  )!.textContent!;
+  assert.match(runtimeStyle, /top: var\(--mc-avatar-offset-y\)/);
+  assert.match(runtimeStyle, /left: var\(--mc-avatar-offset-x\)/);
+  assert.match(runtimeStyle, /right: var\(--mc-avatar-offset-x\)/);
   const avatars = Array.from(
     dom.window.document.querySelectorAll<HTMLImageElement>(".mc-avatar")
   );
@@ -145,6 +156,56 @@ test("ensureActive repairs a removed style and a replaced conversation root", ()
   assert.ok(dom.window.document.querySelector("#mycodex-runtime-style"));
   assert.equal(assistant.getAttribute("data-mycodex-role"), "assistant");
   assert.ok(assistant.querySelector('[data-mycodex-prose="assistant"]'));
+  runtime.destroy();
+});
+
+test("current Codex unit anchors decorate identities and assistant prose only", () => {
+  const dom = new JSDOM(
+    `<!doctype html><html><head></head><body>
+      <main data-testid="navigation-pane"><p>Navigation</p></main>
+      <main class="thread-scroll-container">
+        <section data-content-search-turn-key="turn-private-id">
+          <div data-content-search-unit-key="unit-user-private-id">
+            <div data-user-message-bubble><p>User prompt</p></div>
+          </div>
+          <div data-content-search-unit-key="unit-assistant-private-id">
+            <div class="markdownContent-current"><p>Assistant response</p></div>
+            <div data-testid="tool-card"><p>Tool output</p></div>
+          </div>
+        </section>
+      </main>
+    </body></html>`,
+    { url: "app://-/index.html", pretendToBeVisual: true }
+  );
+  const runtime = new MyCodexRuntime(dom.window.document);
+  const diagnostics = runtime.applyConfig(defaultConfig());
+  const user = dom.window.document.querySelector(
+    '[data-content-search-unit-key^="unit-user"]'
+  )!;
+  const assistant = dom.window.document.querySelector(
+    '[data-content-search-unit-key^="unit-assistant"]'
+  )!;
+
+  assert.equal(user.getAttribute("data-mycodex-role"), "user");
+  assert.equal(assistant.getAttribute("data-mycodex-role"), "assistant");
+  assert.ok(user.querySelector(".mc-avatar"));
+  assert.ok(user.querySelector(".mc-nickname"));
+  assert.equal(user.querySelector("[data-user-message-bubble]")!.classList.length, 0);
+  assert.equal(user.querySelector("[data-mycodex-prose]"), null);
+  assert.equal(
+    assistant.querySelectorAll('[data-mycodex-prose="assistant"]').length,
+    1
+  );
+  assert.equal(
+    assistant.querySelector("[data-testid=tool-card]")!.hasAttribute(
+      "data-mycodex-prose"
+    ),
+    false
+  );
+  assert.equal(diagnostics.compatibility, "compatible");
+  assert.equal(diagnostics.decoratedUserTurns, 1);
+  assert.equal(diagnostics.decoratedAssistantTurns, 1);
+  assert.equal(diagnostics.assistantBubbleBlocks, 1);
   runtime.destroy();
 });
 

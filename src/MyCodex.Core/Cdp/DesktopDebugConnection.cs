@@ -12,6 +12,8 @@ public enum DesktopDebugTransport
 // while each renderer session owns only the ICdpClient returned by OpenTargetAsync.
 public interface IDesktopDebugConnection : IAsyncDisposable
 {
+    event EventHandler? TargetsChanged;
+
     DesktopDebugTransport Transport { get; }
     int? LoopbackPort { get; }
 
@@ -30,8 +32,10 @@ public sealed class PipeDesktopDebugConnection : IDesktopDebugConnection
     public PipeDesktopDebugConnection(PipeCdpConnection connection)
     {
         _connection = connection;
+        _connection.EventReceived += HandleConnectionEvent;
     }
 
+    public event EventHandler? TargetsChanged;
     public DesktopDebugTransport Transport => DesktopDebugTransport.Pipe;
     public int? LoopbackPort => null;
 
@@ -44,7 +48,25 @@ public sealed class PipeDesktopDebugConnection : IDesktopDebugConnection
         CancellationToken cancellationToken = default) =>
         _connection.AttachAsync(target, cancellationToken);
 
-    public ValueTask DisposeAsync() => _connection.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        _connection.EventReceived -= HandleConnectionEvent;
+        await _connection.DisposeAsync().ConfigureAwait(false);
+    }
+
+    private void HandleConnectionEvent(object? sender, System.Text.Json.JsonElement message)
+    {
+        if (!message.TryGetProperty("method", out var methodProperty))
+        {
+            return;
+        }
+        var method = methodProperty.GetString();
+        if (method is "Target.targetCreated" or "Target.targetDestroyed" or
+            "Target.targetInfoChanged")
+        {
+            TargetsChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
 }
 
 public sealed class TcpDesktopDebugConnection : IDesktopDebugConnection
@@ -59,6 +81,12 @@ public sealed class TcpDesktopDebugConnection : IDesktopDebugConnection
         }
         LoopbackPort = port;
         _targetClient = new TargetHttpClient(port, httpClient);
+    }
+
+    public event EventHandler? TargetsChanged
+    {
+        add { }
+        remove { }
     }
 
     public DesktopDebugTransport Transport => DesktopDebugTransport.Tcp;

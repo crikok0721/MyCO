@@ -122,17 +122,18 @@ public sealed class ConfigStore
             return NormalizeCalibration(calibration);
         }
         catch (Exception exception) when (
-            exception is JsonException or InvalidOperationException)
+            exception is JsonException or InvalidOperationException or ArgumentException)
         {
             PreserveCorruptFile(_paths.CalibrationFile, "calibration");
+            var clean = new CalibrationConfig();
             var temporary = TemporaryPath(_paths.CalibrationFile);
-            var json = JsonSerializer.Serialize(fallback, JsonOptions);
+            var json = JsonSerializer.Serialize(clean, JsonOptions);
             await WriteAtomicAsync(
                 _paths.CalibrationFile,
                 temporary,
                 json,
                 cancellationToken).ConfigureAwait(false);
-            return fallback;
+            return clean;
         }
     }
 
@@ -151,6 +152,8 @@ public sealed class ConfigStore
             throw new InvalidOperationException("Unsupported configuration schema.");
         }
         if (config.Appearance.AvatarSize is < 24 or > 96 ||
+            config.Appearance.AvatarOffsetX is < -32 or > 32 ||
+            config.Appearance.AvatarOffsetY is < -20 or > 40 ||
             config.Appearance.BubbleRadius is < 0 or > 36 ||
             config.Appearance.BubblePaddingX is < 4 or > 40 ||
             config.Appearance.BubblePaddingY is < 4 or > 32 ||
@@ -203,7 +206,7 @@ public sealed class ConfigStore
 
     private static CalibrationConfig NormalizeCalibration(CalibrationConfig calibration)
     {
-        return calibration with
+        var normalized = calibration with
         {
             UserTurn = calibration.UserTurn is null
                 ? null
@@ -212,6 +215,14 @@ public sealed class ConfigStore
                 ? null
                 : ElementSignatureValidator.Normalize(calibration.AssistantTurn)
         };
+        if (!ElementSignatureValidator.AreDistinctRoles(
+                normalized.UserTurn,
+                normalized.AssistantTurn))
+        {
+            throw new ArgumentException(
+                "User and assistant calibration signatures are ambiguous.");
+        }
+        return normalized;
     }
 
     private static void EnsureFileSize(string path)

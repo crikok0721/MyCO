@@ -44,7 +44,12 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <Grid Width="{Binding AvatarSize}" Height="{Binding AvatarSize}">
+                            <Grid Width="{Binding AvatarSize}" Height="{Binding AvatarSize}"
+                                  VerticalAlignment="Top">
+                                <Grid.RenderTransform>
+                                    <TranslateTransform X="{Binding AvatarOffsetX}"
+                                                        Y="{Binding AvatarOffsetY}" />
+                                </Grid.RenderTransform>
                                 <Ellipse Fill="#2A2D33" />
                                 <Ellipse>
                                     <Ellipse.Fill>
@@ -91,7 +96,11 @@
                                 </Border>
                             </StackPanel>
                             <Grid Grid.Column="1" Width="{Binding AvatarSize}"
-                                  Height="{Binding AvatarSize}">
+                                  Height="{Binding AvatarSize}" VerticalAlignment="Top">
+                                <Grid.RenderTransform>
+                                    <TranslateTransform X="{Binding UserAvatarOffsetX}"
+                                                        Y="{Binding AvatarOffsetY}" />
+                                </Grid.RenderTransform>
                                 <Ellipse Fill="#2A2D33" />
                                 <Ellipse>
                                     <Ellipse.Fill>
@@ -161,6 +170,12 @@
                         <TextBlock Text="{Binding AvatarSizeLabel}"
                                    Margin="0,17,0,3" />
                         <Slider Minimum="24" Maximum="72" Value="{Binding AvatarSize}" />
+                        <TextBlock Text="{Binding AvatarOffsetXLabel}"
+                                   Margin="0,13,0,3" />
+                        <Slider Minimum="-32" Maximum="32" Value="{Binding AvatarOffsetX}" />
+                        <TextBlock Text="{Binding AvatarOffsetYLabel}"
+                                   Margin="0,13,0,3" />
+                        <Slider Minimum="-20" Maximum="40" Value="{Binding AvatarOffsetY}" />
                         <TextBlock Text="{Binding BubbleRadiusLabel}"
                                    Margin="0,13,0,3" />
                         <Slider Minimum="0" Maximum="30" Value="{Binding BubbleRadius}" />

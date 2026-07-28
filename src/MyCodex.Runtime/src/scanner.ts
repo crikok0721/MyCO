@@ -2,6 +2,18 @@ import { findBySignature } from "./matcher.js";
 import type { CalibrationConfig } from "./types.js";
 
 // Finds a bounded, non-overlapping set of likely conversation turn elements.
+const MODERN_TURN_SELECTOR = [
+  "[data-content-search-unit-key]",
+  "[data-user-message-bubble]",
+  "[data-message-author-role]",
+  "[data-role=user]",
+  "[data-role=assistant]",
+  "[data-author=user]",
+  "[data-author=assistant]",
+  "[data-testid*=user-message]",
+  "[data-testid*=assistant-message]"
+].join(",");
+
 const SEMANTIC_TURN_SELECTOR = [
   "[data-message-author-role]",
   "[data-role=user]",
@@ -15,25 +27,48 @@ const SEMANTIC_TURN_SELECTOR = [
 ].join(",");
 
 export function findConversationRoot(document: Document): ParentNode {
-  // Prefer semantic containers and always fall back to a connected document node.
-  return (
-    document.querySelector(
-      "main,[role=main],[data-testid*=conversation],[data-content-type=conversation]"
-    ) ??
-    document.body ??
-    document.documentElement
-  );
+  // Codex can render multiple <main> elements and background panes. Select the
+  // connected root with the strongest text-free conversation evidence.
+  const roots = Array.from(
+    document.querySelectorAll(
+      "main,[role=main],.thread-scroll-container," +
+        "[data-testid*=conversation],[data-content-type=conversation]"
+    )
+  ).filter((element) => element.isConnected);
+  if (document.body) roots.push(document.body);
+
+  const ranked = roots
+    .map((element, index) => ({
+      element,
+      index,
+      score: scoreConversationRoot(element)
+    }))
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        Number(right.element.tagName === "MAIN") -
+          Number(left.element.tagName === "MAIN") ||
+        left.index - right.index
+    );
+  return ranked[0]?.element ?? document.documentElement;
 }
 
 export function scanTurnCandidates(
   root: ParentNode,
   calibration: CalibrationConfig
 ): Element[] {
-  // Native semantic candidates win; calibration fills gaps without creating nested duplicates.
-  const nativeCandidates = new Set<Element>(
-    Array.from(root.querySelectorAll(SEMANTIC_TURN_SELECTOR))
-      .filter(isPlausibleTurn)
-  );
+  // Modern stable Codex anchors win; legacy semantic/class adapters remain as
+  // compatibility fallbacks for older desktop builds.
+  const modernCandidates = modernTurnCandidates(root);
+  const nativeCandidates = new Set<Element>(modernCandidates);
+  for (const element of Array.from(root.querySelectorAll(SEMANTIC_TURN_SELECTOR))) {
+    if (
+      isPlausibleTurn(element) &&
+      !overlapsNativeCandidate(element, nativeCandidates)
+    ) {
+      nativeCandidates.add(element);
+    }
+  }
   for (const article of Array.from(root.querySelectorAll("article"))) {
     if (!overlapsNativeCandidate(article, nativeCandidates)) {
       nativeCandidates.add(article);
@@ -63,6 +98,67 @@ export function scanTurnCandidates(
     .slice(0, 800);
 }
 
+function modernTurnCandidates(root: ParentNode): Element[] {
+  const candidates = new Set<Element>();
+
+  for (const unit of Array.from(
+    root.querySelectorAll("[data-content-search-unit-key]")
+  )) {
+    if (isPlausibleModernUnit(unit)) candidates.add(unit);
+  }
+
+  for (const userBubble of Array.from(
+    root.querySelectorAll("[data-user-message-bubble]")
+  )) {
+    const unit = userBubble.closest("[data-content-search-unit-key]");
+    candidates.add(unit && isWithinRoot(root, unit) ? unit : userBubble);
+  }
+
+  for (const semantic of Array.from(root.querySelectorAll(MODERN_TURN_SELECTOR))) {
+    if (
+      isPlausibleTurn(semantic) &&
+      !overlapsNativeCandidate(semantic, candidates)
+    ) {
+      candidates.add(semantic);
+    }
+  }
+
+  // Some ChatGPT-backed pages expose a turn key but not unit keys. In that
+  // shape, use the narrow child that owns the user bubble or assistant prose.
+  for (const turn of Array.from(
+    root.querySelectorAll("[data-content-search-turn-key]")
+  )) {
+    if (turn.querySelector("[data-content-search-unit-key]")) continue;
+    for (const child of Array.from(turn.children)) {
+      if (isPlausibleModernUnit(child)) candidates.add(child);
+    }
+  }
+
+  return Array.from(candidates).filter(
+    (element) =>
+      !element.matches("[aria-hidden=true][data-virtualized-turn-content]") &&
+      !hasCandidateAncestor(element, candidates)
+  );
+}
+
+function isPlausibleModernUnit(element: Element): boolean {
+  if (element.matches("[aria-hidden=true][data-virtualized-turn-content]")) {
+    return false;
+  }
+  if (
+    element.matches("[data-user-message-bubble]") ||
+    element.querySelector("[data-user-message-bubble]")
+  ) {
+    return true;
+  }
+  return Boolean(
+    element.querySelector(
+      "p,blockquote,ul,ol,h1,h2,h3,h4,[class*=markdownContent]," +
+        "[data-content-type=prose],[data-testid*=markdown]"
+    )
+  );
+}
+
 function isPlausibleTurn(element: Element): boolean {
   if (
     element.matches(
@@ -78,6 +174,38 @@ function isPlausibleTurn(element: Element): boolean {
     );
   }
   return true;
+}
+
+function scoreConversationRoot(element: Element): number {
+  const turnKeys = boundedCount(element, "[data-content-search-turn-key]", 20);
+  const unitKeys = boundedCount(element, "[data-content-search-unit-key]", 40);
+  const userBubbles = boundedCount(element, "[data-user-message-bubble]", 20);
+  const semanticTurns = boundedCount(element, SEMANTIC_TURN_SELECTOR, 40);
+  const prose = boundedCount(
+    element,
+    "p,[class*=markdownContent],[data-content-type=prose],[data-testid*=markdown]",
+    40
+  );
+  let score =
+    turnKeys * 16 +
+    unitKeys * 12 +
+    userBubbles * 14 +
+    semanticTurns * 8 +
+    prose * 2;
+  if (element.tagName === "MAIN" || element.getAttribute("role") === "main") {
+    score += 5;
+  }
+  if (element.classList.contains("thread-scroll-container")) score += 8;
+  return score;
+}
+
+function boundedCount(root: Element, selector: string, maximum: number): number {
+  return Math.min(root.querySelectorAll(selector).length, maximum);
+}
+
+function isWithinRoot(root: ParentNode, element: Element): boolean {
+  const node = root as Node;
+  return typeof node.contains === "function" ? node.contains(element) : true;
 }
 
 function overlapsNativeCandidate(

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MyCodex.Avatars;
 using MyCodex.Cdp;
 using MyCodex.Configuration;
 
@@ -14,6 +15,24 @@ public sealed class RuntimeInjector
         AppConfig config,
         CancellationToken cancellationToken = default)
     {
+        var paths = new ConfigPaths();
+        return await InjectAsync(
+            target,
+            client,
+            runtimeScript,
+            config,
+            new AvatarService(paths.AvatarsDirectory),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<RuntimeInjectionResult> InjectAsync(
+        CdpTarget target,
+        ICdpClient client,
+        string runtimeScript,
+        AppConfig config,
+        AvatarService avatarService,
+        CancellationToken cancellationToken = default)
+    {
         // A unique binding prevents page code from guessing another session's channel name.
         var bindingName = $"__mc_host_{Guid.NewGuid():N}";
         try
@@ -21,6 +40,7 @@ public sealed class RuntimeInjector
             var configJson = await RuntimeConfigSerializer.SerializeAsync(
                 config,
                 bindingName,
+                avatarService,
                 cancellationToken).ConfigureAwait(false);
             var session = new RuntimeTargetSession(
                 target,

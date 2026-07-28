@@ -1,7 +1,7 @@
 # Development and verification notes
 
 Date: 2026-07-26  
-MyCodex: `0.2.0-alpha.1`
+MyCodex: `0.2.0-alpha.3`
 
 ## Environment inspected
 
@@ -30,7 +30,7 @@ Observed:
 - `Runtime.evaluate("1 + 1")` returned `2`;
 - `data-mycodex-probe="true"` was added to `body`, verified, and removed;
 - the production runtime bundle injected successfully;
-- handshake returned runtime `0.2.0-alpha.1`, protocol `1`;
+- handshake returned runtime `0.2.0-alpha.2`, protocol `1`;
 - a synthetic current-Codex user/assistant fixture was installed only inside
   the isolated profile, then its style and conversation root were removed;
 - the session health check restored the style, observer, and new root;
@@ -84,6 +84,33 @@ isolated CDP gate above. Therefore end-to-end interactions inside a real
 signed-in conversation—copy buttons, composer input, and every tool/diff variant—
 remain version-specific manual release checks.
 
+## Dual-Codex visual acceptance
+
+On 2026-07-27, the development-only acceptance controller was run while the
+active controlling Codex session stayed open.
+
+- Codex A remained PID `43664`, start time `15:43:01`, throughout the run.
+- Run `2c112eac3dde42dca8e6cabb0fee46c0` started Codex B as PID `53228`
+  with an isolated profile and private CDP pipe.
+- Runtime `0.2.0-alpha.2`, protocol `1`, injected successfully.
+- Computer Use directly observed the run marker, circular cover-cropped
+  avatars, nicknames, Assistant prose bubble, untouched native User bubble,
+  long/multi-paragraph wrapping, code, tool, Diff, status, and toolbar.
+- Computer Use observed both the normal window and a `780 x 820` window without
+  overflow, overlap, or abnormal truncation.
+- Restart Target closed only PID `53228`, started PID `59216` with the same
+  isolated profile, and restored the visible effect; Codex A remained alive.
+- Disable/destroy visibly removed MyCodex avatars, nicknames, prose bubble, and
+  markers while leaving the synthetic fixture and native surfaces visible.
+- Stop removed PID `59216` and the run/profile directory. Computer Use then
+  listed only Codex A's original window.
+- The final machine-readable result remains in the temporary acceptance root as
+  `<run-id>.final.json`; no real chat, DOM snapshot, Cookie, credential, or
+  machine-specific path was added to Git.
+
+See [`visual-acceptance.md`](visual-acceptance.md) for the repeatable command
+chain. These PID values are evidence from this run, not stable configuration.
+
 ## Automated coverage
 
 - .NET: configuration create/load/migration/corruption, calibration recovery,
@@ -99,6 +126,10 @@ remain version-specific manual release checks.
   precedence, native user-bubble preservation, circular avatar cover crops,
   root/style self-healing, Runtime hot upgrade, signature privacy, and
   composed-path calibration root.
+- Visual acceptance safety: canonical temporary paths, private-pipe isolated
+  profile arguments, exact PID/executable/start-time/profile ownership,
+  rejection of another process using the same executable, and valid
+  Start/Restart/Disable/Stop lifecycle transitions.
 
 ## Dependency downloads
 

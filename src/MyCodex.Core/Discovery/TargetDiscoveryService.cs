@@ -9,7 +9,17 @@ public sealed record TargetCandidate(
     int Score,
     string ReadyState,
     int BodyChildCount,
-    bool HasDocument);
+    bool HasDocument,
+    string VisibilityState,
+    int ConversationSurfaceCount,
+    int TurnCount,
+    int UnitCount,
+    int UserBubbleCount)
+{
+    public bool HasConversationEvidence =>
+        ConversationSurfaceCount > 0 || TurnCount > 0 ||
+        UnitCount > 0 || UserBubbleCount > 0;
+}
 
 public sealed class TargetDiscoveryService
 {
@@ -39,7 +49,25 @@ public sealed class TargetDiscoveryService
                     new
                     {
                         expression =
-                            "({readyState:document.readyState,bodyChildCount:document.body?.children.length??0,hasDocument:!!document.documentElement})",
+                            """
+                            (() => {
+                              const count = (selector, maximum) =>
+                                Math.min(document.querySelectorAll(selector).length, maximum);
+                              return {
+                                readyState: document.readyState,
+                                bodyChildCount: document.body?.children.length ?? 0,
+                                hasDocument: !!document.documentElement,
+                                visibilityState: document.visibilityState ?? "unknown",
+                                conversationSurfaceCount: count(
+                                  ".thread-scroll-container,[data-thread-find-composer]," +
+                                  "[data-testid*=conversation],textarea,[contenteditable=true]",
+                                  20),
+                                turnCount: count("[data-content-search-turn-key]", 100),
+                                unitCount: count("[data-content-search-unit-key]", 200),
+                                userBubbleCount: count("[data-user-message-bubble]", 100)
+                              };
+                            })()
+                            """,
                         returnByValue = true
                     },
                     cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -50,12 +78,33 @@ public sealed class TargetDiscoveryService
                 var readyState = value.GetProperty("readyState").GetString() ?? "unknown";
                 var childCount = value.GetProperty("bodyChildCount").GetInt32();
                 var hasDocument = value.GetProperty("hasDocument").GetBoolean();
+                var visibilityState =
+                    value.GetProperty("visibilityState").GetString() ?? "unknown";
+                var conversationSurfaceCount =
+                    value.GetProperty("conversationSurfaceCount").GetInt32();
+                var turnCount = value.GetProperty("turnCount").GetInt32();
+                var unitCount = value.GetProperty("unitCount").GetInt32();
+                var userBubbleCount = value.GetProperty("userBubbleCount").GetInt32();
                 results.Add(new TargetCandidate(
                     target,
-                    Score(target, readyState, childCount, hasDocument),
+                    Score(
+                        target,
+                        readyState,
+                        childCount,
+                        hasDocument,
+                        visibilityState,
+                        conversationSurfaceCount,
+                        turnCount,
+                        unitCount,
+                        userBubbleCount),
                     readyState,
                     childCount,
-                    hasDocument));
+                    hasDocument,
+                    visibilityState,
+                    conversationSurfaceCount,
+                    turnCount,
+                    unitCount,
+                    userBubbleCount));
             }
             catch (Exception exception) when (
                 exception is not OperationCanceledException)
@@ -71,21 +120,31 @@ public sealed class TargetDiscoveryService
         CdpTarget target,
         string readyState,
         int childCount,
-        bool hasDocument)
+        bool hasDocument,
+        string visibilityState,
+        int conversationSurfaceCount,
+        int turnCount,
+        int unitCount,
+        int userBubbleCount)
     {
-        var score = target.Type == "page" ? 30 : 15;
-        score += hasDocument ? 20 : 0;
-        score += readyState is "interactive" or "complete" ? 15 : 0;
-        score += childCount > 0 ? 10 : 0;
+        var score = target.Type == "page" ? 10 : 5;
+        score += hasDocument ? 8 : 0;
+        score += readyState is "interactive" or "complete" ? 7 : 0;
+        score += childCount > 0 ? 5 : 0;
+        score += visibilityState == "visible" ? 15 : 0;
         score += target.Url?.StartsWith("app://", StringComparison.OrdinalIgnoreCase) == true
-            ? 20
+            ? 5
             : 0;
         score += target.Title?.Contains("Codex", StringComparison.OrdinalIgnoreCase) == true
-            ? 10
+            ? 5
             : 0;
         score += target.Title?.Contains("ChatGPT", StringComparison.OrdinalIgnoreCase) == true
-            ? 10
+            ? 5
             : 0;
+        score += Math.Min(conversationSurfaceCount, 2) * 20;
+        score += Math.Min(turnCount, 4) * 5;
+        score += Math.Min(unitCount, 8) * 3;
+        score += Math.Min(userBubbleCount, 4) * 4;
         return score;
     }
 }

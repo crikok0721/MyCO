@@ -14,7 +14,16 @@ const SAFE_ATTRIBUTE_NAMES = new Set([
   "data-testid",
   "data-role",
   "data-author",
-  "data-content-type"
+  "data-content-type",
+  "data-user-message-bubble",
+  "data-virtualized-turn-content"
+]);
+
+const PRESENCE_ONLY_ATTRIBUTE_NAMES = new Set([
+  "data-content-search-turn-key",
+  "data-content-search-unit-key",
+  "data-user-message-bubble",
+  "data-virtualized-turn-content"
 ]);
 
 export function isLikelyGeneratedClass(token: string): boolean {
@@ -34,6 +43,10 @@ export function stableAttributes(element: Element): Record<string, string> {
   const result: Record<string, string> = {};
   for (const attribute of Array.from(element.attributes)) {
     if (attribute.name.startsWith("data-mycodex")) continue;
+    if (PRESENCE_ONLY_ATTRIBUTE_NAMES.has(attribute.name)) {
+      result[attribute.name] = "present";
+      continue;
+    }
     // Keep only short semantic metadata; never include arbitrary attributes or text.
     const keep =
       SAFE_ATTRIBUTE_NAMES.has(attribute.name) ||

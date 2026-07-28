@@ -23,6 +23,23 @@ export function classifyTurn(
     return { role: "assistant", confidence: 0.98, source: "semantic" };
   }
 
+  // Current Codex builds expose a stable marker on the native user bubble and
+  // stable unit keys around both roles. These are more resilient than utility
+  // classes and contain no message text.
+  if (
+    element.matches("[data-user-message-bubble]") ||
+    element.querySelector("[data-user-message-bubble]")
+  ) {
+    return { role: "user", confidence: 0.99, source: "semantic" };
+  }
+  if (
+    element.matches("[data-content-search-unit-key]") &&
+    hasAssistantProse(element) &&
+    !element.querySelector("[data-user-message-bubble]")
+  ) {
+    return { role: "assistant", confidence: 0.96, source: "semantic" };
+  }
+
   const ariaLabel = element.getAttribute("aria-label") ?? "";
   if (/\b(user|you|your message)\b/i.test(ariaLabel)) {
     return { role: "user", confidence: 0.88, source: "semantic" };
@@ -74,11 +91,15 @@ function isCurrentCodexAssistantTurn(element: Element): boolean {
   return (
     hasClasses(element, "group", "flex", "min-w-0", "flex-col") &&
     !element.classList.contains("items-end") &&
-    Boolean(
-      element.querySelector(
-        "p,blockquote,ul,ol,[class*=markdownContent]," +
-          "[data-content-type=prose],[data-testid*=markdown]"
-      )
+    hasAssistantProse(element)
+  );
+}
+
+function hasAssistantProse(element: Element): boolean {
+  return Boolean(
+    element.querySelector(
+      "p,blockquote,ul,ol,h1,h2,h3,h4,[class*=markdownContent]," +
+        "[data-content-type=prose],[data-testid*=markdown]"
     )
   );
 }

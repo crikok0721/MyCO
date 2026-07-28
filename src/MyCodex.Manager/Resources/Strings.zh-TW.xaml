@@ -29,6 +29,8 @@
     <sys:String x:Key="ChooseUserAvatar">選擇使用者頭像…</sys:String>
     <sys:String x:Key="Geometry">尺寸與間距</sys:String>
     <sys:String x:Key="AvatarSizeFormat">頭像大小 · {0:F0}px</sys:String>
+    <sys:String x:Key="AvatarOffsetXFormat">頭像水平位置 · {0:+0;-0;0}px</sys:String>
+    <sys:String x:Key="AvatarOffsetYFormat">頭像垂直位置 · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="BubbleRadiusFormat">氣泡圓角 · {0:F0}px</sys:String>
     <sys:String x:Key="MessageGapFormat">訊息間距 · {0:F0}px</sys:String>
     <sys:String x:Key="BubbleBehavior">氣泡配置</sys:String>
@@ -123,6 +125,8 @@
     <sys:String x:Key="StatusDisconnected">已中斷連線</sys:String>
     <sys:String x:Key="StatusReconnectPending">正在等待轉譯器重新連線</sys:String>
     <sys:String x:Key="StatusSkinActive">介面樣式已啟用</sys:String>
+    <sys:String x:Key="StatusRuntimeWaiting">執行階段已就緒：正在等待對話</sys:String>
+    <sys:String x:Key="StatusCompatibilityDegraded">相容性下降：尚未套用任何訊息樣式</sys:String>
     <sys:String x:Key="StatusSafeMode">安全模式：沒有相容的轉譯器</sys:String>
     <sys:String x:Key="RoleAssistant">助理</sys:String>
     <sys:String x:Key="RoleUser">使用者</sys:String>

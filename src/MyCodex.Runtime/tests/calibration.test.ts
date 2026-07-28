@@ -36,6 +36,19 @@ test("calibration climbs away from a nested prose leaf without semantic attribut
   );
 });
 
+test("calibration resolves current Codex user bubble to its unit", () => {
+  const dom = new JSDOM(
+    `<main><section data-content-search-turn-key="turn"><div data-content-search-unit-key="unit"><div data-user-message-bubble><p><span>fixture</span></p></div></div></section></main>`
+  );
+  installDomGlobals(dom);
+  const span = dom.window.document.querySelector("span")!;
+  const paragraph = span.parentElement!;
+  const bubble = paragraph.parentElement!;
+  const unit = bubble.parentElement!;
+
+  assert.equal(resolveCalibrationRoot([span, paragraph, bubble, unit]), unit);
+});
+
 function installDomGlobals(dom: JSDOM): void {
   Object.assign(globalThis, {
     Element: dom.window.Element

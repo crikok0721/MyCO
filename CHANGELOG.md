@@ -2,6 +2,53 @@
 
 All notable project changes are documented here.
 
+## [0.2.0-alpha.3] - 2026-07-28
+
+### Added
+
+- Add launcher sliders for symmetric avatar horizontal position and shared
+  vertical position, including live preview and English, Simplified Chinese,
+  and Traditional Chinese labels.
+- Place both assistant and user avatars midway between the nickname and bubble
+  by default while keeping the position configurable and locally persisted.
+
+## [0.2.0-alpha.2] - 2026-07-27
+
+### Added
+
+- Add a development-only dual-Codex visual-acceptance controller with an
+  isolated temporary profile, private CDP pipe, synthetic `app://` fixture,
+  visible run-id, exact-target Restart/Disable/Stop commands, and
+  machine-readable run/final state.
+- Add fail-closed PID, executable, process-start-time, profile, cleanup-path,
+  and lifecycle guards; another process using the same executable is never
+  accepted as the owned target.
+
+### Fixed
+
+- Detect current Codex virtualized conversation units through stable,
+  text-free DOM anchors and select the strongest conversation root instead of
+  the first generic `main` element.
+- Restore assistant bubbles plus user/assistant avatars and nicknames while
+  preserving the native user bubble, code, diffs, tools, actions, and input.
+- Rank renderer targets by visible conversation evidence and stop background
+  renderers from producing a false "skin active" state.
+- Serialize complete renderer refreshes, deduplicate injection, add transient
+  target/health grace periods, and react to Pipe target lifecycle events.
+- Quarantine structurally ambiguous calibration files and restrict calibration
+  to the best confirmed conversation renderer.
+- Distinguish requested, waiting, degraded, and actually applied skin states;
+  disable invalid UI actions; and remove renderer exception messages from logs.
+
+### Verification
+
+- Added modern virtualized-DOM, target ranking, calibration quarantine,
+  decoration-counter, localization, process-ownership, isolated-profile,
+  lifecycle, and security regression coverage.
+- Completed Computer Use inspection of wide/narrow, Restart Target,
+  destroy/Disable, and Stop behavior while the controlling Codex session
+  remained alive.
+
 ## [0.2.0-alpha.1] - 2026-07-26
 
 ### Added

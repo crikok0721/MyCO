@@ -29,6 +29,8 @@
     <sys:String x:Key="ChooseUserAvatar">Choose user avatar…</sys:String>
     <sys:String x:Key="Geometry">Geometry</sys:String>
     <sys:String x:Key="AvatarSizeFormat">Avatar size · {0:F0}px</sys:String>
+    <sys:String x:Key="AvatarOffsetXFormat">Avatar horizontal position · {0:+0;-0;0}px</sys:String>
+    <sys:String x:Key="AvatarOffsetYFormat">Avatar vertical position · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="BubbleRadiusFormat">Bubble radius · {0:F0}px</sys:String>
     <sys:String x:Key="MessageGapFormat">Message gap · {0:F0}px</sys:String>
     <sys:String x:Key="BubbleBehavior">Bubble behavior</sys:String>
@@ -123,6 +125,8 @@
     <sys:String x:Key="StatusDisconnected">Disconnected</sys:String>
     <sys:String x:Key="StatusReconnectPending">Renderer reconnect pending</sys:String>
     <sys:String x:Key="StatusSkinActive">Skin active</sys:String>
+    <sys:String x:Key="StatusRuntimeWaiting">Runtime ready: waiting for a conversation</sys:String>
+    <sys:String x:Key="StatusCompatibilityDegraded">Compatibility degraded: no messages were decorated</sys:String>
     <sys:String x:Key="StatusSafeMode">Safe mode: no compatible renderer</sys:String>
     <sys:String x:Key="RoleAssistant">assistant</sys:String>
     <sys:String x:Key="RoleUser">user</sys:String>

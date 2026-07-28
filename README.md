@@ -84,8 +84,9 @@ Alpha 版本暂未签名，Windows 可能显示信誉提示；请先核对发布
 可在侧边栏的“界面语言”中选择 **English**、**简体中文** 或 **繁體中文**。
 切换立即生效并独立保存，不会覆盖尚未保存的外观编辑；首次启动引导中也提供同一选项。
 
-Appearance 页面支持昵称、头像、头像尺寸、Assistant 气泡圆角、横纵 padding、
-消息间距、最大宽度和昵称显示开关。头像支持 PNG/JPEG/GIF/BMP，最大 10 MiB；文件会校验真实
+Appearance 页面支持昵称、头像、头像尺寸、头像水平/垂直位置、Assistant 气泡圆角、
+横纵 padding、消息间距、最大宽度和昵称显示开关。头像支持 PNG/JPEG/GIF/BMP，
+最大 10 MiB；文件会校验真实
 签名，以内容哈希命名并复制到本地头像目录，再以 data URL 传给 Runtime。
 
 **Save & apply** 会原子保存配置并即时更新已连接 Renderer。**Disable skin**

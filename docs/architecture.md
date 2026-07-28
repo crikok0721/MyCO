@@ -17,6 +17,7 @@ flowchart TB
     SESSION["Desktop session controller"]
     BACKEND["IInjectionBackend / CdpInjectionBackend"]
     CDP["Pipe/TCP CDP connections + target discovery"]
+    VA["Development-only visual acceptance host"]
   end
   subgraph Desktop["Official Desktop process"]
     PAGE["Chromium renderer"]
@@ -29,6 +30,7 @@ flowchart TB
   APP --> SESSION
   SESSION --> BACKEND
   BACKEND --> CDP
+  VA --> CDP
   CDP --> PAGE
   PAGE --> RT
   RT --> MATCH
@@ -58,6 +60,21 @@ close an official Desktop process it launched.
 - compatibility signatures/state machine and privacy-safe logging.
 
 The skin engine has no compile-time dependency on a particular Desktop version.
+
+### Development-only visual acceptance
+
+`MyCodex.VisualAcceptance` reuses `WindowsPipeProcessLauncher`,
+`PipeCdpConnection`, `RuntimeInjector`, and the production Runtime bundle. It
+creates one isolated profile under `%TEMP%\MyCodex\VisualAcceptance\<run-id>`,
+installs a synthetic fixture in the official `app://` renderer, and exposes
+Start, Restart Target, Status, Disable/destroy, and Stop commands.
+
+The host stores the exact launched PID and verifies run-id, executable, process
+start time, and profile metadata before every close. It never calls the normal
+application-wide restart service and never enumerates/terminates all processes
+by executable name. A restart reuses the same isolated profile; Stop destroys
+the Runtime, closes only the owned target tree, validates the canonical cleanup
+path, and removes the run directory.
 
 ### Runtime
 
@@ -139,3 +156,6 @@ and keeps diagnostics/calibration available.
 
 MyCodex never changes an official install, injects native code, intercepts
 traffic, or falls back to patching.
+
+The complete development acceptance command chain is documented in
+[`visual-acceptance.md`](visual-acceptance.md).

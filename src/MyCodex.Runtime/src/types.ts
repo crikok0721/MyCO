@@ -23,6 +23,8 @@ export interface PersonConfig {
 export interface AppearanceConfig {
   preset: "ReferenceDark" | "Minimal";
   avatarSize: number;
+  avatarOffsetX: number;
+  avatarOffsetY: number;
   bubbleRadius: number;
   bubblePaddingX: number;
   bubblePaddingY: number;
@@ -87,6 +89,7 @@ export interface RuntimeDiagnostics {
   identifiedUserTurns: number;
   decoratedUserTurns: number;
   decoratedAssistantTurns: number;
+  assistantBubbleBlocks: number;
   unknownTurns: number;
   averageConfidence: number;
   observerActive: boolean;
@@ -129,6 +132,8 @@ export function defaultConfig(): RuntimeConfig {
     appearance: {
       preset: "ReferenceDark",
       avatarSize: 40,
+      avatarOffsetX: 0,
+      avatarOffsetY: 11,
       bubbleRadius: 14,
       bubblePaddingX: 14,
       bubblePaddingY: 10,

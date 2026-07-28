@@ -11,7 +11,7 @@ public sealed class SecurityBoundaryTests
     [Fact]
     public void BuildMetadataComesFromTheSharedVersionSource()
     {
-        Assert.Equal("0.2.0-alpha.1", BuildInfo.Version);
+        Assert.Equal("0.2.0-alpha.3", BuildInfo.Version);
         Assert.Equal(1, BuildInfo.ProtocolVersion);
         Assert.Equal(1, BuildInfo.ConfigSchemaVersion);
         Assert.Equal(1, BuildInfo.CalibrationSchemaVersion);
@@ -68,6 +68,7 @@ public sealed class SecurityBoundaryTests
               "protocolVersion":1,
               "compatibility":"compatible",
               "scannedTurns":999999999,
+              "assistantBubbleBlocks":27,
               "averageConfidence":9,
               "errors":[{"code":"runtime.failed","message":"private prompt"}]
             }
@@ -76,9 +77,27 @@ public sealed class SecurityBoundaryTests
         var normalized = RuntimeDiagnosticsValidator.Normalize(document.RootElement);
 
         Assert.Equal(100_000, normalized.GetProperty("scannedTurns").GetInt32());
+        Assert.Equal(27, normalized.GetProperty("assistantBubbleBlocks").GetInt32());
         Assert.Equal(1, normalized.GetProperty("averageConfidence").GetDouble());
         Assert.False(
             normalized.GetProperty("errors")[0].TryGetProperty("message", out _));
+    }
+
+    [Fact]
+    public void CalibrationRejectsStructurallyAmbiguousRoles()
+    {
+        var signature = ElementSignatureValidator.Normalize(
+            new ElementSignature
+            {
+                TagName = "div",
+                StableAttributes =
+                {
+                    ["data-content-search-unit-key"] = "present"
+                },
+                Capabilities = new SignatureCapabilities { HasMarkdown = true }
+            });
+
+        Assert.False(ElementSignatureValidator.AreDistinctRoles(signature, signature));
     }
 
     [Fact]

@@ -13,6 +13,8 @@ public sealed record AppearanceConfig
 {
     public string Preset { get; init; } = "ReferenceDark";
     public int AvatarSize { get; init; } = 40;
+    public int AvatarOffsetX { get; init; }
+    public int AvatarOffsetY { get; init; } = 11;
     public int BubbleRadius { get; init; } = 14;
     public int BubblePaddingX { get; init; } = 14;
     public int BubblePaddingY { get; init; } = 10;

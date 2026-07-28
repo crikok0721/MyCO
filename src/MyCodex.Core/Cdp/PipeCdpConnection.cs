@@ -14,6 +14,7 @@ public sealed class PipeCdpConnection : IAsyncDisposable
     private readonly CancellationTokenSource _lifetime = new();
     private readonly Task _receiveTask;
     private long _nextId;
+    private int _targetDiscoveryEnabled;
     private bool _disposed;
 
     public PipeCdpConnection(Stream browserOutput, Stream browserInput)
@@ -84,6 +85,21 @@ public sealed class PipeCdpConnection : IAsyncDisposable
     public async Task<IReadOnlyList<CdpTarget>> ListTargetsAsync(
         CancellationToken cancellationToken = default)
     {
+        if (Interlocked.Exchange(ref _targetDiscoveryEnabled, 1) == 0)
+        {
+            try
+            {
+                await SendCommandAsync(
+                    "Target.setDiscoverTargets",
+                    new { discover = true },
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                Interlocked.Exchange(ref _targetDiscoveryEnabled, 0);
+                throw;
+            }
+        }
         var response = await SendCommandAsync(
             "Target.getTargets",
             cancellationToken: cancellationToken).ConfigureAwait(false);

@@ -61,7 +61,12 @@ public sealed class ConfigurationTests
         {
             Language = LanguageCodes.TraditionalChinese,
             Assistant = new PersonConfig { Name = "Luna" },
-            Appearance = AppConfig.Default.Appearance with { AvatarSize = 52 }
+            Appearance = AppConfig.Default.Appearance with
+            {
+                AvatarSize = 52,
+                AvatarOffsetX = 7,
+                AvatarOffsetY = 13
+            }
         };
 
         await store.SaveAsync(expected);
@@ -70,7 +75,75 @@ public sealed class ConfigurationTests
         Assert.Equal(LanguageCodes.TraditionalChinese, loaded.Config.Language);
         Assert.Equal("Luna", loaded.Config.Assistant.Name);
         Assert.Equal(52, loaded.Config.Appearance.AvatarSize);
+        Assert.Equal(7, loaded.Config.Appearance.AvatarOffsetX);
+        Assert.Equal(13, loaded.Config.Appearance.AvatarOffsetY);
         Assert.Equal(1, loaded.Config.Calibration.SchemaVersion);
+    }
+
+    [Fact]
+    public async Task ExistingSchemaDefaultsMissingAvatarOffsetsSafely()
+    {
+        using var directory = new TempDirectory();
+        var paths = new ConfigPaths(directory.Path);
+        paths.EnsureDirectories();
+        await File.WriteAllTextAsync(
+            paths.ConfigFile,
+            """
+            {
+              "schemaVersion": 1,
+              "protocolVersion": 1,
+              "language": "zh-CN",
+              "assistant": { "name": "Codex", "avatar": "" },
+              "user": { "name": "You", "avatar": "" },
+              "appearance": {
+                "preset": "ReferenceDark",
+                "avatarSize": 40,
+                "bubbleRadius": 14,
+                "bubblePaddingX": 14,
+                "bubblePaddingY": 10,
+                "nicknameVisible": true,
+                "messageGap": 28,
+                "messageMaxWidth": 66,
+                "userBubble": "#242424",
+                "assistantBubble": "#222222",
+                "userText": "#f5f5f5",
+                "assistantText": "#f2f2f2",
+                "nicknameColor": "#9a9a9a"
+              },
+              "calibration": { "schemaVersion": 1 }
+            }
+            """);
+
+        var loaded = await new ConfigStore(paths).LoadAsync();
+
+        Assert.Equal(0, loaded.Config.Appearance.AvatarOffsetX);
+        Assert.Equal(11, loaded.Config.Appearance.AvatarOffsetY);
+    }
+
+    [Fact]
+    public async Task AvatarOffsetsOutsideSliderRangeAreRejected()
+    {
+        using var directory = new TempDirectory();
+        var store = new ConfigStore(new ConfigPaths(directory.Path));
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            store.SaveAsync(
+                AppConfig.Default with
+                {
+                    Appearance = AppConfig.Default.Appearance with
+                    {
+                        AvatarOffsetX = 33
+                    }
+                }));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            store.SaveAsync(
+                AppConfig.Default with
+                {
+                    Appearance = AppConfig.Default.Appearance with
+                    {
+                        AvatarOffsetY = 41
+                    }
+                }));
     }
 
     [Fact]
@@ -113,6 +186,43 @@ public sealed class ConfigurationTests
         Assert.Equal(
             1,
             repaired.RootElement.GetProperty("schemaVersion").GetInt32());
+    }
+
+    [Fact]
+    public async Task AmbiguousCalibrationIsBackedUpAndQuarantined()
+    {
+        using var directory = new TempDirectory();
+        var paths = new ConfigPaths(directory.Path);
+        var store = new ConfigStore(paths);
+        await store.SaveAsync(AppConfig.Default);
+        var signature = new MyCodex.Compatibility.ElementSignature
+        {
+            TagName = "div",
+            StableAttributes =
+            {
+                ["data-content-search-unit-key"] = "present"
+            },
+            Capabilities = new MyCodex.Compatibility.SignatureCapabilities
+            {
+                HasMarkdown = true
+            }
+        };
+        await File.WriteAllTextAsync(
+            paths.CalibrationFile,
+            JsonSerializer.Serialize(
+                new CalibrationConfig
+                {
+                    UserTurn = signature,
+                    AssistantTurn = signature
+                },
+                new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+        var loaded = await store.LoadAsync();
+
+        Assert.Null(loaded.Config.Calibration.UserTurn);
+        Assert.Null(loaded.Config.Calibration.AssistantTurn);
+        Assert.Single(
+            Directory.GetFiles(paths.BackupsDirectory, "calibration.corrupt-*.json"));
     }
 
     [Theory]

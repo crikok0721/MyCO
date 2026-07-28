@@ -17,6 +17,19 @@ public static class RuntimeConfigSerializer
     {
         var paths = new ConfigPaths();
         var avatarService = new AvatarService(paths.AvatarsDirectory);
+        return await SerializeAsync(
+            config,
+            bindingName,
+            avatarService,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    public static async Task<string> SerializeAsync(
+        AppConfig config,
+        string bindingName,
+        AvatarService avatarService,
+        CancellationToken cancellationToken = default)
+    {
         // Renderer pages cannot read the local avatar files, so inline them as data URLs.
         var assistantAvatar = await avatarService.ToDataUrlAsync(
             config.Assistant.Avatar,

@@ -16,6 +16,7 @@ export class Diagnostics {
     identifiedUserTurns: 0,
     decoratedUserTurns: 0,
     decoratedAssistantTurns: 0,
+    assistantBubbleBlocks: 0,
     unknownTurns: 0,
     averageConfidence: 0,
     observerActive: false,
@@ -32,6 +33,7 @@ export class Diagnostics {
     scannedTurns: number,
     userTurns: number,
     assistantTurns: number,
+    assistantBubbleBlocks: number,
     unknownTurns: number,
     confidences: number[],
     observerActive: boolean
@@ -42,8 +44,10 @@ export class Diagnostics {
         : confidences.reduce((sum, value) => sum + value, 0) / confidences.length;
     this.state.scannedTurns = scannedTurns;
     this.state.identifiedUserTurns = userTurns;
-    this.state.decoratedUserTurns = 0;
+    // User decoration means identity only; the native user bubble is preserved.
+    this.state.decoratedUserTurns = userTurns;
     this.state.decoratedAssistantTurns = assistantTurns;
+    this.state.assistantBubbleBlocks = assistantBubbleBlocks;
     this.state.unknownTurns = unknownTurns;
     this.state.averageConfidence = Math.round(average * 1000) / 1000;
     this.state.observerActive = observerActive;

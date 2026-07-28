@@ -1,5 +1,6 @@
 using System.Text.Json;
 using MyCodex.Cdp;
+using MyCodex.Discovery;
 using MyCodex.Injection;
 
 // Verifies CDP reply correlation and safe runtime bootstrap source generation.
@@ -91,6 +92,75 @@ public sealed class CdpTests
             client.Calls[0].Parameters.GetProperty("expression").GetString());
     }
 
+    [Fact]
+    public async Task TargetDiscoveryPrefersVisibleConversationEvidence()
+    {
+        var background = new CdpTarget(
+            "background",
+            "page",
+            "Codex",
+            "app://-/index.html",
+            null);
+        var conversation = new CdpTarget(
+            "conversation",
+            "page",
+            "Codex",
+            "app://-/index.html",
+            null);
+        var connection = new FakeDesktopDebugConnection(
+            [background, conversation],
+            new Dictionary<string, string>
+            {
+                ["background"] = ProbeResponse(
+                    "hidden",
+                    conversationSurfaces: 0,
+                    turns: 0,
+                    units: 0,
+                    userBubbles: 0),
+                ["conversation"] = ProbeResponse(
+                    "visible",
+                    conversationSurfaces: 1,
+                    turns: 2,
+                    units: 4,
+                    userBubbles: 2)
+            });
+
+        var candidates = await new TargetDiscoveryService().DiscoverAsync(connection);
+
+        Assert.Equal("conversation", candidates[0].Target.Id);
+        Assert.True(candidates[0].HasConversationEvidence);
+        Assert.True(candidates[0].Score >= 55);
+        Assert.False(candidates[1].HasConversationEvidence);
+        Assert.True(candidates[1].Score < 55);
+    }
+
+    private static string ProbeResponse(
+        string visibility,
+        int conversationSurfaces,
+        int turns,
+        int units,
+        int userBubbles) =>
+        JsonSerializer.Serialize(new
+        {
+            result = new
+            {
+                result = new
+                {
+                    value = new
+                    {
+                        readyState = "complete",
+                        bodyChildCount = 2,
+                        hasDocument = true,
+                        visibilityState = visibility,
+                        conversationSurfaceCount = conversationSurfaces,
+                        turnCount = turns,
+                        unitCount = units,
+                        userBubbleCount = userBubbles
+                    }
+                }
+            }
+        });
+
     private sealed class FakeCdpClient : ICdpClient
     {
         private readonly Queue<JsonElement> _responses;
@@ -128,6 +198,42 @@ public sealed class CdpTests
                 throw new InvalidOperationException("No fake CDP response is queued.");
             }
             return Task.FromResult(_responses.Dequeue());
+        }
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class FakeDesktopDebugConnection : IDesktopDebugConnection
+    {
+        private readonly IReadOnlyList<CdpTarget> _targets;
+        private readonly IReadOnlyDictionary<string, string> _responses;
+
+        public FakeDesktopDebugConnection(
+            IReadOnlyList<CdpTarget> targets,
+            IReadOnlyDictionary<string, string> responses)
+        {
+            _targets = targets;
+            _responses = responses;
+        }
+
+        public DesktopDebugTransport Transport => DesktopDebugTransport.Pipe;
+        public int? LoopbackPort => null;
+        public event EventHandler? TargetsChanged
+        {
+            add { }
+            remove { }
+        }
+
+        public Task<IReadOnlyList<CdpTarget>> ListTargetsAsync(
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(_targets);
+
+        public Task<ICdpClient> OpenTargetAsync(
+            CdpTarget target,
+            CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<ICdpClient>(
+                new FakeCdpClient(_responses[target.Id!]));
         }
 
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
