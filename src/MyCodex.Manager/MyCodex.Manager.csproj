@@ -5,6 +5,7 @@
     <AssemblyName>MyCodex</AssemblyName>
     <RootNamespace>MyCodex.Manager</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\..\assets\mycodex.ico</ApplicationIcon>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
@@ -18,6 +19,8 @@
     <EmbeddedResource Include="..\MyCodex.Runtime\dist\mycodex.runtime.js"
                       Link="Resources\mycodex.runtime.js"
                       LogicalName="MyCodex.Manager.Resources.mycodex.runtime.js" />
+    <Resource Include="..\..\assets\mycodex.ico"
+              Link="Assets\mycodex.ico" />
     <None Include="..\..\assets\mycodex-logo.svg"
           Link="Assets\mycodex-logo.svg"
           CopyToOutputDirectory="PreserveNewest"

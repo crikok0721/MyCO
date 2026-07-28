@@ -44,9 +44,10 @@ flowchart TB
 restarts, preview/editing, calibration commands, diagnostics, its independent
 WPF theme, and orderly shutdown. An App-owned `NotifyIcon` keeps the process
 available after minimize; a named activation event restores the same window
-when the executable is launched again. Exiting calls runtime `destroy()`,
-disconnects CDP, unsubscribes system-theme events, and disposes the icon; it
-does not close an official Desktop process it launched.
+when the executable is launched again. Close presents Exit / Minimize / Cancel.
+Exiting calls runtime `destroy()`, disconnects CDP, unsubscribes system-theme
+events, and disposes the icon; duplicated pipe peer handles owned by the exact
+Codex root prevent that disconnect from closing Codex.
 
 ### Core
 
@@ -55,6 +56,8 @@ does not close an official Desktop process it launched.
 - installed/running application discovery and candidate scoring;
 - `ChatGptDesktopAdapter` and `LegacyCodexAdapter`;
 - private-pipe launch with a restricted inherited handle list;
+- suspended private-pipe creation plus non-inheritable peer-handle duplication
+  into the exact Codex root so Manager lifetime is independent;
 - explicit-consent loopback port allocation and CDP HTTP/WebSocket fallback;
 - renderer capability scoring;
 - `IInjectionBackend` and the initial `CdpInjectionBackend`;
@@ -102,8 +105,10 @@ The runtime:
   then calibration and layout fallbacks;
 - decorates only at confidence `>= 0.72`;
 - inserts project-namespaced headers;
-- marks only assistant prose blocks as bubbles and leaves the official user
-  bubble untouched;
+- semantically groups only assistant prose as Automatic or Whole bubbles and
+  leaves the official user bubble untouched;
+- keeps headings with following prose, lists/quotes atomic, and existing
+  streaming block groups stable until structure changes;
 - excludes `pre`, `code`, diffs, tool/status/command cards, toolbars, buttons,
   editors, and input controls;
 - rescans incrementally through a debounced `MutationObserver`.
@@ -168,17 +173,20 @@ than duplicated.
 
 The existing `TrayService` is the single notification-icon owner. Minimize
 hides the window and taskbar button; double-click, the tray menu, or the
-single-instance activation event restores/focuses it. Close retains exit
-semantics, and tray Exit invokes the same orderly close path.
+single-instance activation event restores/focuses it. Close presents Exit,
+Minimize, and Cancel. Tray Exit invokes the same orderly self-only close path;
+tray Restart uses the verified restart command.
 
 ## CDP lifecycle
 
 1. Create two anonymous pipes and inherit only Chromium's read/write handles.
-2. Launch the selected official executable with `--remote-debugging-pipe` and
+2. Create the selected official executable suspended with
+   `--remote-debugging-pipe` and
    `--remote-debugging-io-pipes`; no TCP listener is created.
-3. Request browser targets over the null-delimited private pipe.
-4. If Pipe startup fails, clean up that owned process and ask the user whether
-   to retry with a random `127.0.0.1` TCP port.
+3. Duplicate both host-side peer handles into that exact root as
+   non-inheritable handles, then resume it.
+4. Request browser targets over the null-delimited private pipe and wait for an
+   observer-active Runtime session before reporting success.
 5. Score targets using type, URL/title hints, and a read-only DOM capability
    probe.
 6. Attach a transport-neutral target client and enable Runtime/Page domains.
@@ -209,8 +217,9 @@ shell, filesystem, process, credential, or networking capability.
 
 `%APPDATA%\MyCodex` contains `config.json`, `calibration.json`, `avatars/`,
 `logs/`, and `backups/`. Writes use a unique temporary file followed by an
-atomic move. Config schema 2 separates Manager theme/startup options and
-Dark/Light bubble palettes. Schema 0/1 names, avatar paths, layout, language,
+atomic move. Config schema 3 adds `bubbleDisplayMode`; schema 2 separates
+Manager theme/startup options and Dark/Light bubble palettes. Schema 0/1 names,
+avatar paths, layout, language,
 custom Assistant colors, and calibration migrate without reset; legacy colors
 become the Dark palette and the Light palette receives contrast-safe defaults.
 Legacy avatars are validated and copied into the managed directory. Invalid JSON is

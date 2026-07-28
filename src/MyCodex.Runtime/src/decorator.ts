@@ -1,27 +1,18 @@
-import { isInteractiveOrTool } from "./dom-utils.js";
+import { segmentAssistantProse } from "./bubble-segmenter.js";
 import type { MessageRole, RuntimeConfig } from "./types.js";
 
 // Adds MyCodex-owned identity/prose markers while preserving native tool controls.
-const PROSE_SELECTOR = [
-  "p",
-  "blockquote",
-  "ul",
-  "ol",
-  "h1",
-  "h2",
-  "h3",
-  "h4",
-  "[class*=markdownContent]",
-  "[data-content-type=prose]",
-  "[data-testid*=markdown]"
-].join(",");
-
 export class Decorator {
+  private segmentState = new WeakMap<
+    Element,
+    { mode: RuntimeConfig["appearance"]["bubbleDisplayMode"]; elements: Element[] }
+  >();
+
   decorate(turn: Element, role: MessageRole, config: RuntimeConfig): boolean {
     // Repeated scans are expected; update existing decorations without duplicating nodes.
     if (turn.getAttribute("data-mycodex-role") === role) {
       this.updateIdentity(turn, role, config);
-      if (role === "assistant") this.decorateProse(turn, role);
+      if (role === "assistant") this.decorateProse(turn, role, config);
       else this.clearProse(turn);
       return false;
     }
@@ -31,7 +22,7 @@ export class Decorator {
     turn.setAttribute("data-mycodex-role", role);
     turn.classList.add("mc-turn", `mc-${role}`);
     this.updateIdentity(turn, role, config);
-    if (role === "assistant") this.decorateProse(turn, role);
+    if (role === "assistant") this.decorateProse(turn, role, config);
     return true;
   }
 
@@ -65,14 +56,46 @@ export class Decorator {
     nickname.textContent = person.name;
   }
 
-  decorateProse(turn: Element, role: MessageRole): number {
-    this.clearProse(turn);
-    const blocks = findProseBlocks(turn);
-    for (const block of blocks) {
+  decorateProse(
+    turn: Element,
+    role: MessageRole,
+    config: RuntimeConfig
+  ): number {
+    const segments = segmentAssistantProse(
+      turn,
+      config.appearance.bubbleDisplayMode
+    );
+    const active = new Set(segments.map((segment) => segment.element));
+    const previous = this.segmentState.get(turn);
+    if (
+      previous?.mode === config.appearance.bubbleDisplayMode &&
+      sameElements(previous.elements, segments.map((segment) => segment.element)) &&
+      segments.every(
+        ({ element }) =>
+          element.getAttribute("data-mycodex-prose") === role &&
+          element.hasAttribute("data-mycodex-bubble-position")
+      )
+    ) {
+      return segments.length;
+    }
+    for (const element of Array.from(turn.querySelectorAll("[data-mycodex-prose]"))) {
+      if (element.closest("[data-mycodex-turn]") !== turn || active.has(element)) {
+        continue;
+      }
+      clearProseMarker(element);
+    }
+    for (const segment of segments) {
+      const block = segment.element;
       block.setAttribute("data-mycodex-prose", role);
+      block.setAttribute("data-mycodex-bubble-group", String(segment.group));
+      block.setAttribute("data-mycodex-bubble-position", segment.position);
       block.classList.add("mc-prose");
     }
-    return blocks.length;
+    this.segmentState.set(turn, {
+      mode: config.appearance.bubbleDisplayMode,
+      elements: segments.map((segment) => segment.element)
+    });
+    return segments.length;
   }
 
   undecorate(turn: Element): void {
@@ -83,6 +106,7 @@ export class Decorator {
       }
     }
     this.clearProse(turn);
+    this.segmentState.delete(turn);
     turn.removeAttribute("data-mycodex-turn");
     turn.removeAttribute("data-mycodex-role");
     turn.classList.remove("mc-turn", "mc-user", "mc-assistant");
@@ -103,50 +127,34 @@ export class Decorator {
     }
     for (const element of Array.from(root.querySelectorAll("[data-mycodex-prose]"))) {
       element.removeAttribute("data-mycodex-prose");
-      element.classList.remove("mc-prose");
+      clearProseMarker(element);
     }
     for (const turn of Array.from(root.querySelectorAll("[data-mycodex-turn]"))) {
       this.undecorate(turn);
     }
+    this.segmentState = new WeakMap();
   }
 
   private clearProse(turn: Element): void {
     for (const element of Array.from(turn.querySelectorAll("[data-mycodex-prose]"))) {
       if (element.closest("[data-mycodex-turn]") !== turn) continue;
-      element.removeAttribute("data-mycodex-prose");
-      element.classList.remove("mc-prose");
+      clearProseMarker(element);
     }
   }
 }
 
-function findProseBlocks(turn: Element): Element[] {
-  const candidates = Array.from(turn.querySelectorAll(PROSE_SELECTOR));
-  // Bubble prose only. Code, tools, approvals, and buttons keep their native UI.
-  const safe = candidates.filter((element) => {
-    if (element.closest(".mc-nickname,.mc-avatar")) return false;
-    if (isInteractiveOrTool(element)) return false;
-    if (element.querySelector("pre,code,button,input,textarea,select,[role=button]")) {
-      return false;
-    }
-    return Boolean(element.textContent?.trim());
-  });
-
-  const topLevel = safe.filter(
-    (candidate) => !safe.some((other) => other !== candidate && other.contains(candidate))
+function sameElements(left: Element[], right: Element[]): boolean {
+  return (
+    left.length === right.length &&
+    left.every((element, index) => element === right[index])
   );
-  if (topLevel.length > 0) return topLevel;
+}
 
-  return Array.from(turn.children).filter((element) => {
-    if (element.classList.contains("mc-avatar") || element.classList.contains("mc-nickname")) {
-      return false;
-    }
-    if (isInteractiveOrTool(element)) return false;
-    if (element.querySelector("pre,code,button,input,textarea,select,[role=button]")) {
-      return false;
-    }
-    const text = element.textContent?.trim() ?? "";
-    return text.length > 0 && text.length <= 20_000;
-  });
+function clearProseMarker(element: Element): void {
+  element.removeAttribute("data-mycodex-prose");
+  element.removeAttribute("data-mycodex-bubble-group");
+  element.removeAttribute("data-mycodex-bubble-position");
+  element.classList.remove("mc-prose");
 }
 
 function directChildByClass<T extends Element>(

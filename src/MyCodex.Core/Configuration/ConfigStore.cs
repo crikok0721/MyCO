@@ -168,6 +168,10 @@ public sealed class ConfigStore
         {
             throw new ArgumentException("Appearance preset is not supported.");
         }
+        if (!Enum.IsDefined(config.Appearance.BubbleDisplayMode))
+        {
+            throw new ArgumentException("Bubble display mode is not supported.");
+        }
         if ((config.Assistant.Avatar?.Length ?? 0) > 1024 ||
             (config.User.Avatar?.Length ?? 0) > 1024)
         {
@@ -360,6 +364,10 @@ internal static class ConfigMigration
                 JsonOptions);
             changed = true;
         }
+        changed |= EnsureValue(
+            appearance,
+            "bubbleDisplayMode",
+            JsonValue.Create(BubbleDisplayMode.Automatic.ToString()));
 
         changed |= EnsureValue(
             migrated,

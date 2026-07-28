@@ -263,6 +263,12 @@ function validateConfig(config: RuntimeConfig): void {
     throw new TypeError("Nicknames must not be empty.");
   }
   if (
+    config.appearance.bubbleDisplayMode !== "Automatic" &&
+    config.appearance.bubbleDisplayMode !== "Whole"
+  ) {
+    throw new TypeError("Bubble display mode is not supported.");
+  }
+  if (
     config.calibration.userTurn &&
     config.calibration.assistantTurn &&
     config.calibration.userTurn.fingerprint ===

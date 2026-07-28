@@ -256,6 +256,58 @@ public sealed class ApplicationRestartTests
         Assert.Empty(backend.KillRequests);
     }
 
+    [Fact]
+    public async Task QuiescenceRequiresConsecutiveEmptySnapshots()
+    {
+        var lateChild = new ApplicationProcessSnapshot(
+            700,
+            70,
+            ExecutablePath,
+            DateTimeOffset.UtcNow.AddMinutes(-1),
+            HasMainWindow: false);
+        var backend = new FakeProcessBackend();
+        var snapshots = new Queue<IReadOnlyList<ApplicationProcessSnapshot>>(
+            [
+                [],
+                [lateChild],
+                [],
+                [],
+                []
+            ]);
+        backend.OnSnapshot = () =>
+            snapshots.Count > 0 ? snapshots.Dequeue() : [];
+        var service = new ApplicationRestartService(
+            backend,
+            pollInterval: TimeSpan.FromMilliseconds(1));
+
+        await service.WaitForQuiescenceAsync(
+            Candidate(),
+            TimeSpan.FromSeconds(1),
+            requiredStableSamples: 3);
+
+        Assert.Empty(snapshots);
+    }
+
+    [Fact]
+    public async Task QuiescenceTimesOutWhileAnyMatchingProcessRemains()
+    {
+        var backend = new FakeProcessBackend(
+            new ApplicationProcessSnapshot(
+                800,
+                80,
+                ExecutablePath,
+                DateTimeOffset.UtcNow.AddMinutes(-1),
+                HasMainWindow: false));
+        var service = new ApplicationRestartService(
+            backend,
+            pollInterval: TimeSpan.FromMilliseconds(2));
+
+        await Assert.ThrowsAsync<TimeoutException>(() =>
+            service.WaitForQuiescenceAsync(
+                Candidate(),
+                TimeSpan.FromMilliseconds(20)));
+    }
+
     private static ApplicationCandidate Candidate() =>
         new(
             "ChatGPT / Codex",
@@ -279,6 +331,7 @@ public sealed class ApplicationRestartTests
         public Func<ApplicationProcessIdentity, bool>? OnClose { get; set; }
         public Action<ApplicationProcessIdentity>? OnKill { get; set; }
         public Exception? SnapshotException { get; set; }
+        public Func<IReadOnlyList<ApplicationProcessSnapshot>>? OnSnapshot { get; set; }
 
         public IReadOnlyList<ApplicationProcessSnapshot> Snapshot(string processName)
         {
@@ -286,7 +339,7 @@ public sealed class ApplicationRestartTests
             {
                 throw SnapshotException;
             }
-            return Snapshots.ToArray();
+            return OnSnapshot?.Invoke() ?? Snapshots.ToArray();
         }
 
         public bool RequestClose(ApplicationProcessIdentity identity)

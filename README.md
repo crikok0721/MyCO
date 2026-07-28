@@ -1,6 +1,6 @@
 # MyCodex
 
-MyCodex `0.2.0-alpha.5` 是一个本地 Windows 管理器，为官方 Codex /
+MyCodex `0.3.0-beta.1` 是一个本地 Windows 管理器，为官方 Codex /
 ChatGPT Desktop 对话界面增加可自定义的 Assistant/User 头像和昵称，并仅为
 Assistant 正文增加紧凑气泡；User 继续使用官方原生气泡。
 
@@ -29,6 +29,10 @@ prose/Markdown 文本进入气泡，代码块、Diff、Tool Card、处理状态�
 - Assistant 气泡自动跟随当前 Codex Renderer 深浅主题，独立保存双调色板
 - Manager 可强制深色、浅色或实时跟随 Windows
 - 最小化到托盘、托盘恢复与隐藏实例再次启动激活
+- 正式多尺寸应用图标统一用于窗口、任务栏、Alt+Tab、托盘和发行 EXE
+- 关闭窗口时可选择退出 MyCodex、最小化到托盘或取消；退出不会关闭 Codex
+- 一键安全重启会等待旧进程树稳定退出、等待新 Renderer 就绪并自动应用 Runtime
+- Assistant 气泡可选“自动切割气泡”或“整段完整气泡”，设置持久化并即时应用
 - 可选登录 Windows 后后台启动 MyCodex，以及启动 MyCodex 后安全启动 Codex
 - User 原生气泡不改色、不改尺寸、不改 padding、不改位置
 - 基于结构签名和置信度的 User/Assistant Turn 识别
@@ -78,7 +82,8 @@ Alpha 版本暂未签名，Windows 可能显示信誉提示；请先核对发布
 3. 点击 **Start Codex with MyCodex**。
 4. 若官方应用已经运行，同意先正常重启。若窗口关闭后应用仍驻留托盘，MyCodex 会继续
    跟踪关闭前记录的精确 PID、路径和启动时间，并二次确认是否强制结束该进程树；
-   多个根进程或身份不确定时会拒绝操作。
+   多个根进程或身份不确定时会拒绝操作。旧进程树稳定释放后，MyCodex 会自动启动、
+   等待 Renderer 就绪并应用功能，不需要第二次点击。
 5. 打开一个对话；若自动识别置信度不足，完成 Assistant 与 User 两步校准。
 
 默认 Pipe 模式不监听 TCP；显式备用模式仅绑定 `127.0.0.1` 并为每次会话选择新端口。
@@ -88,7 +93,8 @@ Alpha 版本暂未签名，Windows 可能显示信誉提示；请先核对发布
 可在侧边栏的“界面语言”中选择 **English**、**简体中文** 或 **繁體中文**。
 切换立即生效并独立保存，不会覆盖尚未保存的外观编辑；首次启动引导中也提供同一选项。
 
-Appearance 页面支持昵称、头像、头像尺寸、头像水平/垂直位置、Assistant 气泡圆角、
+Appearance 页面支持“自动切割气泡”和“整段完整气泡”、昵称、头像、头像尺寸、
+头像水平/垂直位置、Assistant 气泡圆角、
 横纵 padding、消息间距、最大宽度、昵称显示开关，以及经 4.5:1 对比度校验的
 Dark/Light 两套气泡、文字、昵称和头像颜色。气泡主题只跟随 Codex Renderer，
 不受 Manager 主题设置影响。头像支持 PNG/JPEG/GIF/BMP，
@@ -101,8 +107,9 @@ Dark/Light 两套气泡、文字、昵称和头像颜色。气泡主题只跟随
 设置页可选择 Manager 的深色、浅色或跟随 Windows，并分别开启“登录 Windows
 时启动 MyCodex”和“MyCodex 启动后启动 Codex”。登录启动使用当前用户的
 `HKCU\...\Run`，以 `--background` 进入托盘，不需要管理员权限；移动发行目录后
-会纠正路径漂移。MyCodex 不修改官方快捷方式、协议关联或官方安装目录。最小化只
-收纳到托盘，关闭按钮仍退出并释放会话。详见[设置说明](docs/settings.md)。
+会纠正路径漂移。MyCodex 不修改官方快捷方式、协议关联或官方安装目录。点击关闭
+按钮可选择退出 MyCodex、最小化到托盘或取消；退出只释放 MyCodex 资源，Codex
+继续运行。详见[设置说明](docs/settings.md)。
 
 ## 校准
 
@@ -158,7 +165,7 @@ MyCodex 完全本地运行，不要求 OpenAI 凭据，不上传对话，不读�
 
 ## 已知限制
 
-- 当前为未签名的 Windows x64 Alpha 版本。
+- 当前为未签名的 Windows x64 Beta 版本。
 - 官方应用若未以 CDP 参数启动，需要正常重启一次。
 - DOM 更新可能要求重新校准；大改版可能要求新的 MyCodex 版本。
 - 校准属于本地配置，当前针对可见 Renderer。

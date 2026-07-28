@@ -1,6 +1,6 @@
 # MyCodex
 
-MyCodex `0.2.0-alpha.5` is a local Windows manager that adds custom assistant and
+MyCodex `0.3.0-beta.1` is a local Windows manager that adds custom assistant and
 user avatars and nicknames plus compact assistant prose bubbles to the official
 Codex / ChatGPT Desktop conversation view. Official user bubbles stay native.
 
@@ -26,6 +26,13 @@ application bundle, or conversation data.
   validated dark and light palettes
 - Independent Manager Dark, Light, and live Windows System modes
 - Minimize-to-tray, tray restore, and activation of an already-hidden instance
+- One official multi-resolution icon across windows, taskbar, Alt+Tab, tray,
+  and the release executable
+- Close choices for Exit MyCodex, Minimize to tray, or Cancel; exiting leaves
+  Codex running
+- One-click verified restart with stable shutdown, renderer readiness, and
+  automatic Runtime application
+- Persisted Automatic grouping and Whole response assistant-bubble modes
 - Optional per-user login startup and safe Codex startup after MyCodex starts
 - Left-aligned assistant and right-aligned user layout
 - Prose-only assistant bubbles: code, diffs, tool cards, status, toolbars, and
@@ -84,7 +91,9 @@ release source and checksum before choosing to run it.
 4. If Desktop is already running, allow a normal restart. If its window closes
    but the app remains in the tray, MyCodex keeps tracking the exact pre-close
    PID, path, and start time before offering a separately confirmed tree
-   termination. Multiple roots or uncertain identity fail closed.
+   termination. Multiple roots or uncertain identity fail closed. MyCodex then
+   waits for stable resource release, launches Codex, waits for renderer
+   readiness, and applies the Runtime without a second click.
 5. Open a conversation. If automatic matching is not confident, complete both
    calibration steps.
 
@@ -97,7 +106,8 @@ Choose **English**, **简体中文**, or **繁體中文** from the sidebar langu
 selector. The change is immediate and saved independently, so unsaved appearance
 edits are not affected. The same selector is available during first-run setup.
 
-The Appearance page controls names, avatars, avatar size, symmetric horizontal
+The Appearance page selects Automatic grouping or Whole response and controls
+names, avatars, avatar size, symmetric horizontal
 avatar position, shared vertical avatar position, assistant bubble radius,
 horizontal and vertical padding, message gap, maximum width, nickname
 visibility, and separate Dark/Light bubble, text, nickname, and avatar colors.
@@ -116,8 +126,8 @@ options to start MyCodex at Windows sign-in and to start Codex after MyCodex
 starts. Per-user startup uses `HKCU\...\Run` with `--background`, requires no
 administrator rights, and corrects path drift after moving a release. MyCodex
 does not modify official shortcuts, protocol associations, or installation
-files. Minimize hides to the tray; Close retains its exit semantics and releases
-the session. See [Settings](docs/settings.md).
+files. Close offers Exit MyCodex, Minimize to tray, or Cancel. Exit releases
+only MyCodex resources and leaves Codex running. See [Settings](docs/settings.md).
 
 ## Calibration
 
@@ -187,7 +197,7 @@ Read [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md).
 
 ## Known limitations
 
-- This is an unsigned alpha Windows x64 release.
+- This is an unsigned beta Windows x64 release.
 - An official Desktop restart is required when it was started without CDP.
 - DOM updates can require recalibration; a major update can require a new
   MyCodex release.

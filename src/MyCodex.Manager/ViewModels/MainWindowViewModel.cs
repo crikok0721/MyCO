@@ -36,6 +36,14 @@ public sealed class ManagerThemeOption(
     public string DisplayName { get; } = displayName;
 }
 
+public sealed class BubbleDisplayModeOption(
+    BubbleDisplayMode mode,
+    string displayName)
+{
+    public BubbleDisplayMode Mode { get; } = mode;
+    public string DisplayName { get; } = displayName;
+}
+
 public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions =
@@ -84,6 +92,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string _lightAvatarBackground = "#E5E7EB";
     private string _lightAvatarBorder = "#00000024";
     private ManagerThemeOption? _selectedManagerThemeOption;
+    private BubbleDisplayModeOption? _selectedBubbleDisplayModeOption;
     private bool _launchAtLogin;
     private bool _launchCodexOnMyCodexStart;
     private string _status = LocalizationService.Get("StatusStarting");
@@ -93,6 +102,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         LocalizationService.Get("DiagnosticsNotRefreshed");
     private bool _diagnosticsGenerated;
     private bool _initialized;
+    private int _desktopOperationInProgress;
     private DesktopSessionState _sessionState =
         new(false, false, false, null, 0, "Not connected", null, null);
 
@@ -121,23 +131,38 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             () => GuardAsync(DetectAsync, "ErrorDesktopDetection"),
             CanDetect);
         StartCommand = new AsyncRelayCommand(
-            () => GuardAsync(StartAsync, "ErrorStartDesktop"),
+            () => GuardAsync(
+                () => RunDesktopOperationAsync(() => StartAsync(false)),
+                "ErrorStartDesktop"),
             CanStart);
-        SaveCommand = new AsyncRelayCommand(() => GuardAsync(SaveAndApplyAsync, "ErrorSaveAppearance"));
+        RestartCommand = new AsyncRelayCommand(
+            () => GuardAsync(
+                () => RunDesktopOperationAsync(() => StartAsync(true)),
+                "ErrorRestartDesktop"),
+            CanRestart);
+        SaveCommand = new AsyncRelayCommand(
+            () => GuardAsync(SaveAndApplyAsync, "ErrorSaveAppearance"),
+            CanUseDesktopSession);
         EnableCommand = new AsyncRelayCommand(() => GuardAsync(
             () => _controller.EnableSkinAsync(),
             "ErrorEnableSkin"),
-            () => SessionState.IsConnected && !SessionState.IsSkinRequested);
+            () => CanUseDesktopSession() &&
+                  SessionState.IsConnected &&
+                  !SessionState.IsSkinRequested);
         DisableCommand = new AsyncRelayCommand(() => GuardAsync(
             () => _controller.DisableSkinAsync(),
             "ErrorDisableSkin"),
-            () => SessionState.IsConnected && SessionState.IsSkinRequested);
+            () => CanUseDesktopSession() &&
+                  SessionState.IsConnected &&
+                  SessionState.IsSkinRequested);
         PickAssistantAvatarCommand = new AsyncRelayCommand(() => GuardAsync(
             () => PickAvatarAsync(true),
-            "ErrorImportAssistantAvatar"));
+            "ErrorImportAssistantAvatar"),
+            CanUseDesktopSession);
         PickUserAvatarCommand = new AsyncRelayCommand(() => GuardAsync(
             () => PickAvatarAsync(false),
-            "ErrorImportUserAvatar"));
+            "ErrorImportUserAvatar"),
+            CanUseDesktopSession);
         CalibrateAssistantCommand = new AsyncRelayCommand(() => GuardAsync(
             () => _controller.StartCalibrationAsync("assistant"),
             "ErrorCalibrateAssistant"),
@@ -149,7 +174,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         RefreshDiagnosticsCommand = new AsyncRelayCommand(() => GuardAsync(
             RefreshDiagnosticsAsync,
             "ErrorReadDiagnostics"),
-            () => SessionState.IsConnected);
+            () => CanUseDesktopSession() && SessionState.IsConnected);
         ResetAppearanceCommand = new RelayCommand(ResetAppearance);
         OpenConfigFolderCommand = new RelayCommand(OpenConfigFolder);
         SaveSettingsCommand = new AsyncRelayCommand(() => GuardAsync(
@@ -161,6 +186,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public IReadOnlyList<LanguageOption> SupportedLanguages =>
         LocalizationService.SupportedLanguages;
     public ObservableCollection<ManagerThemeOption> ManagerThemeOptions { get; } = [];
+    public ObservableCollection<BubbleDisplayModeOption> BubbleDisplayModeOptions { get; } =
+        [];
 
     public ICommand SelectAppearanceCommand { get; }
     public ICommand SelectCalibrationCommand { get; }
@@ -169,6 +196,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public ICommand SelectSettingsCommand { get; }
     public ICommand DetectCommand { get; }
     public ICommand StartCommand { get; }
+    public ICommand RestartCommand { get; }
     public ICommand SaveCommand { get; }
     public ICommand EnableCommand { get; }
     public ICommand DisableCommand { get; }
@@ -246,6 +274,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
             _themeService.ApplyMode(value.Mode);
         }
+    }
+
+    public BubbleDisplayModeOption? SelectedBubbleDisplayModeOption
+    {
+        get => _selectedBubbleDisplayModeOption;
+        set => Set(ref _selectedBubbleDisplayModeOption, value);
     }
 
     public bool LaunchAtLogin
@@ -537,6 +571,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var config = await MigrateLegacyAvatarsAsync(load.Config).ConfigureAwait(true);
         _persistedConfig = config;
         RefreshManagerThemeOptions(config.ManagerThemeMode);
+        RefreshBubbleDisplayModeOptions(config.Appearance.BubbleDisplayMode);
         LoadConfig(config);
         var startupRegistrationRecovered =
             await ReconcileStartupRegistrationAsync().ConfigureAwait(true);
@@ -550,7 +585,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _initialized = true;
     }
 
-    public async Task StartAutomaticallyIfConfiguredAsync()
+    public Task StartAutomaticallyIfConfiguredAsync() =>
+        RunDesktopOperationAsync(StartAutomaticallyCoreAsync);
+
+    private async Task StartAutomaticallyCoreAsync()
     {
         try
         {
@@ -671,23 +709,31 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    private async Task StartAsync()
+    private async Task StartAsync(bool explicitRestart)
     {
+        if (_controller.State.IsConnected)
+        {
+            SetStatus("StatusDisconnectingForRestart");
+            await _controller.DisconnectAsync().ConfigureAwait(true);
+        }
         var candidate = SelectedCandidate
                         ?? throw new InvalidOperationException("No Desktop candidate is selected.");
         candidate = await RefreshCandidateAsync(candidate).ConfigureAwait(true);
         // Chromium reads CDP flags only at launch, so an ordinary running instance must restart.
         if (candidate.IsRunning)
         {
-            var restart = System.Windows.MessageBox.Show(
-                LocalizationService.Get("RestartPrompt"),
-                LocalizationService.Get("RestartTitle"),
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-            if (restart != MessageBoxResult.Yes)
+            if (!explicitRestart)
             {
-                SetStatus("StatusRestartCancelled");
-                return;
+                var restart = System.Windows.MessageBox.Show(
+                    LocalizationService.Get("RestartPrompt"),
+                    LocalizationService.Get("RestartTitle"),
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+                if (restart != MessageBoxResult.Yes)
+                {
+                    SetStatus("StatusRestartCancelled");
+                    return;
+                }
             }
             SetStatus("StatusNormalShutdown");
             var closeAttempt = await _restartService.RequestGracefulCloseAsync(
@@ -716,6 +762,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     closeAttempt,
                     TimeSpan.FromSeconds(10)).ConfigureAwait(true);
             }
+            SetStatus("StatusWaitingForShutdown");
+            await _restartService.WaitForQuiescenceAsync(
+                candidate,
+                TimeSpan.FromSeconds(15)).ConfigureAwait(true);
             await DetectAsync().ConfigureAwait(true);
             candidate = SelectedCandidate
                         ?? throw new InvalidOperationException(
@@ -725,26 +775,51 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var adapter = _adapters.Select(candidate)
                       ?? throw new NotSupportedException(
                           "No compatible application adapter is available.");
-        SetStatus("StatusStartingDesktop");
-        try
+        await LaunchWithRetryAsync(candidate, adapter).ConfigureAwait(true);
+    }
+
+    private async Task LaunchWithRetryAsync(
+        ApplicationCandidate candidate,
+        IApplicationAdapter adapter)
+    {
+        const int maximumAttempts = 3;
+        for (var attempt = 1; attempt <= maximumAttempts; attempt++)
         {
-            await StartControllerWithFallbackAsync(
-                candidate,
-                adapter,
-                allowInteractiveFallback: true).ConfigureAwait(true);
-        }
-        catch (FileNotFoundException)
-        {
-            // Store/MSIX upgrades can replace the executable path between detection and launch.
-            SetStatus("StatusRefreshingDesktopEntry");
-            candidate = await RefreshCandidateAsync(candidate).ConfigureAwait(true);
-            adapter = _adapters.Select(candidate)
-                      ?? throw new NotSupportedException(
-                          "No compatible application adapter is available.");
-            await StartControllerWithFallbackAsync(
-                candidate,
-                adapter,
-                allowInteractiveFallback: true).ConfigureAwait(true);
+            SetStatus("StatusStartingDesktopAttemptFormat", attempt, maximumAttempts);
+            try
+            {
+                await StartControllerWithFallbackAsync(
+                    candidate,
+                    adapter,
+                    allowInteractiveFallback: true).ConfigureAwait(true);
+                return;
+            }
+            catch (FileNotFoundException) when (attempt == 1)
+            {
+                SetStatus("StatusRefreshingDesktopEntry");
+                candidate = await RefreshCandidateAsync(candidate).ConfigureAwait(true);
+                adapter = _adapters.Select(candidate)
+                          ?? throw new NotSupportedException(
+                              "No compatible application adapter is available.");
+            }
+            catch (DesktopProcessExitedBeforeReadyException) when (
+                attempt < maximumAttempts)
+            {
+                _logger.Info("desktop_launch_retry", new Dictionary<string, object?>
+                {
+                    ["attempt"] = attempt,
+                    ["stage"] = "renderer_readiness",
+                    ["outcome"] = "early_exit"
+                });
+                SetStatus("StatusLaunchRetryFormat", attempt + 1, maximumAttempts);
+                await _restartService.WaitForQuiescenceAsync(
+                    candidate,
+                    TimeSpan.FromSeconds(10)).ConfigureAwait(true);
+                candidate = await RefreshCandidateAsync(candidate).ConfigureAwait(true);
+                adapter = _adapters.Select(candidate)
+                          ?? throw new NotSupportedException(
+                              "No compatible application adapter is available.");
+            }
         }
     }
 
@@ -1006,6 +1081,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Appearance = new AppearanceConfig
             {
                 Preset = "ReferenceDark",
+                BubbleDisplayMode =
+                    SelectedBubbleDisplayModeOption?.Mode ??
+                    BubbleDisplayMode.Automatic,
                 AvatarSize = (int)Math.Round(AvatarSize),
                 AvatarOffsetX = (int)Math.Round(AvatarOffsetX),
                 AvatarOffsetY = (int)Math.Round(AvatarOffsetY),
@@ -1051,6 +1129,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Raise(nameof(SelectedLanguage));
         SelectedManagerThemeOption = ManagerThemeOptions.First(
             option => option.Mode == config.ManagerThemeMode);
+        SelectedBubbleDisplayModeOption = BubbleDisplayModeOptions.First(
+            option => option.Mode == config.Appearance.BubbleDisplayMode);
         LaunchAtLogin = config.LaunchAtLogin;
         LaunchCodexOnMyCodexStart = config.LaunchCodexOnMyCodexStart;
         AssistantName = config.Assistant.Name;
@@ -1081,16 +1161,29 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     private bool CanDetect() =>
+        Volatile.Read(ref _desktopOperationInProgress) == 0 &&
         SessionState.Phase is not (
             DesktopSessionPhase.Starting or DesktopSessionPhase.Stopping);
 
     private bool CanStart() =>
+        Volatile.Read(ref _desktopOperationInProgress) == 0 &&
         SelectedCandidate is not null &&
         SessionState.Phase is DesktopSessionPhase.Disconnected or
             DesktopSessionPhase.Faulted;
 
+    private bool CanRestart() =>
+        Volatile.Read(ref _desktopOperationInProgress) == 0 &&
+        SelectedCandidate is not null &&
+        SessionState.Phase is not (
+            DesktopSessionPhase.Starting or DesktopSessionPhase.Stopping);
+
     private bool CanCalibrate() =>
-        SessionState.IsConnected && SessionState.IsSkinEnabled;
+        CanUseDesktopSession() &&
+        SessionState.IsConnected &&
+        SessionState.IsSkinEnabled;
+
+    private bool CanUseDesktopSession() =>
+        Volatile.Read(ref _desktopOperationInProgress) == 0;
 
     private void RaiseCommandCanExecute()
     {
@@ -1098,8 +1191,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                  {
                      DetectCommand,
                      StartCommand,
+                     RestartCommand,
+                     SaveCommand,
                      EnableCommand,
                      DisableCommand,
+                     PickAssistantAvatarCommand,
+                     PickUserAvatarCommand,
                      CalibrateAssistantCommand,
                      CalibrateUserCommand,
                      RefreshDiagnosticsCommand
@@ -1124,10 +1221,30 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             var context = LocalizationService.Get(contextKey);
             var errorCode = ErrorCodeFactory.Create("UI", contextKey);
             _logger.Error(errorCode, exception);
-            SetStatusText(
-                LocalizationService.Format("OperationErrorFormat", context, errorCode));
+            var detail = exception switch
+            {
+                DesktopProcessExitedBeforeReadyException =>
+                    LocalizationService.Get("StartExitedBeforeReady"),
+                DesktopRendererNotReadyException =>
+                    LocalizationService.Get("StartRendererNotReady"),
+                TimeoutException =>
+                    LocalizationService.Get("StartShutdownNotReady"),
+                _ => null
+            };
+            SetStatusText(detail is null
+                ? LocalizationService.Format("OperationErrorFormat", context, errorCode)
+                : LocalizationService.Format(
+                    "OperationErrorDetailedFormat",
+                    context,
+                    detail,
+                    errorCode));
             System.Windows.MessageBox.Show(
-                LocalizationService.Format("UnhandledErrorFormat", errorCode),
+                detail is null
+                    ? LocalizationService.Format("UnhandledErrorFormat", errorCode)
+                    : LocalizationService.Format(
+                        "OperationErrorDetailedDialogFormat",
+                        detail,
+                        errorCode),
                 context,
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
@@ -1252,6 +1369,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         RefreshManagerThemeOptions(
             SelectedManagerThemeOption?.Mode ?? ManagerThemeMode.System);
+        RefreshBubbleDisplayModeOptions(
+            SelectedBubbleDisplayModeOption?.Mode ?? BubbleDisplayMode.Automatic);
         Raise(nameof(ConnectionSummary));
         Raise(nameof(CalibrationSummary));
         Raise(nameof(SessionStatus));
@@ -1273,6 +1392,27 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    private async Task RunDesktopOperationAsync(Func<Task> operation)
+    {
+        if (Interlocked.CompareExchange(
+                ref _desktopOperationInProgress,
+                1,
+                0) != 0)
+        {
+            return;
+        }
+        RaiseCommandCanExecute();
+        try
+        {
+            await operation().ConfigureAwait(true);
+        }
+        finally
+        {
+            Volatile.Write(ref _desktopOperationInProgress, 0);
+            RaiseCommandCanExecute();
+        }
+    }
+
     private void RefreshManagerThemeOptions(ManagerThemeMode selectedMode)
     {
         ManagerThemeOptions.Clear();
@@ -1289,6 +1429,21 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 ManagerThemeMode.System,
                 LocalizationService.Get("ManagerThemeSystem")));
         SelectedManagerThemeOption = ManagerThemeOptions.First(
+            option => option.Mode == selectedMode);
+    }
+
+    private void RefreshBubbleDisplayModeOptions(BubbleDisplayMode selectedMode)
+    {
+        BubbleDisplayModeOptions.Clear();
+        BubbleDisplayModeOptions.Add(
+            new BubbleDisplayModeOption(
+                BubbleDisplayMode.Automatic,
+                LocalizationService.Get("BubbleDisplayAutomatic")));
+        BubbleDisplayModeOptions.Add(
+            new BubbleDisplayModeOption(
+                BubbleDisplayMode.Whole,
+                LocalizationService.Get("BubbleDisplayWhole")));
+        SelectedBubbleDisplayModeOption = BubbleDisplayModeOptions.First(
             option => option.Mode == selectedMode);
     }
 
@@ -1330,6 +1485,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             "Appearance applied" => "StatusAppearanceApplied",
             "Disconnected" => "StatusDisconnected",
             "Renderer reconnect pending" => "StatusReconnectPending",
+            "Waiting for Codex renderer" => "StatusWaitingForRenderer",
             "Skin active" => "StatusSkinActive",
             "Runtime ready: waiting for conversation" => "StatusRuntimeWaiting",
             "Compatibility degraded: no decorated turns" =>
@@ -1369,6 +1525,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             "Appearance applied" => "StatusAppearanceApplied",
             "Disconnected" => "StatusDisconnected",
             "Renderer reconnect pending" => "StatusReconnectPending",
+            "Waiting for Codex renderer" => "StatusWaitingForRenderer",
             "Skin active" => "StatusSkinActive",
             "Runtime ready: waiting for conversation" => "StatusRuntimeWaiting",
             "Compatibility degraded: no decorated turns" =>

@@ -22,7 +22,7 @@ Adapters do not contain DOM selectors.
 ## Injection backend
 
 `IInjectionBackend` separates renderer access from the skin engine. Version
-`0.2.0-alpha.5` uses `CdpInjectionBackend` over a transport-neutral connection.
+`0.3.0-beta.1` uses `CdpInjectionBackend` over a transport-neutral connection.
 Private pipe is preferred, while loopback TCP requires explicit consent. If a future official application
 removes the remote-debugging capability, MyCodex reports injection unavailable;
 it does not modify `app.asar` or patch binaries.
@@ -81,7 +81,7 @@ Application version is diagnostic context. It is not the compatibility decision.
 Support is expressed as tested scope, not an unconditional “all Windows users”
 claim.
 
-| Surface | Intended support | alpha.5 evidence |
+| Surface | Intended support | beta.1 evidence |
 | --- | --- | --- |
 | Windows 11 x64 | Current supported Windows 11, standard user | Built/tested on Windows 11 Home x64 build 26200; self-contained `win-x64` output |
 | Windows 10 x64 | Windows 10 22H2, standard user | Targeted by .NET 8/WPF; not exercised on a Windows 10 host in this run |
@@ -90,7 +90,7 @@ claim.
 | Manager theme | Dark, Light, Windows System | Pure service/state tests cover all modes and Windows event changes; current-host visual observations are recorded separately |
 | Contrast/high-contrast themes | Preserve readable controls and safe fallback | Palette contrast validation is automated; Windows contrast themes were not visually exercised in this run |
 | Official Codex state | Installed/not running/running | Launch policy is automated; real-process states are acceptance checks, not inferred from tests |
-| Windows ARM64 | No alpha.5 release artifact | The installed official package and available hardware are x64. Official ARM64 compatibility was not established by a primary support document or verified device, so `win-arm64` is not published or claimed |
+| Windows ARM64 | No beta.1 release artifact | The installed official package and available hardware are x64. Official ARM64 compatibility was not established by a primary support document or verified device, so `win-arm64` is not published or claimed |
 
 The release remains `win-x64`. A future `win-arm64` artifact requires an
 official ARM64 Desktop installation, an ARM64 Windows test device, private-pipe

@@ -52,7 +52,7 @@ internal static class AcceptanceFixture
                 .length ?? 0) === 2,
             assistantBubble:
               document.getElementById("acceptance-markdown")
-                ?.getAttribute("data-mycodex-prose") === "assistant",
+                ?.querySelector('[data-mycodex-prose="assistant"]') != null,
             userBubblePreserved:
               !nativeUserBubble?.hasAttribute("data-mycodex-prose") &&
               nativeUserBubble?.classList.contains("acceptance-native-user-bubble"),

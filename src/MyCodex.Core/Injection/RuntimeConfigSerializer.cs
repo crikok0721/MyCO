@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using MyCodex.Avatars;
 using MyCodex.Configuration;
 
@@ -8,7 +9,10 @@ namespace MyCodex.Injection;
 public static class RuntimeConfigSerializer
 {
     private static readonly JsonSerializerOptions JsonOptions =
-        new(JsonSerializerDefaults.Web);
+        new(JsonSerializerDefaults.Web)
+        {
+            Converters = { new JsonStringEnumConverter() }
+        };
 
     public static async Task<string> SerializeAsync(
         AppConfig config,

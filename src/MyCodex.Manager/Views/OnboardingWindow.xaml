@@ -2,7 +2,8 @@
 <Window x:Class="MyCodex.Manager.Views.OnboardingWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="{DynamicResource OnboardingWindowTitle}"
+         Title="{DynamicResource OnboardingWindowTitle}"
+         Icon="/Assets/mycodex.ico"
         Width="620" Height="480"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
@@ -14,16 +15,10 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <StackPanel>
-            <Border Width="58" Height="58" CornerRadius="17"
-                    Background="{DynamicResource PrimaryBrush}"
-                    HorizontalAlignment="Left">
-                <Grid>
-                    <Path Data="M9,11 H49 V39 H31 L21,48 V39 H9 Z"
-                          Stroke="White" StrokeThickness="2" Fill="Transparent" />
-                    <TextBlock Text="M" FontSize="21" FontWeight="Bold"
-                               HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Grid>
-            </Border>
+            <Image Width="58" Height="58"
+                   Source="/Assets/mycodex.ico"
+                   Stretch="Uniform"
+                   HorizontalAlignment="Left" />
             <TextBlock Text="{DynamicResource OnboardingHeading}"
                        FontSize="28" FontWeight="SemiBold" Margin="0,22,0,0" />
             <TextBlock Text="{DynamicResource OnboardingDescription}"

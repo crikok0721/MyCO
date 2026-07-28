@@ -188,6 +188,28 @@ function runtimeCss(): string {
   color: var(--mc-assistant-text) !important;
   overflow-wrap: anywhere !important;
 }
+[data-mycodex-bubble-position="start"] {
+  width: min(var(--mc-message-max-width), 100%) !important;
+  margin-bottom: 0 !important;
+  padding-bottom: calc(var(--mc-bubble-padding-y) / 2) !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+[data-mycodex-bubble-position="middle"] {
+  width: min(var(--mc-message-max-width), 100%) !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: calc(var(--mc-bubble-padding-y) / 2) !important;
+  padding-bottom: calc(var(--mc-bubble-padding-y) / 2) !important;
+  border-radius: 0 !important;
+}
+[data-mycodex-bubble-position="end"] {
+  width: min(var(--mc-message-max-width), 100%) !important;
+  margin-top: 0 !important;
+  padding-top: calc(var(--mc-bubble-padding-y) / 2) !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
 [data-mycodex-prose] > :first-child { margin-top: 0 !important; }
 [data-mycodex-prose] > :last-child { margin-bottom: 0 !important; }
 @media (max-width: 760px) {

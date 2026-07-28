@@ -1,7 +1,5 @@
 using System.ComponentModel;
-using System.Runtime.InteropServices;
 using Drawing = System.Drawing;
-using Drawing2D = System.Drawing.Drawing2D;
 using Forms = System.Windows.Forms;
 using MyCodex.Manager.Localization;
 using MyCodex.Manager.ViewModels;
@@ -19,6 +17,7 @@ internal sealed class TrayService : IDisposable
     private readonly ThemeService _themeService;
     private readonly Forms.ToolStripMenuItem _openItem;
     private readonly Forms.ToolStripMenuItem _startItem;
+    private readonly Forms.ToolStripMenuItem _restartItem;
     private readonly Forms.ToolStripMenuItem _skinItem;
     private readonly Forms.ToolStripMenuItem _settingsItem;
     private readonly Forms.ToolStripMenuItem _exitItem;
@@ -35,6 +34,7 @@ internal sealed class TrayService : IDisposable
         _menu = new Forms.ContextMenuStrip();
         _openItem = new Forms.ToolStripMenuItem();
         _startItem = new Forms.ToolStripMenuItem();
+        _restartItem = new Forms.ToolStripMenuItem();
         _skinItem = new Forms.ToolStripMenuItem();
         _settingsItem = new Forms.ToolStripMenuItem();
         _exitItem = new Forms.ToolStripMenuItem();
@@ -42,17 +42,20 @@ internal sealed class TrayService : IDisposable
         _openItem.Click += (_, _) => ShowWindow();
         _startItem.Click += (_, _) =>
             _window.Dispatcher.Invoke(() => _viewModel.StartCommand.Execute(null));
+        _restartItem.Click += (_, _) =>
+            _window.Dispatcher.Invoke(() => _viewModel.RestartCommand.Execute(null));
         _skinItem.Click += (_, _) => _window.Dispatcher.Invoke(ToggleSkin);
         _settingsItem.Click += (_, _) => _window.Dispatcher.Invoke(() =>
         {
             _viewModel.CurrentPage = ManagerPage.Settings;
             ShowWindow();
         });
-        _exitItem.Click += (_, _) => _window.Dispatcher.Invoke(_window.Close);
+        _exitItem.Click += (_, _) => _window.Dispatcher.Invoke(_window.RequestExit);
         _menu.Items.AddRange(
         [
             _openItem,
             _startItem,
+            _restartItem,
             new Forms.ToolStripSeparator(),
             _skinItem,
             _settingsItem,
@@ -69,6 +72,8 @@ internal sealed class TrayService : IDisposable
         };
         _icon.DoubleClick += HandleDoubleClick;
         _viewModel.PropertyChanged += HandleViewModelPropertyChanged;
+        _viewModel.StartCommand.CanExecuteChanged += HandleCommandCanExecuteChanged;
+        _viewModel.RestartCommand.CanExecuteChanged += HandleCommandCanExecuteChanged;
         LocalizationService.LanguageChanged += HandleLanguageChanged;
         _themeService.ThemeChanged += HandleThemeChanged;
         RefreshText();
@@ -92,6 +97,8 @@ internal sealed class TrayService : IDisposable
         }
         _disposed = true;
         _viewModel.PropertyChanged -= HandleViewModelPropertyChanged;
+        _viewModel.StartCommand.CanExecuteChanged -= HandleCommandCanExecuteChanged;
+        _viewModel.RestartCommand.CanExecuteChanged -= HandleCommandCanExecuteChanged;
         LocalizationService.LanguageChanged -= HandleLanguageChanged;
         _themeService.ThemeChanged -= HandleThemeChanged;
         _icon.DoubleClick -= HandleDoubleClick;
@@ -128,6 +135,9 @@ internal sealed class TrayService : IDisposable
     private void HandleLanguageChanged(object? sender, EventArgs eventArgs) =>
         _window.Dispatcher.Invoke(RefreshText);
 
+    private void HandleCommandCanExecuteChanged(object? sender, EventArgs eventArgs) =>
+        _window.Dispatcher.Invoke(RefreshText);
+
     private void HandleThemeChanged(object? sender, EventArgs eventArgs) =>
         _window.Dispatcher.Invoke(ApplyTheme);
 
@@ -135,11 +145,13 @@ internal sealed class TrayService : IDisposable
     {
         _openItem.Text = LocalizationService.Get("TrayOpen");
         _startItem.Text = LocalizationService.Get("TrayStartCodex");
+        _restartItem.Text = LocalizationService.Get("TrayRestartCodex");
         _skinItem.Text = LocalizationService.Get(
             _viewModel.IsSkinRequested ? "TrayDisableSkin" : "TrayEnableSkin");
         _settingsItem.Text = LocalizationService.Get("TraySettings");
         _exitItem.Text = LocalizationService.Get("TrayExit");
         _startItem.Enabled = _viewModel.StartCommand.CanExecute(null);
+        _restartItem.Enabled = _viewModel.RestartCommand.CanExecute(null);
         _skinItem.Enabled =
             (_viewModel.IsSkinRequested
                 ? _viewModel.DisableCommand
@@ -159,73 +171,16 @@ internal static class TrayIconFactory
 {
     public static Drawing.Icon Create()
     {
-        using var bitmap = new Drawing.Bitmap(64, 64);
-        using var graphics = Drawing.Graphics.FromImage(bitmap);
-        graphics.SmoothingMode = Drawing2D.SmoothingMode.AntiAlias;
-        graphics.Clear(Drawing.Color.Transparent);
-
-        using var background = new Drawing.SolidBrush(
-            Drawing.ColorTranslator.FromHtml("#121316"));
-        using var accent = new Drawing.SolidBrush(
-            Drawing.ColorTranslator.FromHtml("#806FF2"));
-        using var white = new Drawing.SolidBrush(Drawing.Color.White);
-        using var rounded = RoundedRectangle(2, 2, 60, 60, 15);
-        graphics.FillPath(background, rounded);
-        using var bubble = new Drawing2D.GraphicsPath();
-        bubble.AddPolygon(
-        [
-            new Drawing.PointF(9, 14),
-            new Drawing.PointF(55, 14),
-            new Drawing.PointF(55, 43),
-            new Drawing.PointF(39, 43),
-            new Drawing.PointF(25, 54),
-            new Drawing.PointF(25, 43),
-            new Drawing.PointF(9, 43)
-        ]);
-        graphics.FillPath(accent, bubble);
-        using var font = new Drawing.Font(
-            "Segoe UI",
-            21,
-            Drawing.FontStyle.Bold,
-            Drawing.GraphicsUnit.Pixel);
-        graphics.DrawString("M", font, white, new Drawing.PointF(20, 17));
-
-        var handle = bitmap.GetHicon();
-        try
+        var resource = System.Windows.Application.GetResourceStream(
+                           new Uri(
+                               "pack://application:,,,/Assets/mycodex.ico",
+                               UriKind.Absolute))
+                       ?? throw new InvalidOperationException(
+                           "The embedded MyCodex icon is unavailable.");
+        using (resource.Stream)
+        using (var icon = new Drawing.Icon(resource.Stream))
         {
-            using var icon = Drawing.Icon.FromHandle(handle);
             return (Drawing.Icon)icon.Clone();
         }
-        finally
-        {
-            DestroyIcon(handle);
-        }
     }
-
-    private static Drawing2D.GraphicsPath RoundedRectangle(
-        float x,
-        float y,
-        float width,
-        float height,
-        float radius)
-    {
-        var path = new Drawing2D.GraphicsPath();
-        var diameter = radius * 2;
-        path.AddArc(x, y, diameter, diameter, 180, 90);
-        path.AddArc(x + width - diameter, y, diameter, diameter, 270, 90);
-        path.AddArc(
-            x + width - diameter,
-            y + height - diameter,
-            diameter,
-            diameter,
-            0,
-            90);
-        path.AddArc(x, y + height - diameter, diameter, diameter, 90, 90);
-        path.CloseFigure();
-        return path;
-    }
-
-    [DllImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool DestroyIcon(nint handle);
 }

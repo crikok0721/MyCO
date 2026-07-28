@@ -1,7 +1,22 @@
 # Development and verification notes
 
 Date: 2026-07-28
-MyCodex: `0.2.0-alpha.5`
+MyCodex: `0.3.0-beta.1`
+
+## beta.1 stability verification
+
+- Runtime check: 30/30 tests.
+- Release solution build: zero warnings/errors.
+- xUnit: 91/91 tests.
+- Isolated private-pipe detach gate: exact target survived Manager-side pipe
+  disconnect, then exact PID/path/start-time cleanup succeeded.
+- Isolated launcher run `aac722d7b73040bfa8e863c021c5a3bd` started Runtime
+  `0.3.0-beta.1`, passed all automated structure/ownership checks, restarted
+  once into a new exact target PID, passed light/dark and destroy cleanup, and
+  removed its run/profile directory.
+- Computer Use inspection of Codex B was blocked by the Computer Use rule that
+  forbids automating ChatGPT Desktop/Codex UI. It is recorded as blocked, not
+  visually passed.
 
 ## Environment inspected
 

@@ -204,6 +204,31 @@ test("ensureActive repairs a removed style and a replaced conversation root", ()
   runtime.destroy();
 });
 
+test("streaming text growth does not repeatedly regroup existing blocks", () => {
+  const dom = new JSDOM(
+    `<!doctype html><html><head></head><body><main>
+      <article data-message-author-role="assistant">
+        <p id="first">Short opening.</p>
+        <p id="second">Related detail.</p>
+      </article>
+    </main></body></html>`,
+    { url: "app://-/index.html", pretendToBeVisual: true }
+  );
+  const runtime = new MyCodexRuntime(dom.window.document);
+  runtime.applyConfig(defaultConfig());
+  const first = dom.window.document.querySelector("#first")!;
+  const second = dom.window.document.querySelector("#second")!;
+  assert.equal(first.getAttribute("data-mycodex-bubble-position"), "start");
+  assert.equal(second.getAttribute("data-mycodex-bubble-position"), "end");
+
+  first.textContent = "Complete sentence. ".repeat(100);
+  runtime.refresh();
+
+  assert.equal(first.getAttribute("data-mycodex-bubble-position"), "start");
+  assert.equal(second.getAttribute("data-mycodex-bubble-position"), "end");
+  runtime.destroy();
+});
+
 test("current Codex unit anchors decorate identities and assistant prose only", () => {
   const dom = new JSDOM(
     `<!doctype html><html><head></head><body>

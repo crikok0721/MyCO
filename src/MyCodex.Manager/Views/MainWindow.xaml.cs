@@ -12,6 +12,7 @@ public partial class MainWindow : Window
 {
     private bool _allowClose;
     private bool _shutdownInProgress;
+    private bool _exitRequested;
     private readonly TrayWindowStateMachine _presentation = new();
 
     public MainWindow(MainWindowViewModel viewModel)
@@ -71,6 +72,12 @@ public partial class MainWindow : Window
         Focus();
     }
 
+    public void RequestExit()
+    {
+        _exitRequested = true;
+        Close();
+    }
+
     private void HandleWindowStateChanged(object? sender, EventArgs eventArgs)
     {
         if (WindowState != WindowState.Minimized)
@@ -95,6 +102,21 @@ public partial class MainWindow : Window
         if (_shutdownInProgress)
         {
             return;
+        }
+        if (!_exitRequested)
+        {
+            var choiceWindow = new CloseChoiceWindow { Owner = this };
+            choiceWindow.ShowDialog();
+            if (choiceWindow.Choice == CloseChoice.MinimizeToTray)
+            {
+                PrepareForBackground();
+                return;
+            }
+            if (choiceWindow.Choice != CloseChoice.Exit)
+            {
+                return;
+            }
+            _exitRequested = true;
         }
         _shutdownInProgress = true;
         IsEnabled = false;

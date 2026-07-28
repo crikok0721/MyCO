@@ -22,6 +22,7 @@ if (options.Help)
           --runtime <path>          Run injection, synthetic recovery, diagnostics, and cleanup gates.
           --transport <pipe|tcp>    CDP transport (default: tcp).
           --hold <seconds>          Keep a successful pipe open briefly for OS inspection.
+          --verify-detach           Verify the exact isolated pipe target survives disconnect.
           --keep-running            Leave the probe instance running.
         """);
     return 0;
@@ -62,12 +63,16 @@ if (options.Transport == DesktopDebugTransport.Pipe && options.KeepRunning)
     throw new ArgumentException(
         "Use --hold for pipe inspection; pipe probe processes are always cleaned up.");
 }
+if (options.VerifyDetach && options.Transport != DesktopDebugTransport.Pipe)
+{
+    throw new ArgumentException("--verify-detach requires --transport pipe.");
+}
 var result = options.Transport == DesktopDebugTransport.Pipe
     ? await new PipeCdpProbe().RunAsync(
         executable,
         profile,
         TimeSpan.FromSeconds(options.TimeoutSeconds),
-        terminateLaunchedProcess: true,
+        terminateLaunchedProcess: !options.VerifyDetach,
         holdOpen: TimeSpan.FromSeconds(options.HoldSeconds))
     : await new CdpProbe().RunAsync(
         executable,
@@ -77,6 +82,14 @@ var result = options.Transport == DesktopDebugTransport.Pipe
 
 object? runtimeVerification = null;
 var runtimePassed = true;
+DetachVerification? detachVerification = null;
+if (result.Passed && options.VerifyDetach)
+{
+    detachVerification = await VerifyDetachAsync(
+        result,
+        executable,
+        TimeSpan.FromSeconds(3));
+}
 if (result.Passed && options.Runtime is not null)
 {
     // The extended gate injects the real bundle into a synthetic, text-only conversation DOM.
@@ -160,7 +173,8 @@ if (result.Passed && options.Runtime is not null)
                         assistantRole:
                           assistant?.getAttribute('data-mycodex-role') ?? null,
                         assistantBubble:
-                          assistantProse?.getAttribute('data-mycodex-prose') ?? null,
+                          assistantProse?.querySelector('[data-mycodex-prose=assistant]')
+                            ?.getAttribute('data-mycodex-prose') ?? null,
                         assistantIdentity:
                           assistant?.querySelectorAll(':scope > .mc-avatar,:scope > .mc-nickname')
                             .length ?? 0,
@@ -257,14 +271,106 @@ Console.WriteLine(JsonSerializer.Serialize(new
 {
     Candidates = candidates,
     Probe = result,
-    Runtime = runtimeVerification
+    Runtime = runtimeVerification,
+    Detach = detachVerification
 }, jsonOptions));
-return result.Passed && runtimePassed ? 0 : 1;
+return result.Passed &&
+       runtimePassed &&
+       (detachVerification?.Passed ?? !options.VerifyDetach)
+    ? 0
+    : 1;
+
+static async Task<DetachVerification> VerifyDetachAsync(
+    CdpFeasibilityResult result,
+    string expectedExecutable,
+    TimeSpan observation)
+{
+    if (result.LaunchedProcessId is not int processId)
+    {
+        return new DetachVerification(false, null, null, "No launched PID.");
+    }
+
+    ApplicationProcessIdentity? identity = null;
+    var cleanup = "not-attempted";
+    try
+    {
+        using var process = System.Diagnostics.Process.GetProcessById(processId);
+        var path = process.MainModule?.FileName
+                   ?? throw new InvalidOperationException(
+                       "The isolated target path is unreadable.");
+        identity = new ApplicationProcessIdentity(
+            process.Id,
+            Path.GetFullPath(path),
+            process.StartTime.ToUniversalTime());
+        if (!identity.ExecutablePath.Equals(
+                Path.GetFullPath(expectedExecutable),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return new DetachVerification(
+                false,
+                identity.ProcessId,
+                identity.StartedAt,
+                "The launched path did not match.");
+        }
+
+        await Task.Delay(observation);
+        process.Refresh();
+        var survived = !process.HasExited &&
+                       process.MainModule?.FileName?.Equals(
+                           identity.ExecutablePath,
+                           StringComparison.OrdinalIgnoreCase) == true &&
+                       process.StartTime.ToUniversalTime() == identity.StartedAt;
+        return new DetachVerification(
+            survived,
+            identity.ProcessId,
+            identity.StartedAt,
+            survived
+                ? "Exact isolated target survived private-pipe disconnect."
+                : "Exact isolated target exited or changed identity.");
+    }
+    finally
+    {
+        if (identity is not null)
+        {
+            try
+            {
+                using var current =
+                    System.Diagnostics.Process.GetProcessById(identity.ProcessId);
+                if (!current.HasExited &&
+                    current.MainModule?.FileName?.Equals(
+                        identity.ExecutablePath,
+                        StringComparison.OrdinalIgnoreCase) == true &&
+                    current.StartTime.ToUniversalTime() == identity.StartedAt)
+                {
+                    current.Kill(entireProcessTree: true);
+                    await current.WaitForExitAsync();
+                    cleanup = "exact-owned-tree-terminated";
+                }
+            }
+            catch (ArgumentException)
+            {
+                cleanup = "already-exited";
+            }
+        }
+        if (cleanup == "not-attempted" && identity is not null)
+        {
+            Console.Error.WriteLine(
+                "Detached isolated target cleanup could not be revalidated.");
+        }
+    }
+}
+
+internal sealed record DetachVerification(
+    bool Passed,
+    int? ProcessId,
+    DateTimeOffset? StartedAt,
+    string Outcome);
 
 internal sealed record ProbeOptions(
     bool Discover,
     bool Help,
     bool KeepRunning,
+    bool VerifyDetach,
     string? Executable,
     string? Profile,
     string? Runtime,
@@ -277,6 +383,7 @@ internal sealed record ProbeOptions(
         var discover = false;
         var help = false;
         var keepRunning = false;
+        var verifyDetach = false;
         string? executable = null;
         string? profile = null;
         string? runtime = null;
@@ -297,6 +404,9 @@ internal sealed record ProbeOptions(
                     break;
                 case "--keep-running":
                     keepRunning = true;
+                    break;
+                case "--verify-detach":
+                    verifyDetach = true;
                     break;
                 case "--executable" when index + 1 < arguments.Length:
                     executable = arguments[++index];
@@ -335,6 +445,7 @@ internal sealed record ProbeOptions(
             discover,
             help,
             keepRunning,
+            verifyDetach,
             executable,
             profile,
             runtime,

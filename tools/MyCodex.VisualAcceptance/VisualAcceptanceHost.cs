@@ -251,6 +251,11 @@ internal sealed class VisualAcceptanceHost : IAsyncDisposable
                 Path.GetFullPath(_paths.ProfileDirectory),
                 StringComparison.OrdinalIgnoreCase);
         automated["exactOwnedPid"] = ownedIdentity.ProcessId == _launched.Process.Id;
+        if (automated.Values.Any(passed => !passed))
+        {
+            throw new InvalidOperationException(
+                "One or more automated isolated acceptance checks failed.");
+        }
 
         await UpdateStateAsync(
             _state with

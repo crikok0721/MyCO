@@ -38,6 +38,7 @@ export interface BubblePalette {
 
 export interface AppearanceConfig {
   preset: "ReferenceDark" | "Minimal";
+  bubbleDisplayMode: "Automatic" | "Whole";
   avatarSize: number;
   avatarOffsetX: number;
   avatarOffsetY: number;
@@ -144,6 +145,7 @@ export function defaultConfig(): RuntimeConfig {
     user: { name: "You", avatar: "" },
     appearance: {
       preset: "ReferenceDark",
+      bubbleDisplayMode: "Automatic",
       avatarSize: 40,
       avatarOffsetX: 0,
       avatarOffsetY: 11,

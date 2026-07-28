@@ -26,17 +26,30 @@ Schema 1's existing Assistant colors migrate to the Dark palette. The Light
 palette receives readable defaults; names, avatar paths, layout, language, and
 calibration are preserved.
 
+## Bubble display / 气泡显示
+
+- **Automatic grouping / 自动切割气泡** groups headings with following prose,
+  coalesces related short paragraphs, and keeps lists and quotes atomic.
+- **Whole response / 整段完整气泡** groups all contiguous safe prose.
+- Code, tables, math, diffs, tools, status, and controls are structural
+  barriers and remain native in both modes.
+
+The selection is stored in Config schema 3 and applies immediately after
+**Save & apply**. Existing schema 0/1/2 configurations migrate to Automatic.
+
 ## Tray lifecycle / 托盘生命周期
 
 - Minimize hides the main window and removes its taskbar button.
 - Double-click the tray icon or choose **Open MyCodex** to restore and focus it.
 - Starting `MyCodex.exe` again signals the existing hidden instance; it does not
   create a second Manager.
-- Close retains the product's exit behavior. **Exit** in the tray menu does the
-  same and releases CDP sessions, Runtime observers, theme/system listeners, and
-  the notification icon.
+- Close offers **Exit MyCodex**, **Minimize to notification area**, and
+  **Cancel**. Exit releases CDP sessions, Runtime observers, theme/system
+  listeners, and the notification icon but leaves Codex running.
+- The tray menu exposes Open, Start/apply, verified Restart, and Exit.
 
-最小化表示收纳到托盘；关闭仍表示退出。再次运行程序会激活已有实例。
+最小化表示收纳到托盘；关闭时可选择退出、最小化或取消。退出 MyCodex 不会关闭
+Codex。再次运行程序会激活已有实例。
 
 ## Startup options / 启动选项
 

@@ -147,7 +147,7 @@ public sealed class DesktopSessionController : IAsyncDisposable
                 });
 
                 await WaitForEndpointAsync(cancellationToken).ConfigureAwait(false);
-                await RefreshSessionsAsync(cancellationToken).ConfigureAwait(false);
+                await WaitForRuntimeReadyAsync(cancellationToken).ConfigureAwait(false);
                 _phase = DesktopSessionPhase.Connected;
                 UpdateState(StatusFromEvidence());
                 // New renderer targets can appear after navigation, so keep discovery running.
@@ -176,6 +176,11 @@ public sealed class DesktopSessionController : IAsyncDisposable
                     ? "Disconnected"
                     : "Connection failed");
                 if (exception is OperationCanceledException)
+                {
+                    throw;
+                }
+                if (exception is DesktopProcessExitedBeforeReadyException or
+                    DesktopRendererNotReadyException)
                 {
                     throw;
                 }
@@ -373,6 +378,7 @@ public sealed class DesktopSessionController : IAsyncDisposable
         {
             while (!timeout.IsCancellationRequested)
             {
+                ThrowIfLaunchedProcessExited();
                 try
                 {
                     if (_connection is null)
@@ -393,6 +399,7 @@ public sealed class DesktopSessionController : IAsyncDisposable
                 {
                     // Retry until timeout.
                 }
+                ThrowIfLaunchedProcessExited();
                 await Task.Delay(250, timeout.Token).ConfigureAwait(false);
             }
         }
@@ -403,6 +410,48 @@ public sealed class DesktopSessionController : IAsyncDisposable
 
         cancellationToken.ThrowIfCancellationRequested();
         throw new TimeoutException("Desktop did not expose a CDP renderer in time.");
+    }
+
+    private async Task WaitForRuntimeReadyAsync(CancellationToken cancellationToken)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(30));
+        try
+        {
+            while (!timeout.IsCancellationRequested)
+            {
+                ThrowIfLaunchedProcessExited();
+                UpdateState("Waiting for Codex renderer");
+                await RefreshSessionsAsync(timeout.Token).ConfigureAwait(false);
+                if (_sessionEvidence.Values.Any(evidence => evidence.ObserverActive))
+                {
+                    return;
+                }
+                await Task.Delay(250, timeout.Token).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new DesktopRendererNotReadyException();
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        throw new DesktopRendererNotReadyException();
+    }
+
+    private void ThrowIfLaunchedProcessExited()
+    {
+        if (_launchedProcess is null)
+        {
+            throw new InvalidOperationException(
+                "The launched Desktop process is unavailable.");
+        }
+        if (!_launchedProcess.HasExited)
+        {
+            return;
+        }
+        throw new DesktopProcessExitedBeforeReadyException(
+            _launchedProcess.ExitCode);
     }
 
     private async Task MonitorAsync(CancellationToken cancellationToken)
@@ -801,29 +850,10 @@ public sealed class DesktopSessionController : IAsyncDisposable
                 await _connection.DisposeAsync().ConfigureAwait(false);
                 _connection = null;
             }
-            if (_launchedProcess is not null)
-            {
-                try
-                {
-                    if (!_launchedProcess.HasExited)
-                    {
-                        _launchedProcess.Kill(entireProcessTree: true);
-                        await _launchedProcess.WaitForExitAsync().WaitAsync(
-                            TimeSpan.FromSeconds(10)).ConfigureAwait(false);
-                    }
-                }
-                catch (Exception exception) when (
-                    exception is InvalidOperationException or
-                        System.ComponentModel.Win32Exception or TimeoutException)
-                {
-                    _logger.Error("failed_start_cleanup", exception);
-                }
-                finally
-                {
-                    _launchedProcess.Dispose();
-                    _launchedProcess = null;
-                }
-            }
+            // A failed attachment must not turn into a surprise "close Codex".
+            // The launched root owns pipe keepalive duplicates and remains usable.
+            _launchedProcess?.Dispose();
+            _launchedProcess = null;
             _skinEnabled = false;
         }
         finally
@@ -913,4 +943,23 @@ public sealed class SecureTransportUnavailableException : InvalidOperationExcept
     }
 
     public string ErrorCode { get; }
+}
+
+public sealed class DesktopProcessExitedBeforeReadyException : InvalidOperationException
+{
+    public DesktopProcessExitedBeforeReadyException(int exitCode)
+        : base($"Codex exited before its renderer became ready (exit code {exitCode}).")
+    {
+        ExitCode = exitCode;
+    }
+
+    public int ExitCode { get; }
+}
+
+public sealed class DesktopRendererNotReadyException : TimeoutException
+{
+    public DesktopRendererNotReadyException()
+        : base("Codex started, but no compatible renderer became ready in time.")
+    {
+    }
 }

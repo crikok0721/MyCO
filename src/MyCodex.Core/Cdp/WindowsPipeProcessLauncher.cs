@@ -24,6 +24,9 @@ public static class WindowsPipeProcessLauncher
 {
     private const uint HandleFlagInherit = 0x00000001;
     private const uint ExtendedStartupInfoPresent = 0x00080000;
+    private const uint CreateSuspended = 0x00000004;
+    private const uint DuplicateSameAccess = 0x00000002;
+    private const uint ResumeThreadFailed = 0xFFFFFFFF;
     private static readonly nuint ProcThreadAttributeHandleList = 0x00020002;
 
     public static PipeLaunchedProcess Launch(
@@ -54,6 +57,7 @@ public static class WindowsPipeProcessLauncher
         var attributeList = IntPtr.Zero;
         var handleArray = IntPtr.Zero;
         Process? launchedProcess = null;
+        var processInfo = default(ProcessInformation);
         try
         {
             nuint attributeSize = 0;
@@ -112,20 +116,34 @@ public static class WindowsPipeProcessLauncher
                     IntPtr.Zero,
                     IntPtr.Zero,
                     true,
-                    ExtendedStartupInfoPresent,
+                    ExtendedStartupInfoPresent | CreateSuspended,
                     IntPtr.Zero,
                     workingDirectory,
                     ref startup,
-                    out var processInfo))
+                    out processInfo))
             {
                 ThrowLastError("CreateProcessW");
             }
+            launchedProcess = Process.GetProcessById(checked((int)processInfo.ProcessId));
+
+            // Chromium intentionally closes the browser when its DevTools pipe
+            // observes EOF. Non-inheritable duplicates owned by the exact root
+            // keep both peer endpoints alive after MyCodex disconnects, while
+            // still closing naturally when that Codex root exits.
+            DuplicateIntoProcess(hostRead, processInfo.Process);
+            DuplicateIntoProcess(hostWrite, processInfo.Process);
+            if (ResumeThread(processInfo.Thread) == ResumeThreadFailed)
+            {
+                ThrowLastError("ResumeThread");
+            }
+
             CloseHandle(processInfo.Thread);
+            processInfo.Thread = IntPtr.Zero;
             CloseHandle(processInfo.Process);
+            processInfo.Process = IntPtr.Zero;
             browserRead.Dispose();
             browserWrite.Dispose();
 
-            launchedProcess = Process.GetProcessById(checked((int)processInfo.ProcessId));
             return new PipeLaunchedProcess(
                 launchedProcess,
                 new FileStream(hostRead, FileAccess.Read, 64 * 1024, isAsync: false),
@@ -147,6 +165,14 @@ public static class WindowsPipeProcessLauncher
         }
         finally
         {
+            if (processInfo.Thread != IntPtr.Zero)
+            {
+                CloseHandle(processInfo.Thread);
+            }
+            if (processInfo.Process != IntPtr.Zero)
+            {
+                CloseHandle(processInfo.Process);
+            }
             if (attributeList != IntPtr.Zero)
             {
                 DeleteProcThreadAttributeList(attributeList);
@@ -156,6 +182,23 @@ public static class WindowsPipeProcessLauncher
             {
                 Marshal.FreeHGlobal(handleArray);
             }
+        }
+    }
+
+    private static void DuplicateIntoProcess(
+        SafeFileHandle sourceHandle,
+        IntPtr targetProcess)
+    {
+        if (!DuplicateHandle(
+                GetCurrentProcess(),
+                sourceHandle.DangerousGetHandle(),
+                targetProcess,
+                out _,
+                0,
+                false,
+                DuplicateSameAccess))
+        {
+            ThrowLastError("DuplicateHandle");
         }
     }
 
@@ -344,4 +387,21 @@ public static class WindowsPipeProcessLauncher
     [DllImport("kernel32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool CloseHandle(IntPtr handle);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentProcess();
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DuplicateHandle(
+        IntPtr sourceProcess,
+        IntPtr sourceHandle,
+        IntPtr targetProcess,
+        out IntPtr targetHandle,
+        uint desiredAccess,
+        [MarshalAs(UnmanagedType.Bool)] bool inheritHandle,
+        uint options);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern uint ResumeThread(IntPtr thread);
 }

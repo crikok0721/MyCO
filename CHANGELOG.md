@@ -2,6 +2,34 @@
 
 All notable project changes are documented here.
 
+## [0.3.0-beta.1] - 2026-07-28
+
+### Added
+
+- Adopt the supplied artwork as a square, nine-frame Windows icon embedded in
+  the Manager executable and reused by every WPF window and notification icon.
+- Add explicit Exit MyCodex / Minimize to tray / Cancel close choices plus
+  Start/apply, verified Restart, and Exit commands in the tray menu.
+- Add persisted Automatic grouping and Whole response bubble modes with
+  Config schema 3 migration.
+
+### Fixed
+
+- Keep Codex alive after MyCodex exits by creating the exact pipe target
+  suspended and duplicating non-inheritable peer pipe handles into that target
+  before resume.
+- Make restart wait for consecutive empty process snapshots, detect early
+  process exit and renderer readiness, apply the Runtime before success, and
+  retry only bounded early-exit races.
+- Replace destructive prose-marker refreshes with incremental, streaming-stable
+  semantic grouping. Headings stay with following prose; lists and quotes stay
+  atomic; code, tables, math, tools, status, and controls remain native.
+
+### Validation
+
+- Add detach-survival, strict isolated acceptance, icon, Config schema 3,
+  quiescence, segmentation, and streaming regressions.
+
 ## [0.2.0-alpha.5] - 2026-07-28
 
 ### Added

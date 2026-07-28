@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using MyCodex.Avatars;
 using MyCodex.Configuration;
 using MyCodex.Injection;
@@ -48,7 +49,10 @@ public sealed class ConfigurationTests
         var result = await new ConfigStore(paths).LoadAsync();
 
         Assert.True(result.WasMigrated);
-        Assert.Equal(2, result.Config.SchemaVersion);
+        Assert.Equal(3, result.Config.SchemaVersion);
+        Assert.Equal(
+            BubbleDisplayMode.Automatic,
+            result.Config.Appearance.BubbleDisplayMode);
         Assert.Equal("Luna", result.Config.Assistant.Name);
         Assert.Equal("Avery", result.Config.User.Name);
         Assert.Equal("luna.png", result.Config.Assistant.Avatar);
@@ -80,6 +84,57 @@ public sealed class ConfigurationTests
         Assert.Equal(7, loaded.Config.Appearance.AvatarOffsetX);
         Assert.Equal(13, loaded.Config.Appearance.AvatarOffsetY);
         Assert.Equal(1, loaded.Config.Calibration.SchemaVersion);
+    }
+
+    [Fact]
+    public async Task SchemaTwoAddsAutomaticBubbleModeWithoutLosingSettings()
+    {
+        using var directory = new TempDirectory();
+        var paths = new ConfigPaths(directory.Path);
+        var store = new ConfigStore(paths);
+        await store.SaveAsync(
+            AppConfig.Default with
+            {
+                Appearance = AppConfig.Default.Appearance with
+                {
+                    AvatarSize = 55
+                }
+            });
+        var root = JsonNode.Parse(await File.ReadAllTextAsync(paths.ConfigFile))!
+            .AsObject();
+        root["schemaVersion"] = 2;
+        root["appearance"]!.AsObject().Remove("bubbleDisplayMode");
+        await File.WriteAllTextAsync(paths.ConfigFile, root.ToJsonString());
+
+        var loaded = await store.LoadAsync();
+
+        Assert.True(loaded.WasMigrated);
+        Assert.Equal(55, loaded.Config.Appearance.AvatarSize);
+        Assert.Equal(
+            BubbleDisplayMode.Automatic,
+            loaded.Config.Appearance.BubbleDisplayMode);
+        Assert.Equal(3, loaded.Config.SchemaVersion);
+    }
+
+    [Fact]
+    public async Task WholeBubbleModePersistsAcrossManagerRestart()
+    {
+        using var directory = new TempDirectory();
+        var store = new ConfigStore(new ConfigPaths(directory.Path));
+        await store.SaveAsync(
+            AppConfig.Default with
+            {
+                Appearance = AppConfig.Default.Appearance with
+                {
+                    BubbleDisplayMode = BubbleDisplayMode.Whole
+                }
+            });
+
+        var loaded = await store.LoadAsync();
+
+        Assert.Equal(
+            BubbleDisplayMode.Whole,
+            loaded.Config.Appearance.BubbleDisplayMode);
     }
 
     [Fact]
@@ -179,7 +234,7 @@ public sealed class ConfigurationTests
         var loaded = await new ConfigStore(paths).LoadAsync();
 
         Assert.True(loaded.WasMigrated);
-        Assert.Equal(2, loaded.Config.SchemaVersion);
+        Assert.Equal(3, loaded.Config.SchemaVersion);
         Assert.Equal("露娜", loaded.Config.Assistant.Name);
         Assert.Equal(@"C:\头像\assistant.png", loaded.Config.Assistant.Avatar);
         Assert.Equal(52, loaded.Config.Appearance.AvatarSize);
@@ -275,7 +330,7 @@ public sealed class ConfigurationTests
     }
 
     [Fact]
-    public async Task RuntimeSerializationCarriesBothPalettesAtSchemaTwo()
+    public async Task RuntimeSerializationCarriesBothPalettesAndBubbleMode()
     {
         using var directory = new TempDirectory();
         var paths = new ConfigPaths(directory.Path);
@@ -293,7 +348,8 @@ public sealed class ConfigurationTests
                 {
                     AssistantBubble = "#FAFBFC",
                     AssistantText = "#202124"
-                }
+                },
+                BubbleDisplayMode = BubbleDisplayMode.Whole
             }
         };
 
@@ -304,7 +360,12 @@ public sealed class ConfigurationTests
         using var document = JsonDocument.Parse(json);
         var root = document.RootElement;
 
-        Assert.Equal(2, root.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(3, root.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(
+            "Whole",
+            root.GetProperty("appearance")
+                .GetProperty("bubbleDisplayMode")
+                .GetString());
         Assert.Equal(
             "#101214",
             root.GetProperty("appearance")
@@ -381,7 +442,7 @@ public sealed class ConfigurationTests
         Assert.True(File.Exists(result.CorruptBackupPath));
         Assert.Equal("Codex", result.Config.Assistant.Name);
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(paths.ConfigFile));
-        Assert.Equal(2, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(3, document.RootElement.GetProperty("schemaVersion").GetInt32());
     }
 
     [Fact]

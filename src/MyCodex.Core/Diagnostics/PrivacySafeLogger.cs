@@ -28,7 +28,10 @@ public sealed class PrivacySafeLogger : IPrivacySafeLogger
             "candidateCount",
             "eligibleCount",
             "conversationTargets",
-            "visibleTargets"
+            "visibleTargets",
+            "attempt",
+            "stage",
+            "outcome"
         };
 
     private readonly string _logsDirectory;

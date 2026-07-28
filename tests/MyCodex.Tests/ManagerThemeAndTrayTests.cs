@@ -108,6 +108,55 @@ public sealed partial class ManagerThemeAndTrayTests
         Assert.Contains("SelectionBrush", dark);
     }
 
+    [Fact]
+    public void ReleaseIconIsMultiResolutionAndUsedByEveryManagerEntryPoint()
+    {
+        var root = FindRepositoryRoot();
+        var iconPath = Path.Combine(root, "assets", "mycodex.ico");
+        var bytes = File.ReadAllBytes(iconPath);
+        Assert.Equal(0, BitConverter.ToUInt16(bytes, 0));
+        Assert.Equal(1, BitConverter.ToUInt16(bytes, 2));
+        var count = BitConverter.ToUInt16(bytes, 4);
+        var sizes = Enumerable.Range(0, count)
+            .Select(index =>
+            {
+                var value = bytes[6 + 16 * index];
+                return value == 0 ? 256 : value;
+            })
+            .ToArray();
+        Assert.Equal([16, 20, 24, 32, 40, 48, 64, 128, 256], sizes);
+
+        var project = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCodex.Manager",
+            "MyCodex.Manager.csproj"));
+        Assert.Contains("<ApplicationIcon>..\\..\\assets\\mycodex.ico</ApplicationIcon>", project);
+        foreach (var view in new[]
+                 {
+                     "MainWindow.xaml",
+                     "OnboardingWindow.xaml",
+                     "CloseChoiceWindow.xaml"
+                 })
+        {
+            Assert.Contains(
+                "Icon=\"/Assets/mycodex.ico\"",
+                File.ReadAllText(Path.Combine(
+                    root,
+                    "src",
+                    "MyCodex.Manager",
+                    "Views",
+                    view)));
+        }
+        var tray = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCodex.Manager",
+            "Services",
+            "TrayService.cs"));
+        Assert.Contains("pack://application:,,,/Assets/mycodex.ico", tray);
+    }
+
     private static HashSet<string> ReadKeys(string path) =>
         KeyRegex()
             .Matches(File.ReadAllText(path))

@@ -1,5 +1,15 @@
 # Codex project handoff
 
+> **beta.1 stability update (2026-07-28):** the working tree now contains the
+> uncommitted `0.3.0-beta.1` icon, one-click restart/readiness, independent
+> Manager/Codex lifecycle, close-choice/tray, and bubble-display-mode work.
+> Runtime check is 30/30, Release build has zero warnings/errors, and xUnit is
+> 91/91. Isolated private-pipe detach survival passed. Visual-acceptance run
+> `aac722d7b73040bfa8e863c021c5a3bd` passed all automated checks, one exact
+> restart, dark/light/destroy gates, and cleanup. Computer Use inspection of
+> Codex B is explicitly blocked by the tool policy and is not a visual pass.
+> Do not restart the controlling Codex A to close this evidence gap.
+
 > **alpha.5 continuation update (2026-07-28):** the current local HEAD is
 > `a4f072895cf5bf21fbaa2c81eecc2351948b9eee` on the same branch. The dirty
 > working tree now also contains the uncommitted `0.2.0-alpha.5` Renderer

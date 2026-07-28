@@ -203,6 +203,43 @@ public sealed class ApplicationRestartService
             "The selected Desktop process tree did not exit before restart.");
     }
 
+    public async Task WaitForQuiescenceAsync(
+        ApplicationCandidate candidate,
+        TimeSpan timeout,
+        int requiredStableSamples = 3,
+        CancellationToken cancellationToken = default)
+    {
+        if (requiredStableSamples < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(requiredStableSamples));
+        }
+
+        var deadline = DateTimeOffset.UtcNow + timeout;
+        var stableSamples = 0;
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var matching = MatchingProcesses(candidate);
+            if (matching.Count == 0)
+            {
+                stableSamples++;
+                if (stableSamples >= requiredStableSamples)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                // A late child or singleton hand-off resets the stability window.
+                stableSamples = 0;
+            }
+            await Task.Delay(_pollInterval, cancellationToken).ConfigureAwait(false);
+        }
+
+        throw new TimeoutException(
+            "The selected Desktop installation did not reach a stable stopped state.");
+    }
+
     internal static IReadOnlyList<ApplicationProcessSnapshot> SelectRoots(
         IReadOnlyList<ApplicationProcessSnapshot> matching)
     {

@@ -16,6 +16,12 @@ public enum ManagerThemeMode
     Light
 }
 
+public enum BubbleDisplayMode
+{
+    Automatic,
+    Whole
+}
+
 public sealed record BubblePalette
 {
     public string AssistantBubble { get; init; } = "#222222";
@@ -37,6 +43,8 @@ public sealed record BubblePalette
 public sealed record AppearanceConfig
 {
     public string Preset { get; init; } = "ReferenceDark";
+    public BubbleDisplayMode BubbleDisplayMode { get; init; } =
+        BubbleDisplayMode.Automatic;
     public int AvatarSize { get; init; } = 40;
     public int AvatarOffsetX { get; init; }
     public int AvatarOffsetY { get; init; } = 11;
