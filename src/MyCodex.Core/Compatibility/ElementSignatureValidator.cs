@@ -95,6 +95,9 @@ public static partial class ElementSignatureValidator
 
         var normalized = signature with
         {
+            SampleCount = Math.Clamp(signature.SampleCount, 0, 16),
+            ContextFingerprint = NormalizeContextFingerprint(
+                signature.ContextFingerprint),
             TagName = tag,
             Role = role,
             StableAttributes = attributes,
@@ -133,6 +136,13 @@ public static partial class ElementSignatureValidator
         return userToAssistant < 0.86 || assistantToUser < 0.86;
     }
 
+    public static bool IsValidatedMultiSample(ElementSignature? signature)
+    {
+        return signature is not null &&
+               signature.SampleCount >= 3 &&
+               !string.IsNullOrWhiteSpace(signature.ContextFingerprint);
+    }
+
     private static string NormalizeTag(string value)
     {
         var tag = value.Trim().ToLowerInvariant();
@@ -164,10 +174,29 @@ public static partial class ElementSignatureValidator
                TokenPattern().IsMatch(value);
     }
 
+    private static string NormalizeContextFingerprint(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+        var normalized = value.Trim();
+        if (normalized.Length > 512 || !ContextFingerprintPattern().IsMatch(normalized))
+        {
+            throw new ArgumentException(
+                "Calibration contains an invalid context fingerprint.");
+        }
+        return normalized;
+    }
+
     private static string BuildFingerprint(ElementSignature signature)
     {
         var builder = new StringBuilder();
         builder.Append(signature.TagName).Append(';').Append(signature.Role).Append(';');
+        builder.Append(signature.SampleCount)
+            .Append(';')
+            .Append(signature.ContextFingerprint)
+            .Append(';');
         foreach (var pair in signature.StableAttributes.OrderBy(pair => pair.Key))
         {
             builder.Append(pair.Key).Append('=').Append(pair.Value).Append('|');
@@ -189,4 +218,7 @@ public static partial class ElementSignatureValidator
 
     [GeneratedRegex("^[A-Za-z0-9_.:-]+$", RegexOptions.CultureInvariant)]
     private static partial Regex TokenPattern();
+
+    [GeneratedRegex("^[A-Za-z0-9_.:;=|/-]+$", RegexOptions.CultureInvariant)]
+    private static partial Regex ContextFingerprintPattern();
 }

@@ -62,6 +62,9 @@ public sealed class DesktopSessionController : IAsyncDisposable
     private AppConfig _config = AppConfig.Default;
     private bool _skinEnabled;
     private int _eventRefreshQueued;
+    private int _calibrationPending;
+    private string? _calibrationRole;
+    private DiscoveryLogSnapshot? _lastDiscoveryLog;
 
     public DesktopSessionController(
         string runtimeScript,
@@ -113,6 +116,7 @@ public sealed class DesktopSessionController : IAsyncDisposable
 
             _phase = DesktopSessionPhase.Starting;
             _lastErrorCode = null;
+            _lastDiscoveryLog = null;
             _applicationVersion = candidate.Version;
             _config = config;
             _skinEnabled = true;
@@ -216,6 +220,8 @@ public sealed class DesktopSessionController : IAsyncDisposable
         try
         {
             _skinEnabled = false;
+            Interlocked.Exchange(ref _calibrationPending, 0);
+            Volatile.Write(ref _calibrationRole, null);
             RuntimeTargetSession[] sessions;
             await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
@@ -271,26 +277,55 @@ public sealed class DesktopSessionController : IAsyncDisposable
         string role,
         CancellationToken cancellationToken = default)
     {
-        RuntimeTargetSession? session;
+        RuntimeTargetSession[] sessions;
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            session = _sessions.Values
+            sessions = _sessions.Values
+                .Where(candidate => EvidenceScore(candidate.Target.Id) > 0)
                 .OrderByDescending(candidate =>
                     EvidenceScore(candidate.Target.Id))
-                .FirstOrDefault();
+                .ToArray();
         }
         finally
         {
             _gate.Release();
         }
-        if (session is null ||
-            EvidenceScore(session.Target.Id) <= 0)
+        if (sessions.Length == 0)
         {
             throw new InvalidOperationException(
                 "No compatible conversation renderer is attached.");
         }
-        await session.StartCalibrationAsync(role, cancellationToken).ConfigureAwait(false);
+
+        Interlocked.Exchange(ref _calibrationPending, 1);
+        Volatile.Write(ref _calibrationRole, role);
+        var started = 0;
+        foreach (var session in sessions)
+        {
+            try
+            {
+                await session.StartCalibrationAsync(role, cancellationToken)
+                    .ConfigureAwait(false);
+                started++;
+            }
+            catch (OperationCanceledException)
+            {
+                Interlocked.Exchange(ref _calibrationPending, 0);
+                Volatile.Write(ref _calibrationRole, null);
+                throw;
+            }
+            catch (Exception exception)
+            {
+                _logger.Error("calibration_target_start_failed", exception);
+            }
+        }
+        if (started == 0)
+        {
+            Interlocked.Exchange(ref _calibrationPending, 0);
+            Volatile.Write(ref _calibrationRole, null);
+            throw new InvalidOperationException(
+                "Calibration could not be activated in a conversation renderer.");
+        }
         UpdateState($"Select a {role} turn in Codex");
     }
 
@@ -351,6 +386,9 @@ public sealed class DesktopSessionController : IAsyncDisposable
             _launchedProcess?.Dispose();
             _launchedProcess = null;
             _phase = DesktopSessionPhase.Disconnected;
+            Interlocked.Exchange(ref _calibrationPending, 0);
+            Volatile.Write(ref _calibrationRole, null);
+            _lastDiscoveryLog = null;
             _applicationVersion = null;
             _runtimeVersion = null;
             _lastErrorCode = null;
@@ -503,15 +541,22 @@ public sealed class DesktopSessionController : IAsyncDisposable
                          fallbackTargetId,
                          StringComparison.Ordinal)))
                 .ToDictionary(candidate => candidate.Target.Id!, candidate => candidate);
-            _logger.Info("target_discovery_completed", new Dictionary<string, object?>
+            var discoveryLog = new DiscoveryLogSnapshot(
+                targets.Count,
+                eligible.Count,
+                targets.Count(candidate => candidate.HasConversationEvidence),
+                targets.Count(candidate => candidate.VisibilityState == "visible"));
+            if (discoveryLog != _lastDiscoveryLog)
             {
-                ["candidateCount"] = targets.Count,
-                ["eligibleCount"] = eligible.Count,
-                ["conversationTargets"] =
-                    targets.Count(candidate => candidate.HasConversationEvidence),
-                ["visibleTargets"] =
-                    targets.Count(candidate => candidate.VisibilityState == "visible")
-            });
+                _lastDiscoveryLog = discoveryLog;
+                _logger.Info("target_discovery_completed", new Dictionary<string, object?>
+                {
+                    ["candidateCount"] = discoveryLog.CandidateCount,
+                    ["eligibleCount"] = discoveryLog.EligibleCount,
+                    ["conversationTargets"] = discoveryLog.ConversationTargets,
+                    ["visibleTargets"] = discoveryLog.VisibleTargets
+                });
+            }
 
             var removed = new List<RuntimeTargetSession>();
             await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -680,7 +725,63 @@ public sealed class DesktopSessionController : IAsyncDisposable
 
     private void HandleRuntimeEvent(object? sender, RuntimeHostEvent hostEvent)
     {
+        if (hostEvent.Type == "calibrationResult")
+        {
+            var role = hostEvent.Payload.TryGetProperty("role", out var property)
+                ? property.GetString()
+                : null;
+            if (!string.Equals(
+                    role,
+                    Volatile.Read(ref _calibrationRole),
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
+            if (Interlocked.Exchange(ref _calibrationPending, 0) != 1)
+            {
+                return;
+            }
+            Volatile.Write(ref _calibrationRole, null);
+            _ = StopCalibrationInOtherTargetsAsync(
+                sender as RuntimeTargetSession);
+        }
         RuntimeEventReceived?.Invoke(this, hostEvent);
+    }
+
+    private async Task StopCalibrationInOtherTargetsAsync(
+        RuntimeTargetSession? selected)
+    {
+        try
+        {
+            RuntimeTargetSession[] sessions;
+            await _gate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                sessions = _sessions.Values
+                    .Where(session => !ReferenceEquals(session, selected))
+                    .ToArray();
+            }
+            finally
+            {
+                _gate.Release();
+            }
+            foreach (var session in sessions)
+            {
+                try
+                {
+                    await session.StopCalibrationAsync(CancellationToken.None)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    _logger.Error("calibration_target_stop_failed", exception);
+                }
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+            // Controller shutdown already removed every calibration listener.
+        }
     }
 
     private void HandleTargetsChanged(object? sender, EventArgs eventArgs)
@@ -726,18 +827,24 @@ public sealed class DesktopSessionController : IAsyncDisposable
             var diagnostics = await session.GetDiagnosticsAsync(cancellationToken)
                 .ConfigureAwait(false);
             var evidence = RuntimeSessionEvidence.From(diagnostics);
+            var changed =
+                !_sessionEvidence.TryGetValue(session.Target.Id, out var previous) ||
+                previous != evidence;
             _sessionEvidence[session.Target.Id] = evidence;
-            _logger.Info("runtime_evidence", new Dictionary<string, object?>
+            if (changed)
             {
-                ["compatibility"] = evidence.Compatibility,
-                ["matchCount"] =
-                    evidence.DecoratedUserTurns + evidence.DecoratedAssistantTurns,
-                ["state"] = evidence.HasAppliedDecorations
-                    ? "applied"
-                    : evidence.ScannedTurns == 0
-                        ? "waiting"
-                        : "unmatched"
-            });
+                _logger.Info("runtime_evidence", new Dictionary<string, object?>
+                {
+                    ["compatibility"] = evidence.Compatibility,
+                    ["matchCount"] =
+                        evidence.DecoratedUserTurns + evidence.DecoratedAssistantTurns,
+                    ["state"] = evidence.HasAppliedDecorations
+                        ? "applied"
+                        : evidence.ScannedTurns == 0
+                            ? "waiting"
+                            : "unmatched"
+                });
+            }
         }
         catch (Exception exception) when (
             exception is not OperationCanceledException)
@@ -919,6 +1026,12 @@ public sealed class DesktopSessionController : IAsyncDisposable
                 : string.Empty;
         }
     }
+
+    private sealed record DiscoveryLogSnapshot(
+        int CandidateCount,
+        int EligibleCount,
+        int ConversationTargets,
+        int VisibleTargets);
 }
 
 public sealed class ApplicationAlreadyRunningException : InvalidOperationException

@@ -34,3 +34,26 @@ test("structural fingerprints and signatures never contain chat text", () => {
   assert.equal(signature.capabilities.hasButtons, true);
   assert.equal(signature.capabilities.hasMarkdown, true);
 });
+
+test("unit signatures retain text-free role evidence from their descendants", () => {
+  const dom = new JSDOM(
+    `<main>
+       <div id="user" data-content-search-unit-key="private-user-id">
+         <div data-user-message-bubble><p>User text</p></div>
+       </div>
+       <div id="assistant" data-content-search-unit-key="private-assistant-id">
+         <div class="markdownContent-generated"><p>Assistant text</p></div>
+       </div>
+     </main>`
+  );
+  const user = createSignature(dom.window.document.querySelector("#user")!);
+  const assistant = createSignature(
+    dom.window.document.querySelector("#assistant")!
+  );
+
+  assert.equal(user.stableAttributes["data-user-message-bubble"], "present");
+  assert.equal(assistant.stableAttributes["data-content-type"], "prose");
+  assert.notEqual(user.fingerprint, assistant.fingerprint);
+  assert.equal(user.fingerprint.includes("private-user-id"), false);
+  assert.equal(assistant.fingerprint.includes("private-assistant-id"), false);
+});

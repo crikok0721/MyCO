@@ -1,4 +1,5 @@
 import { findBySignature } from "./matcher.js";
+import { isInNonConversationRegion } from "./dom-utils.js";
 import type { CalibrationConfig } from "./types.js";
 
 // Finds a bounded, non-overlapping set of likely conversation turn elements.
@@ -26,7 +27,7 @@ const SEMANTIC_TURN_SELECTOR = [
   "div.group.flex.min-w-0.flex-col"
 ].join(",");
 
-export function findConversationRoot(document: Document): ParentNode {
+export function findConversationRoot(document: Document): Element {
   // Codex can render multiple <main> elements and background panes. Select the
   // connected root with the strongest text-free conversation evidence.
   const roots = Array.from(
@@ -41,7 +42,9 @@ export function findConversationRoot(document: Document): ParentNode {
     .map((element, index) => ({
       element,
       index,
-      score: scoreConversationRoot(element)
+      score: isConversationRootReady(element)
+        ? scoreConversationRoot(element)
+        : Number.NEGATIVE_INFINITY
     }))
     .sort(
       (left, right) =>
@@ -50,13 +53,17 @@ export function findConversationRoot(document: Document): ParentNode {
           Number(left.element.tagName === "MAIN") ||
         left.index - right.index
     );
-  return ranked[0]?.element ?? document.documentElement;
+  const selected = ranked.find((candidate) => Number.isFinite(candidate.score));
+  return selected?.element ?? document.documentElement;
 }
 
 export function scanTurnCandidates(
   root: ParentNode,
   calibration: CalibrationConfig
 ): Element[] {
+  if (!isElementNode(root) || !isConversationRootReady(root)) {
+    return [];
+  }
   // Modern stable Codex anchors win; legacy semantic/class adapters remain as
   // compatibility fallbacks for older desktop builds.
   const modernCandidates = modernTurnCandidates(root);
@@ -93,9 +100,78 @@ export function scanTurnCandidates(
 
   return Array.from(candidates)
     .filter((element) => !element.closest("[data-mycodex-inspector]"))
+    .filter((element) => isLegalTurnCandidate(root, element))
     .filter((element) => !hasCandidateAncestor(element, candidates))
     // Bound the scan so malformed pages cannot make each refresh unreasonably expensive.
     .slice(0, 800);
+}
+
+function isElementNode(node: ParentNode): node is Element {
+  return (node as Node).nodeType === 1;
+}
+
+export function isConversationRootReady(element: Element): boolean {
+  return boundedCount(
+    element,
+    [
+      "[data-content-search-turn-key]",
+      "[data-content-search-unit-key]",
+      "[data-user-message-bubble]",
+      "[data-message-author-role]",
+      "[data-role=user]",
+      "[data-role=assistant]",
+      "[data-author=user]",
+      "[data-author=assistant]",
+      "[data-testid*=user-message]",
+      "[data-testid*=assistant-message]"
+    ].join(","),
+    2
+  ) >= 1;
+}
+
+export function isLegalTurnCandidate(
+  root: ParentNode,
+  element: Element
+): boolean {
+  if (!element.isConnected || isInNonConversationRegion(element)) return false;
+  if (!isWithinRoot(root, element)) return false;
+  if (
+    element.matches(
+      "html,body,main,[role=main],[role=navigation],[role=toolbar]," +
+        "[role=status],[role=dialog],[contenteditable=true]"
+    )
+  ) {
+    return false;
+  }
+  const explicit =
+    element.matches(
+      "[data-content-search-unit-key],[data-user-message-bubble]," +
+        "[data-message-author-role],[data-role=user],[data-role=assistant]," +
+        "[data-author=user],[data-author=assistant]," +
+        "[data-testid*=user-message],[data-testid*=assistant-message]"
+    ) ||
+    (element.tagName === "ARTICLE" &&
+      Boolean(
+        element.getAttribute("data-message-author-role") ||
+          element.getAttribute("data-role") ||
+          element.getAttribute("data-author")
+      ));
+  const legacy =
+    isConversationRootReady(root as Element) &&
+    element.matches(
+      "div.group.flex.w-full.flex-col.items-end.justify-end," +
+        "div.group.flex.min-w-0.flex-col"
+    );
+  return (
+    (explicit || legacy) &&
+    Boolean(
+      element.querySelector(
+        "[data-user-message-bubble],p,blockquote,ul,ol,h1,h2,h3,h4," +
+          "[class*=markdownContent],[data-content-type=prose]," +
+          "[data-testid*=markdown]"
+      )
+    )
+  );
 }
 
 function modernTurnCandidates(root: ParentNode): Element[] {

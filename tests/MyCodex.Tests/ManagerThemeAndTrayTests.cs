@@ -125,6 +125,15 @@ public sealed partial class ManagerThemeAndTrayTests
             })
             .ToArray();
         Assert.Equal([16, 20, 24, 32, 40, 48, 64, 128, 256], sizes);
+        var png = File.ReadAllBytes(Path.Combine(
+            root,
+            "assets",
+            "mycodex-logo.png"));
+        Assert.Equal(
+            new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 },
+            png.Take(8).ToArray());
+        Assert.Equal(256, ReadBigEndianInt32(png, 16));
+        Assert.Equal(256, ReadBigEndianInt32(png, 20));
 
         var project = File.ReadAllText(Path.Combine(
             root,
@@ -132,6 +141,7 @@ public sealed partial class ManagerThemeAndTrayTests
             "MyCodex.Manager",
             "MyCodex.Manager.csproj"));
         Assert.Contains("<ApplicationIcon>..\\..\\assets\\mycodex.ico</ApplicationIcon>", project);
+        Assert.Contains("mycodex-logo.png", project);
         foreach (var view in new[]
                  {
                      "MainWindow.xaml",
@@ -148,6 +158,21 @@ public sealed partial class ManagerThemeAndTrayTests
                     "Views",
                     view)));
         }
+        foreach (var view in new[]
+                 {
+                     "MainWindow.xaml",
+                     "OnboardingWindow.xaml"
+                 })
+        {
+            Assert.Contains(
+                "Source=\"/Assets/mycodex-logo.png\"",
+                File.ReadAllText(Path.Combine(
+                    root,
+                    "src",
+                    "MyCodex.Manager",
+                    "Views",
+                    view)));
+        }
         var tray = File.ReadAllText(Path.Combine(
             root,
             "src",
@@ -157,11 +182,64 @@ public sealed partial class ManagerThemeAndTrayTests
         Assert.Contains("pack://application:,,,/Assets/mycodex.ico", tray);
     }
 
+    [Fact]
+    public void TaskbarMinimizeAndExplicitTrayHideUseSeparateWindowPaths()
+    {
+        var root = FindRepositoryRoot();
+        var xaml = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCodex.Manager",
+            "Views",
+            "MainWindow.xaml"));
+        var code = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCodex.Manager",
+            "Views",
+            "MainWindow.xaml.cs"));
+
+        Assert.Contains("MaximizeRestoreButton", xaml);
+        Assert.Contains("WindowChrome", xaml);
+        Assert.Contains("SystemCommands.MinimizeWindow(this)", code);
+        Assert.Contains("SystemCommands.MaximizeWindow(this)", code);
+        Assert.Contains("PrepareForBackground()", code);
+        Assert.DoesNotContain(
+            "WindowState = WindowState.Normal;\n        Hide();",
+            code.Replace("\r\n", "\n", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void CloseChoiceKeepsOnePromptAndKeyboardSafeActions()
+    {
+        var root = FindRepositoryRoot();
+        var xaml = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCodex.Manager",
+            "Views",
+            "CloseChoiceWindow.xaml"));
+
+        Assert.Single(
+            Regex.Matches(xaml, "CloseChoiceDescription").Cast<Match>());
+        Assert.DoesNotContain("<Image", xaml);
+        Assert.Contains("IsDefault=\"True\"", xaml);
+        Assert.Contains("IsCancel=\"True\"", xaml);
+        Assert.Contains("SizeToContent=\"WidthAndHeight\"", xaml);
+        Assert.Contains("<ColumnDefinition Width=\"Auto\" />", xaml);
+    }
+
     private static HashSet<string> ReadKeys(string path) =>
         KeyRegex()
             .Matches(File.ReadAllText(path))
             .Select(match => match.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
+
+    private static int ReadBigEndianInt32(byte[] bytes, int offset) =>
+        (bytes[offset] << 24) |
+        (bytes[offset + 1] << 16) |
+        (bytes[offset + 2] << 8) |
+        bytes[offset + 3];
 
     private static string FindRepositoryRoot()
     {

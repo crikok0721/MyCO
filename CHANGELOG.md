@@ -15,6 +15,30 @@ All notable project changes are documented here.
 
 ### Fixed
 
+- Replace single-sample/layout-fallback calibration with three-sample
+  structural consensus and current-conversation validation; legacy signatures
+  safely expire without resetting identity or appearance preferences.
+- Restrict recognition to legal message roots in a positively identified
+  conversation, fail closed on headers, sidebars, empty states, dialogs, and
+  composers, and reconcile duplicate/orphan identity nodes during streaming.
+- Make explicit Restart a single transaction: graceful close, automatic
+  exact-identity force fallback, stable process-tree quiescence, bounded
+  launch/readiness retry, and refreshed recoverable state after failure.
+- Broadcast calibration to all renderer sessions with conversation evidence,
+  accept only a role-correct semantic message unit, reject protected native
+  surfaces, and stop other sessions after the first valid result.
+- Keep one avatar/nickname owner per role and logical turn even when Codex
+  renders one reply as multiple content units.
+- Prefer the existing Markdown surface for Whole-response bubbles and preserve
+  a fully rounded outer contour for every marked bubble surface.
+- Restore native taskbar minimize, standard maximize/restore behavior, caption
+  hit testing, and explicit-only minimize-to-tray state transitions.
+- Replace the redundant close window with one concise, keyboard-accessible
+  three-choice prompt.
+- Generate the executable/tray multi-frame ICO and the WPF header PNG from the
+  repository-owned official `mycodex-source.ico`.
+- Deduplicate unchanged renderer discovery and Runtime evidence events in the
+  privacy-safe diagnostics log.
 - Keep Codex alive after MyCodex exits by creating the exact pipe target
   suspended and duplicating non-inheritable peer pipe handles into that target
   before resume.
@@ -27,8 +51,11 @@ All notable project changes are documented here.
 
 ### Validation
 
-- Add detach-survival, strict isolated acceptance, icon, Config schema 3,
-  quiescence, segmentation, and streaming regressions.
+- Add exact-force restart, fail-closed restart, text-free role signature,
+  protected calibration target, one-identity-per-turn, full-radius bubble,
+  standard window-state, simplified close, icon, detach-survival, strict
+  isolated acceptance, Config schema 3, quiescence, segmentation, and streaming
+  regressions.
 
 ## [0.2.0-alpha.5] - 2026-07-28
 

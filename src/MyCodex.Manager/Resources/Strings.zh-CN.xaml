@@ -46,12 +46,12 @@
     <sys:String x:Key="CalibrationTitle">校准</sys:String>
     <sys:String x:Key="CalibrationSubtitle">教 MyCodex 识别当前渲染器结构，且不保存聊天正文。</sys:String>
     <sys:String x:Key="CurrentSignatureState">当前结构签名状态</sys:String>
-    <sys:String x:Key="SignatureDescription">签名包含标签名、角色、稳定语义属性、祖先结构、布局比例和能力。绝不会保存消息正文。</sys:String>
-    <sys:String x:Key="SelectAssistantTurn">选择一条助手回复</sys:String>
-    <sys:String x:Key="SelectAssistantDescription">请选择外层回复容器，不要选择代码块、Diff、状态行或工具栏。</sys:String>
+    <sys:String x:Key="SignatureDescription">签名由三个无正文样本归纳稳定语义属性、祖先结构和能力；绝不保存消息正文或屏幕坐标。</sys:String>
+    <sys:String x:Key="SelectAssistantTurn">选择三条助手回复</sys:String>
+    <sys:String x:Key="SelectAssistantDescription">请在三条不同回复的正文内点击；代码、Diff、状态、工具栏和输入区会被拒绝。</sys:String>
     <sys:String x:Key="CalibrateAssistant">校准助手消息</sys:String>
-    <sys:String x:Key="SelectUserTurn">选择一条用户消息</sys:String>
-    <sys:String x:Key="SelectUserDescription">请选择一条普通用户消息。在 Codex 中按 Escape 可取消且不会更改设置。</sys:String>
+    <sys:String x:Key="SelectUserTurn">选择三条用户消息</sys:String>
+    <sys:String x:Key="SelectUserDescription">请在三条不同用户消息的正文内点击；按 Escape 可取消且不会更改设置。</sys:String>
     <sys:String x:Key="CalibrateUser">校准用户消息</sys:String>
     <sys:String x:Key="FailClosed">安全失败</sys:String>
     <sys:String x:Key="FailClosedDescription">低置信度会判为未知并保持原样。少一个气泡也比破坏 Codex 原生控件更安全。</sys:String>
@@ -89,7 +89,7 @@
     <sys:String x:Key="OnboardingDescription">MyCodex 在保留原生代码、Diff、工具、审批和工具栏界面的同时，增加本地头像、昵称和紧凑聊天气泡。</sys:String>
     <sys:String x:Key="OnboardingStepOne">1   选择检测到的官方 Desktop 应用</sys:String>
     <sys:String x:Key="OnboardingStepTwo">2   在“外观”中选择头像并设置昵称</sys:String>
-    <sys:String x:Key="OnboardingStepThree">3   使用 MyCodex 启动 Codex，然后分别校准一条用户和助手消息</sys:String>
+    <sys:String x:Key="OnboardingStepThree">3   使用 MyCodex 启动 Codex，然后分别校准三条用户和三条助手消息</sys:String>
     <sys:String x:Key="OnboardingPrivacy">所有功能均在本地运行，无遥测、凭据、Cookie 或网络拦截。</sys:String>
     <sys:String x:Key="OnboardingContinue">继续进入 MyCodex</sys:String>
 
@@ -132,7 +132,7 @@
     <sys:String x:Key="StatusLanguageSaved">界面语言已保存。</sys:String>
     <sys:String x:Key="StatusSkinDisabled">皮肤已停用</sys:String>
     <sys:String x:Key="StatusAppearanceApplied">外观已应用</sys:String>
-    <sys:String x:Key="StatusSelectTurnFormat">请在 Codex 中选择一条{0}消息</sys:String>
+    <sys:String x:Key="StatusSelectTurnFormat">请在 Codex 中选择三条不同的{0}消息</sys:String>
     <sys:String x:Key="StatusDisconnected">已断开连接</sys:String>
     <sys:String x:Key="StatusReconnectPending">正在等待渲染器重新连接</sys:String>
     <sys:String x:Key="StatusWaitingForRenderer">正在等待 Codex 进入可操作状态…</sys:String>
@@ -150,6 +150,9 @@
     <sys:String x:Key="StartExitedBeforeReady">Codex 在渲染器就绪前退出，且有限次数重试仍未成功。</sys:String>
     <sys:String x:Key="StartRendererNotReady">Codex 仍可使用，但渲染器未在时限内就绪，MyCodex 功能未应用。</sys:String>
     <sys:String x:Key="StartShutdownNotReady">旧的已验证 Codex 实例未能及时完整释放进程资源，因此没有启动新实例。</sys:String>
+    <sys:String x:Key="RestartIdentityUnsafe">无法唯一确认需要关闭的 Codex 实例。MyCodex 未结束任何进程；请手动退出其他 Codex 实例后重试。</sys:String>
+    <sys:String x:Key="RestartForceCloseFailed">经过验证的 Codex 进程树未能安全关闭。MyCodex 未扩大结束范围；请手动退出 Codex 后重试。</sys:String>
+    <sys:String x:Key="RestartShutdownFailed">Codex 未能完成安全关闭。请确认没有其他 Codex 实例正在退出或更新，然后重试。</sys:String>
     <sys:String x:Key="ErrorSaveAppearance">无法保存外观</sys:String>
     <sys:String x:Key="ErrorEnableSkin">无法启用皮肤</sys:String>
     <sys:String x:Key="ErrorDisableSkin">无法停用皮肤</sys:String>
@@ -183,9 +186,12 @@
     <sys:String x:Key="TraySettings">设置</sys:String>
     <sys:String x:Key="TrayExit">退出 MyCodex</sys:String>
     <sys:String x:Key="MinimizeToTray">最小化到通知区域</sys:String>
+    <sys:String x:Key="MinimizeWindow">最小化窗口</sys:String>
+    <sys:String x:Key="MaximizeWindow">最大化窗口</sys:String>
+    <sys:String x:Key="RestoreWindow">还原窗口</sys:String>
     <sys:String x:Key="ExitMyCodex">退出 MyCodex</sys:String>
     <sys:String x:Key="CloseChoiceTitle">关闭 MyCodex</sys:String>
-    <sys:String x:Key="CloseChoiceDescription">请选择关闭方式。退出 MyCodex 时，Codex 会继续运行。</sys:String>
+    <sys:String x:Key="CloseChoiceDescription">您希望如何处理 MyCodex？</sys:String>
     <sys:String x:Key="CloseChoiceExit">退出 MyCodex</sys:String>
     <sys:String x:Key="CloseChoiceMinimize">最小化到系统托盘</sys:String>
     <sys:String x:Key="CloseChoiceCancel">取消</sys:String>

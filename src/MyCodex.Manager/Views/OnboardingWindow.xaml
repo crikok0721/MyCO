@@ -16,8 +16,9 @@
         </Grid.RowDefinitions>
         <StackPanel>
             <Image Width="58" Height="58"
-                   Source="/Assets/mycodex.ico"
+                   Source="/Assets/mycodex-logo.png"
                    Stretch="Uniform"
+                   RenderOptions.BitmapScalingMode="HighQuality"
                    HorizontalAlignment="Left" />
             <TextBlock Text="{DynamicResource OnboardingHeading}"
                        FontSize="28" FontWeight="SemiBold" Margin="0,22,0,0" />

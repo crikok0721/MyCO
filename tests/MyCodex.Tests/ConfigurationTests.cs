@@ -178,7 +178,7 @@ public sealed class ConfigurationTests
     }
 
     [Fact]
-    public async Task SchemaOneMigratesCustomAppearanceAndCalibrationWithoutLoss()
+    public async Task SchemaOnePreservesAppearanceAndInvalidatesSingleSampleCalibration()
     {
         using var directory = new TempDirectory();
         var paths = new ConfigPaths(directory.Path);
@@ -256,7 +256,7 @@ public sealed class ConfigurationTests
         Assert.Equal(
             BubblePalette.LightDefault,
             loaded.Config.Appearance.LightBubblePalette);
-        Assert.NotNull(loaded.Config.Calibration.AssistantTurn);
+        Assert.Null(loaded.Config.Calibration.AssistantTurn);
         Assert.Equal(ManagerThemeMode.System, loaded.Config.ManagerThemeMode);
         Assert.False(loaded.Config.LaunchAtLogin);
         Assert.False(loaded.Config.LaunchCodexOnMyCodexStart);
@@ -479,6 +479,8 @@ public sealed class ConfigurationTests
         await store.SaveAsync(AppConfig.Default);
         var signature = new MyCodex.Compatibility.ElementSignature
         {
+            SampleCount = 3,
+            ContextFingerprint = "main;;thread",
             TagName = "div",
             StableAttributes =
             {
@@ -505,6 +507,42 @@ public sealed class ConfigurationTests
         Assert.Null(loaded.Config.Calibration.AssistantTurn);
         Assert.Single(
             Directory.GetFiles(paths.BackupsDirectory, "calibration.corrupt-*.json"));
+    }
+
+    [Fact]
+    public async Task LegacySingleSampleCalibrationIsInvalidatedWithoutLosingPreferences()
+    {
+        using var directory = new TempDirectory();
+        var paths = new ConfigPaths(directory.Path);
+        var store = new ConfigStore(paths);
+        var legacy = new MyCodex.Compatibility.ElementSignature
+        {
+            TagName = "article",
+            StableAttributes =
+            {
+                ["data-message-author-role"] = "assistant"
+            }
+        };
+        await store.SaveAsync(
+            AppConfig.Default with
+            {
+                Assistant = new PersonConfig
+                {
+                    Name = "Luna",
+                    Avatar = "avatar.png"
+                }
+            });
+        await File.WriteAllTextAsync(
+            paths.CalibrationFile,
+            JsonSerializer.Serialize(
+                new CalibrationConfig { AssistantTurn = legacy },
+                new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+        var loaded = await store.LoadAsync();
+
+        Assert.Equal("Luna", loaded.Config.Assistant.Name);
+        Assert.Equal("avatar.png", loaded.Config.Assistant.Avatar);
+        Assert.Null(loaded.Config.Calibration.AssistantTurn);
     }
 
     [Theory]

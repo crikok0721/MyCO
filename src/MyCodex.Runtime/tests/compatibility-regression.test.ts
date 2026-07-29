@@ -67,11 +67,11 @@ test("current Codex structural turns outrank stale ambiguous calibration", () =>
   const dom = new JSDOM(`
     <main>
       <div class="flex flex-col gap-0">
-        <div class="group flex w-full flex-col items-end justify-end gap-1">
-          <div class="bg-token-foreground/5 rounded-2xl"><p>User prompt</p></div>
+        <div data-content-search-unit-key="user" class="group flex w-full flex-col items-end justify-end gap-1">
+          <div data-user-message-bubble class="bg-token-foreground/5 rounded-2xl"><p>User prompt</p></div>
           <div><button>Copy</button></div>
         </div>
-        <div class="group flex min-w-0 flex-col">
+        <div data-content-search-unit-key="assistant" class="group flex min-w-0 flex-col">
           <h4 class="sr-only">Assistant</h4>
           <div class="_markdownContent_newhash_42"><p>Assistant response</p></div>
         </div>

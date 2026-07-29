@@ -23,6 +23,8 @@ public sealed class SecurityBoundaryTests
         var normalized = ElementSignatureValidator.Normalize(
             new ElementSignature
             {
+                SampleCount = 3,
+                ContextFingerprint = "main;;thread",
                 TagName = "ARTICLE",
                 Role = "article",
                 StableAttributes = new Dictionary<string, string>
@@ -38,6 +40,8 @@ public sealed class SecurityBoundaryTests
         Assert.DoesNotContain("aria-label", normalized.StableAttributes.Keys);
         Assert.DoesNotContain("private conversation text", normalized.Fingerprint);
         Assert.NotEqual("attacker-controlled", normalized.Fingerprint);
+        Assert.Equal(3, normalized.SampleCount);
+        Assert.Equal("main;;thread", normalized.ContextFingerprint);
     }
 
     [Fact]
@@ -98,6 +102,36 @@ public sealed class SecurityBoundaryTests
             });
 
         Assert.False(ElementSignatureValidator.AreDistinctRoles(signature, signature));
+    }
+
+    [Fact]
+    public void CalibrationAcceptsTextFreeUserBubbleAndAssistantProseEvidence()
+    {
+        var user = ElementSignatureValidator.Normalize(
+            new ElementSignature
+            {
+                TagName = "div",
+                StableAttributes =
+                {
+                    ["data-content-search-unit-key"] = "present",
+                    ["data-user-message-bubble"] = "present"
+                },
+                Capabilities = new SignatureCapabilities { HasMarkdown = true }
+            });
+        var assistant = ElementSignatureValidator.Normalize(
+            new ElementSignature
+            {
+                TagName = "div",
+                StableAttributes =
+                {
+                    ["data-content-search-unit-key"] = "present",
+                    ["data-content-type"] = "prose"
+                },
+                Capabilities = new SignatureCapabilities { HasMarkdown = true }
+            });
+
+        Assert.True(ElementSignatureValidator.AreDistinctRoles(user, assistant));
+        Assert.NotEqual(user.Fingerprint, assistant.Fingerprint);
     }
 
     [Fact]

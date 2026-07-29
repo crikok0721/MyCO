@@ -26,6 +26,31 @@ public sealed record ApplicationCloseAttempt(
         Status == ApplicationCloseStatus.StillRunning && Targets.Count > 0;
 }
 
+public enum ApplicationRestartStage
+{
+    IdentityValidation,
+    GracefulClose,
+    VerifiedForceClose,
+    ProcessQuiescence
+}
+
+public sealed class ApplicationRestartException : InvalidOperationException
+{
+    public ApplicationRestartException(
+        ApplicationRestartStage stage,
+        Exception innerException)
+        : base($"Desktop restart failed during {stage}.", innerException)
+    {
+        Stage = stage;
+    }
+
+    public ApplicationRestartStage Stage { get; }
+}
+
+public sealed record ApplicationRestartCloseResult(
+    bool UsedVerifiedForceClose,
+    IReadOnlyList<ApplicationProcessIdentity> Targets);
+
 public sealed class ApplicationRestartService
 {
     private readonly IApplicationProcessBackend _backend;
@@ -48,6 +73,86 @@ public sealed class ApplicationRestartService
         _backend = backend;
         _trayDetectionGrace = trayDetectionGrace ?? TimeSpan.FromSeconds(2);
         _pollInterval = pollInterval ?? TimeSpan.FromMilliseconds(250);
+    }
+
+    public async Task<ApplicationRestartCloseResult> CloseForRestartAsync(
+        ApplicationCandidate candidate,
+        TimeSpan gracefulTimeout,
+        TimeSpan forceTimeout,
+        TimeSpan quiescenceTimeout,
+        CancellationToken cancellationToken = default)
+    {
+        ApplicationCloseAttempt attempt;
+        try
+        {
+            attempt = await RequestGracefulCloseAsync(
+                candidate,
+                gracefulTimeout,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            throw new ApplicationRestartException(
+                ApplicationRestartStage.IdentityValidation,
+                exception);
+        }
+
+        var usedForce = false;
+        if (!attempt.IsClosed)
+        {
+            if (!attempt.CanForceClose)
+            {
+                throw new ApplicationRestartException(
+                    ApplicationRestartStage.IdentityValidation,
+                    new InvalidOperationException(
+                        "The Desktop restart target is not safe to terminate."));
+            }
+            try
+            {
+                await ForceCloseAsync(
+                    candidate,
+                    attempt,
+                    forceTimeout,
+                    cancellationToken).ConfigureAwait(false);
+                usedForce = true;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                throw new ApplicationRestartException(
+                    ApplicationRestartStage.VerifiedForceClose,
+                    exception);
+            }
+        }
+
+        try
+        {
+            await WaitForQuiescenceAsync(
+                candidate,
+                quiescenceTimeout,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            throw new ApplicationRestartException(
+                ApplicationRestartStage.ProcessQuiescence,
+                exception);
+        }
+
+        return new ApplicationRestartCloseResult(
+            usedForce,
+            attempt.Targets);
     }
 
     public async Task<ApplicationCloseAttempt> RequestGracefulCloseAsync(
@@ -75,7 +180,12 @@ public sealed class ApplicationRestartService
         var target = roots[0].Identity;
         if (roots[0].HasMainWindow)
         {
-            _backend.RequestClose(target);
+            if (!_backend.RequestClose(target))
+            {
+                return new ApplicationCloseAttempt(
+                    ApplicationCloseStatus.StillRunning,
+                    [target]);
+            }
         }
         else
         {

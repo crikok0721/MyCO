@@ -131,9 +131,16 @@ export class MyCodexRuntime implements MyCodexRuntimeApi {
       let assistantBubbleBlocks = 0;
       let unknownTurns = 0;
       const confidences: number[] = [];
+      const identityRoles = new WeakMap<Element, Set<MessageRole>>();
 
       for (const turn of candidates) {
-        const result = classifyTurn(turn, this.config.calibration);
+        const result = classifyTurn(
+          turn,
+          this.config.calibration,
+          this.root && (this.root as Node).nodeType === 1
+            ? (this.root as Element)
+            : undefined
+        );
         if (result.role === "unknown" || result.confidence < 0.72) {
           this.decorator.undecorate(turn);
           unknownTurns++;
@@ -141,7 +148,21 @@ export class MyCodexRuntime implements MyCodexRuntimeApi {
         }
         confidences.push(result.confidence);
         activeTurns.add(turn);
-        this.decorator.decorate(turn, result.role, this.config);
+        const identityAnchor =
+          turn.closest("[data-content-search-turn-key]") ?? turn;
+        let roles = identityRoles.get(identityAnchor);
+        if (!roles) {
+          roles = new Set<MessageRole>();
+          identityRoles.set(identityAnchor, roles);
+        }
+        const identityOwner = !roles.has(result.role);
+        roles.add(result.role);
+        this.decorator.decorate(
+          turn,
+          result.role,
+          this.config,
+          identityOwner
+        );
         if (result.role === "user") userTurns++;
         else {
           assistantTurns++;
@@ -193,7 +214,12 @@ export class MyCodexRuntime implements MyCodexRuntimeApi {
     )) {
       const role = turn.getAttribute("data-mycodex-role");
       if (role === "user" || role === "assistant") {
-        this.decorator.updateIdentity(turn, role, this.config);
+        this.decorator.updateIdentity(
+          turn,
+          role,
+          this.config,
+          turn.getAttribute("data-mycodex-identity-owner") !== "false"
+        );
       }
     }
     return this.refresh();
@@ -212,6 +238,10 @@ export class MyCodexRuntime implements MyCodexRuntimeApi {
       });
       this.refresh();
     });
+  }
+
+  stopCalibration(): void {
+    this.calibration.stop(this.document);
   }
 
   destroy(): void {

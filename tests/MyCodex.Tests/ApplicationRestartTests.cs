@@ -64,6 +64,70 @@ public sealed class ApplicationRestartTests
     }
 
     [Fact]
+    public async Task OneClickRestartFallsBackToVerifiedForceWithoutASecondDecision()
+    {
+        var root = new ApplicationProcessSnapshot(
+            225,
+            25,
+            ExecutablePath,
+            DateTimeOffset.UtcNow.AddMinutes(-2),
+            HasMainWindow: true);
+        var backend = new FakeProcessBackend(root);
+        backend.OnClose = _ =>
+        {
+            backend.Snapshots[0] = root with { HasMainWindow = false };
+            return true;
+        };
+        backend.OnKill = _ => backend.Snapshots.Clear();
+        var service = new ApplicationRestartService(
+            backend,
+            trayDetectionGrace: TimeSpan.FromMilliseconds(5),
+            pollInterval: TimeSpan.FromMilliseconds(1));
+
+        var result = await service.CloseForRestartAsync(
+            Candidate(),
+            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(1));
+
+        Assert.True(result.UsedVerifiedForceClose);
+        Assert.Equal(225, Assert.Single(result.Targets).ProcessId);
+        Assert.Equal(225, Assert.Single(backend.CloseRequests).ProcessId);
+        Assert.Equal(225, Assert.Single(backend.KillRequests).ProcessId);
+        Assert.Empty(backend.Snapshots);
+    }
+
+    [Fact]
+    public async Task OneClickRestartPreservesFailClosedIdentityErrors()
+    {
+        var backend = new FakeProcessBackend(
+            new ApplicationProcessSnapshot(
+                226,
+                26,
+                ExecutablePath,
+                DateTimeOffset.UtcNow.AddMinutes(-4),
+                HasMainWindow: true),
+            new ApplicationProcessSnapshot(
+                227,
+                27,
+                ExecutablePath,
+                DateTimeOffset.UtcNow.AddMinutes(-1),
+                HasMainWindow: true));
+        var service = new ApplicationRestartService(backend);
+
+        var exception = await Assert.ThrowsAsync<ApplicationRestartException>(() =>
+            service.CloseForRestartAsync(
+                Candidate(),
+                TimeSpan.FromSeconds(1),
+                TimeSpan.FromSeconds(1),
+                TimeSpan.FromSeconds(1)));
+
+        Assert.Equal(ApplicationRestartStage.IdentityValidation, exception.Stage);
+        Assert.Empty(backend.CloseRequests);
+        Assert.Empty(backend.KillRequests);
+    }
+
+    [Fact]
     public async Task WindowClosingIntoTrayUsesVerifiedForceRestartPath()
     {
         var root = new ApplicationProcessSnapshot(

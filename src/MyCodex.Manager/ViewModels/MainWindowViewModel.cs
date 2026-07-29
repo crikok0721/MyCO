@@ -736,46 +736,49 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 }
             }
             SetStatus("StatusNormalShutdown");
-            var closeAttempt = await _restartService.RequestGracefulCloseAsync(
+            var closeResult = await _restartService.CloseForRestartAsync(
                 candidate,
-                TimeSpan.FromSeconds(12)).ConfigureAwait(true);
-            if (!closeAttempt.IsClosed)
+                gracefulTimeout: TimeSpan.FromSeconds(12),
+                forceTimeout: TimeSpan.FromSeconds(10),
+                quiescenceTimeout: TimeSpan.FromSeconds(15)).ConfigureAwait(true);
+            _logger.Info("desktop_restart_closed", new Dictionary<string, object?>
             {
-                if (!closeAttempt.CanForceClose)
-                {
-                    throw new InvalidOperationException(
-                        "Desktop process identity became uncertain during restart.");
-                }
-                var force = System.Windows.MessageBox.Show(
-                    LocalizationService.Get("ForceRestartPrompt"),
-                    LocalizationService.Get("ForceRestartTitle"),
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning);
-                if (force != MessageBoxResult.Yes)
-                {
-                    SetStatus("StatusRestartCancelledUnchanged");
-                    return;
-                }
-                SetStatus("StatusForceClosingDesktop");
-                await _restartService.ForceCloseAsync(
-                    candidate,
-                    closeAttempt,
-                    TimeSpan.FromSeconds(10)).ConfigureAwait(true);
-            }
-            SetStatus("StatusWaitingForShutdown");
-            await _restartService.WaitForQuiescenceAsync(
-                candidate,
-                TimeSpan.FromSeconds(15)).ConfigureAwait(true);
-            await DetectAsync().ConfigureAwait(true);
-            candidate = SelectedCandidate
-                        ?? throw new InvalidOperationException(
-                            "Desktop was not detected after restart.");
+                ["stage"] = "shutdown",
+                ["outcome"] = closeResult.UsedVerifiedForceClose
+                    ? "verified_force"
+                    : "graceful"
+            });
+
+            // Keep the captured installation identity. Re-enumerating the MSIX
+            // repository immediately after shutdown can transiently return no
+            // candidate even though the verified executable remains available.
+            candidate = candidate with
+            {
+                IsRunning = false,
+                WindowTitle = null
+            };
+            ReplaceCandidates(
+                Candidates.Select(current =>
+                    ApplicationCandidateResolver.StableKey(current).Equals(
+                        ApplicationCandidateResolver.StableKey(candidate),
+                        StringComparison.OrdinalIgnoreCase)
+                        ? candidate
+                        : current).ToArray(),
+                candidate);
         }
 
         var adapter = _adapters.Select(candidate)
                       ?? throw new NotSupportedException(
                           "No compatible application adapter is available.");
-        await LaunchWithRetryAsync(candidate, adapter).ConfigureAwait(true);
+        try
+        {
+            await LaunchWithRetryAsync(candidate, adapter).ConfigureAwait(true);
+        }
+        catch
+        {
+            await RefreshAfterLaunchFailureAsync(candidate).ConfigureAwait(true);
+            throw;
+        }
     }
 
     private async Task LaunchWithRetryAsync(
@@ -802,24 +805,53 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                           ?? throw new NotSupportedException(
                               "No compatible application adapter is available.");
             }
-            catch (DesktopProcessExitedBeforeReadyException) when (
-                attempt < maximumAttempts)
+            catch (Exception exception) when (
+                attempt < maximumAttempts &&
+                exception is (
+                    DesktopProcessExitedBeforeReadyException or
+                    DesktopRendererNotReadyException))
             {
                 _logger.Info("desktop_launch_retry", new Dictionary<string, object?>
                 {
                     ["attempt"] = attempt,
                     ["stage"] = "renderer_readiness",
-                    ["outcome"] = "early_exit"
+                    ["outcome"] = exception is DesktopProcessExitedBeforeReadyException
+                        ? "early_exit"
+                        : "renderer_not_ready"
                 });
                 SetStatus("StatusLaunchRetryFormat", attempt + 1, maximumAttempts);
-                await _restartService.WaitForQuiescenceAsync(
+                await _restartService.CloseForRestartAsync(
                     candidate,
-                    TimeSpan.FromSeconds(10)).ConfigureAwait(true);
-                candidate = await RefreshCandidateAsync(candidate).ConfigureAwait(true);
+                    gracefulTimeout: TimeSpan.FromSeconds(5),
+                    forceTimeout: TimeSpan.FromSeconds(8),
+                    quiescenceTimeout: TimeSpan.FromSeconds(10)).ConfigureAwait(true);
+                candidate = candidate with
+                {
+                    IsRunning = false,
+                    WindowTitle = null
+                };
                 adapter = _adapters.Select(candidate)
                           ?? throw new NotSupportedException(
                               "No compatible application adapter is available.");
             }
+        }
+    }
+
+    private async Task RefreshAfterLaunchFailureAsync(
+        ApplicationCandidate previous)
+    {
+        try
+        {
+            var candidates = await _locator.FindCandidatesAsync().ConfigureAwait(true);
+            var resolved = ApplicationCandidateResolver.ResolveCurrent(
+                previous,
+                candidates);
+            ReplaceCandidates(candidates, resolved ?? candidates.FirstOrDefault());
+        }
+        catch (Exception exception)
+        {
+            // Recovery is best effort; preserve the original actionable failure.
+            _logger.Error("desktop_launch_state_refresh_failed", exception);
         }
     }
 
@@ -1227,6 +1259,17 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     LocalizationService.Get("StartExitedBeforeReady"),
                 DesktopRendererNotReadyException =>
                     LocalizationService.Get("StartRendererNotReady"),
+                ApplicationRestartException restartException =>
+                    LocalizationService.Get(restartException.Stage switch
+                    {
+                        ApplicationRestartStage.IdentityValidation =>
+                            "RestartIdentityUnsafe",
+                        ApplicationRestartStage.VerifiedForceClose =>
+                            "RestartForceCloseFailed",
+                        ApplicationRestartStage.ProcessQuiescence =>
+                            "StartShutdownNotReady",
+                        _ => "RestartShutdownFailed"
+                    }),
                 TimeoutException =>
                     LocalizationService.Get("StartShutdownNotReady"),
                 _ => null

@@ -14,6 +14,7 @@ public partial class CloseChoiceWindow : Window
     public CloseChoiceWindow()
     {
         InitializeComponent();
+        Loaded += (_, _) => MinimizeButton.Focus();
     }
 
     public CloseChoice Choice { get; private set; } = CloseChoice.Cancel;

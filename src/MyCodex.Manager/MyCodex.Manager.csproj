@@ -21,9 +21,9 @@
                       LogicalName="MyCodex.Manager.Resources.mycodex.runtime.js" />
     <Resource Include="..\..\assets\mycodex.ico"
               Link="Assets\mycodex.ico" />
-    <None Include="..\..\assets\mycodex-logo.svg"
-          Link="Assets\mycodex-logo.svg"
-          CopyToOutputDirectory="PreserveNewest"
-          Condition="Exists('..\..\assets\mycodex-logo.svg')" />
+    <Resource Include="..\..\assets\mycodex-logo.png"
+              Link="Assets\mycodex-logo.png" />
+    <None Include="..\..\assets\mycodex-source.ico"
+          Link="Assets\mycodex-source.ico" />
   </ItemGroup>
 </Project>

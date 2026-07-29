@@ -1,6 +1,7 @@
 import {
   childTagHistogram,
   layoutOf,
+  rootContextFingerprint,
   stableAttributes,
   stableClassTokens,
   structuralFingerprint
@@ -22,6 +23,8 @@ export function createSignature(element: Element): ElementSignature {
 
   return {
     schemaVersion: CALIBRATION_SCHEMA_VERSION,
+    sampleCount: 1,
+    contextFingerprint: "",
     tagName: element.tagName.toLowerCase(),
     role: element.getAttribute("role"),
     stableAttributes: stableAttributes(element),
@@ -36,6 +39,65 @@ export function createSignature(element: Element): ElementSignature {
     layout: layoutOf(element),
     fingerprint: structuralFingerprint(element)
   };
+}
+
+export function createConsensusSignature(
+  elements: Element[],
+  conversationRoot: Element
+): ElementSignature {
+  if (elements.length < 3) {
+    throw new TypeError("Calibration requires at least three distinct samples.");
+  }
+  const signatures = elements.map(createSignature);
+  const required = Math.ceil(signatures.length * 0.67);
+  const first = signatures[0]!;
+  const stableAttributes = consensusRecord(
+    signatures.map((signature) => signature.stableAttributes),
+    required
+  );
+  const stableClasses = consensusValues(
+    signatures.map((signature) => signature.stableClasses),
+    required
+  );
+  const childTagHistogram = consensusHistogram(
+    signatures.map((signature) => signature.childTagHistogram),
+    required
+  );
+  const ancestorChain = first.ancestorChain.filter((ancestor, index) => {
+    return (
+      signatures.filter((signature) => {
+        const candidate = signature.ancestorChain[index];
+        return (
+          candidate?.tagName === ancestor.tagName &&
+          candidate.role === ancestor.role
+        );
+      }).length >= required
+    );
+  });
+  const signature: ElementSignature = {
+    schemaVersion: CALIBRATION_SCHEMA_VERSION,
+    sampleCount: signatures.length,
+    contextFingerprint: rootContextFingerprint(conversationRoot),
+    tagName: majority(signatures.map((item) => item.tagName)),
+    role: majority(signatures.map((item) => item.role)),
+    stableAttributes,
+    stableClasses,
+    ancestorChain,
+    childTagHistogram,
+    capabilities: {
+      hasMarkdown:
+        signatures.filter((item) => item.capabilities.hasMarkdown).length >= required,
+      hasCode:
+        signatures.filter((item) => item.capabilities.hasCode).length >= required,
+      hasButtons:
+        signatures.filter((item) => item.capabilities.hasButtons).length >= required
+    },
+    // Coordinates and current window geometry are deliberately not persisted.
+    layout: { alignment: "unknown", widthRatio: 0 },
+    fingerprint: ""
+  };
+  signature.fingerprint = signatureFingerprint(signature);
+  return signature;
 }
 
 export function scoreSignature(
@@ -118,6 +180,17 @@ export function scoreSignature(
   }
 }
 
+export function signatureContextMatches(
+  signature: ElementSignature,
+  root: Element
+): boolean {
+  return (
+    signature.sampleCount >= 3 &&
+    Boolean(signature.contextFingerprint) &&
+    signature.contextFingerprint === rootContextFingerprint(root)
+  );
+}
+
 export function findBySignature(
   root: ParentNode,
   signature: ElementSignature,
@@ -136,4 +209,72 @@ export function findBySignature(
 
 function escapeAttribute(value: string): string {
   return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+}
+
+function signatureFingerprint(signature: ElementSignature): string {
+  const attributes = Object.entries(signature.stableAttributes)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key}=${value}`)
+    .join("|");
+  const children = Object.entries(signature.childTagHistogram)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([tag, count]) => `${tag}:${count}`)
+    .join(",");
+  return [
+    signature.tagName,
+    signature.role ?? "",
+    attributes,
+    children,
+    signature.capabilities.hasMarkdown ? "markdown" : "",
+    signature.capabilities.hasCode ? "code" : "",
+    signature.capabilities.hasButtons ? "buttons" : ""
+  ].join(";");
+}
+
+function consensusRecord(
+  records: Array<Record<string, string>>,
+  required: number
+): Record<string, string> {
+  const pairs = records.flatMap((record) => Object.entries(record));
+  const result: Record<string, string> = {};
+  for (const [key, value] of pairs) {
+    if (
+      records.filter((record) => record[key] === value).length >= required
+    ) {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+function consensusValues(values: string[][], required: number): string[] {
+  return Array.from(new Set(values.flat()))
+    .filter((value) => values.filter((items) => items.includes(value)).length >= required)
+    .sort();
+}
+
+function consensusHistogram(
+  histograms: Array<Record<string, number>>,
+  required: number
+): Record<string, number> {
+  const result: Record<string, number> = {};
+  const tags = new Set(histograms.flatMap((histogram) => Object.keys(histogram)));
+  for (const tag of tags) {
+    const values = histograms
+      .map((histogram) => histogram[tag])
+      .filter((value): value is number => value !== undefined)
+      .sort((left, right) => left - right);
+    if (values.length >= required) {
+      result[tag] = values[Math.floor(values.length / 2)] ?? 0;
+    }
+  }
+  return result;
+}
+
+function majority<T>(values: T[]): T {
+  const counts = new Map<T, number>();
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+  return Array.from(counts.entries()).sort(
+    (left, right) => right[1] - left[1]
+  )[0]![0];
 }

@@ -1,5 +1,5 @@
-import { layoutOf, stableAttributes } from "./dom-utils.js";
-import { scoreSignature } from "./matcher.js";
+import { stableAttributes } from "./dom-utils.js";
+import { scoreSignature, signatureContextMatches } from "./matcher.js";
 import type {
   CalibrationConfig,
   MatchResult,
@@ -12,7 +12,8 @@ const ASSISTANT_VALUES = /^(assistant|codex|chatgpt|ai|model)$/i;
 
 export function classifyTurn(
   element: Element,
-  calibration: CalibrationConfig
+  calibration: CalibrationConfig,
+  conversationRoot?: Element
 ): MatchResult {
   const attributes = stableAttributes(element);
   const semanticValues = Object.values(attributes);
@@ -56,21 +57,12 @@ export function classifyTurn(
   }
 
   // Saved calibration is useful across generated-class changes but is weaker than semantics.
-  const calibrated = classifyFromCalibration(element, calibration);
+  const calibrated = classifyFromCalibration(
+    element,
+    calibration,
+    conversationRoot
+  );
   if (calibrated) return calibrated;
-
-  const layout = layoutOf(element);
-  if (layout.alignment === "right" && layout.widthRatio > 0 && layout.widthRatio < 0.78) {
-    return { role: "user", confidence: 0.73, source: "layout" };
-  }
-  if (
-    layout.alignment === "left" &&
-    layout.widthRatio > 0 &&
-    layout.widthRatio < 0.9 &&
-    element.querySelector("p,ul,ol,pre,code")
-  ) {
-    return { role: "assistant", confidence: 0.73, source: "layout" };
-  }
 
   return { role: "unknown", confidence: 0, source: "unknown" };
 }
@@ -110,20 +102,37 @@ function hasClasses(element: Element, ...classNames: string[]): boolean {
 
 function classifyFromCalibration(
   element: Element,
-  calibration: CalibrationConfig
+  calibration: CalibrationConfig,
+  conversationRoot?: Element
 ): MatchResult | null {
   const scores: Array<{ role: MessageRole; confidence: number }> = [];
   if (calibration.userTurn) {
+    if (
+      (calibration.userTurn.sampleCount ?? 0) < 3 ||
+      (conversationRoot &&
+        !signatureContextMatches(calibration.userTurn, conversationRoot))
+    ) {
+      // Legacy single-sample or structurally stale calibration fails closed.
+    } else {
     scores.push({
       role: "user",
       confidence: scoreSignature(calibration.userTurn, element)
     });
+    }
   }
   if (calibration.assistantTurn) {
+    if (
+      (calibration.assistantTurn.sampleCount ?? 0) < 3 ||
+      (conversationRoot &&
+        !signatureContextMatches(calibration.assistantTurn, conversationRoot))
+    ) {
+      // Legacy single-sample or structurally stale calibration fails closed.
+    } else {
     scores.push({
       role: "assistant",
       confidence: scoreSignature(calibration.assistantTurn, element)
     });
+    }
   }
   scores.sort((left, right) => right.confidence - left.confidence);
   const best = scores[0];

@@ -11,6 +11,11 @@ export interface BubbleSegment {
 
 const SEMANTIC_BLOCK_SELECTOR =
   "h1,h2,h3,h4,h5,h6,p,blockquote,ul,ol,[data-content-type=prose]";
+const WHOLE_SURFACE_SELECTOR = [
+  "[data-content-type=prose]",
+  "[data-testid*=markdown]",
+  "[class*=markdownContent]"
+].join(",");
 const PROTECTED_SELECTOR = [
   "pre",
   "code",
@@ -41,7 +46,10 @@ export function segmentAssistantProse(
   turn: Element,
   mode: AppearanceConfig["bubbleDisplayMode"]
 ): BubbleSegment[] {
-  const blocks = findSafeBlocks(turn);
+  const blocks =
+    mode === "Whole"
+      ? findWholeResponseSurfaces(turn)
+      : findSafeBlocks(turn);
   if (blocks.length === 0) return [];
 
   const groups: Element[][] =
@@ -61,6 +69,30 @@ export function segmentAssistantProse(
     });
   });
   return segments;
+}
+
+function findWholeResponseSurfaces(turn: Element): Element[] {
+  const candidates = Array.from(
+    turn.querySelectorAll(WHOLE_SURFACE_SELECTOR)
+  ).filter((element) => isWholeResponseSurface(element, turn));
+  const outermost = candidates.filter(
+    (candidate) =>
+      !candidates.some(
+        (other) => other !== candidate && other.contains(candidate)
+      )
+  );
+  return outermost.length > 0 ? outermost : findSafeBlocks(turn);
+}
+
+function isWholeResponseSurface(element: Element, turn: Element): boolean {
+  if (!element.textContent?.trim()) return false;
+  const owner = element.closest("[data-mycodex-turn]");
+  if (owner && owner !== turn) return false;
+  if (element.closest(".mc-nickname,.mc-avatar")) return false;
+  // Styling an existing Markdown/prose container does not move or rewrite its
+  // code, tables, links, or controls. Reject only when the container itself is
+  // a native tool/status surface.
+  return !isInteractiveOrTool(element);
 }
 
 function findSafeBlocks(turn: Element): Element[] {

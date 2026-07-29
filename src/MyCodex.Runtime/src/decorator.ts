@@ -8,10 +8,15 @@ export class Decorator {
     { mode: RuntimeConfig["appearance"]["bubbleDisplayMode"]; elements: Element[] }
   >();
 
-  decorate(turn: Element, role: MessageRole, config: RuntimeConfig): boolean {
+  decorate(
+    turn: Element,
+    role: MessageRole,
+    config: RuntimeConfig,
+    identityOwner = true
+  ): boolean {
     // Repeated scans are expected; update existing decorations without duplicating nodes.
     if (turn.getAttribute("data-mycodex-role") === role) {
-      this.updateIdentity(turn, role, config);
+      this.updateIdentity(turn, role, config, identityOwner);
       if (role === "assistant") this.decorateProse(turn, role, config);
       else this.clearProse(turn);
       return false;
@@ -21,14 +26,27 @@ export class Decorator {
     turn.setAttribute("data-mycodex-turn", "true");
     turn.setAttribute("data-mycodex-role", role);
     turn.classList.add("mc-turn", `mc-${role}`);
-    this.updateIdentity(turn, role, config);
+    this.updateIdentity(turn, role, config, identityOwner);
     if (role === "assistant") this.decorateProse(turn, role, config);
     return true;
   }
 
-  updateIdentity(turn: Element, role: MessageRole, config: RuntimeConfig): void {
+  updateIdentity(
+    turn: Element,
+    role: MessageRole,
+    config: RuntimeConfig,
+    identityOwner = true
+  ): void {
+    if (!identityOwner) {
+      this.clearIdentity(turn);
+      turn.setAttribute("data-mycodex-identity-owner", "false");
+      return;
+    }
+    turn.setAttribute("data-mycodex-identity-owner", "true");
     const person = role === "assistant" ? config.assistant : config.user;
-    let avatar = directChildByClass<HTMLImageElement>(turn, "mc-avatar");
+    const avatars = directChildrenByClass<HTMLImageElement>(turn, "mc-avatar");
+    for (const duplicate of avatars.slice(1)) duplicate.remove();
+    let avatar = avatars[0] ?? null;
     if (!avatar) {
       avatar = turn.ownerDocument.createElement("img");
       avatar.className = "mc-avatar";
@@ -45,7 +63,9 @@ export class Decorator {
       avatar.hidden = true;
     }
 
-    let nickname = directChildByClass<HTMLElement>(turn, "mc-nickname");
+    const nicknames = directChildrenByClass<HTMLElement>(turn, "mc-nickname");
+    for (const duplicate of nicknames.slice(1)) duplicate.remove();
+    let nickname = nicknames[0] ?? null;
     if (!nickname) {
       nickname = turn.ownerDocument.createElement("span");
       nickname.className = "mc-nickname";
@@ -99,16 +119,12 @@ export class Decorator {
   }
 
   undecorate(turn: Element): void {
-    for (const className of ["mc-avatar", "mc-nickname"]) {
-      const identity = directChildByClass(turn, className);
-      if (identity?.getAttribute("data-mycodex-created") === "true") {
-        identity.remove();
-      }
-    }
+    this.clearIdentity(turn);
     this.clearProse(turn);
     this.segmentState.delete(turn);
     turn.removeAttribute("data-mycodex-turn");
     turn.removeAttribute("data-mycodex-role");
+    turn.removeAttribute("data-mycodex-identity-owner");
     turn.classList.remove("mc-turn", "mc-user", "mc-assistant");
   }
 
@@ -116,6 +132,15 @@ export class Decorator {
     // Remove stale markers after virtualized or replaced conversation nodes disappear.
     for (const turn of Array.from(root.querySelectorAll("[data-mycodex-turn]"))) {
       if (!activeTurns.has(turn)) this.undecorate(turn);
+    }
+    for (const created of Array.from(
+      root.querySelectorAll(
+        ".mc-avatar[data-mycodex-created=true]," +
+          ".mc-nickname[data-mycodex-created=true]"
+      )
+    )) {
+      const owner = created.parentElement;
+      if (!owner || !activeTurns.has(owner)) created.remove();
     }
   }
 
@@ -141,6 +166,16 @@ export class Decorator {
       clearProseMarker(element);
     }
   }
+
+  private clearIdentity(turn: Element): void {
+    for (const className of ["mc-avatar", "mc-nickname"]) {
+      for (const identity of directChildrenByClass(turn, className)) {
+        if (identity.getAttribute("data-mycodex-created") === "true") {
+          identity.remove();
+        }
+      }
+    }
+  }
 }
 
 function sameElements(left: Element[], right: Element[]): boolean {
@@ -157,13 +192,11 @@ function clearProseMarker(element: Element): void {
   element.classList.remove("mc-prose");
 }
 
-function directChildByClass<T extends Element>(
+function directChildrenByClass<T extends Element>(
   parent: Element,
   className: string
-): T | null {
-  return (
-    Array.from(parent.children).find((child) => child.classList.contains(className)) as
-      | T
-      | undefined
-  ) ?? null;
+): T[] {
+  return Array.from(parent.children).filter((child) =>
+    child.classList.contains(className)
+  ) as T[];
 }

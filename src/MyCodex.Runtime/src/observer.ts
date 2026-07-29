@@ -20,7 +20,9 @@ export class RuntimeObserver {
         }
         if (mutation.type === "characterData") {
           const parent = mutation.target.parentElement;
-          return Boolean(parent && !parent.closest("[data-mycodex-turn=true]"));
+          return Boolean(
+            parent && !parent.closest("[data-mycodex-created=true]")
+          );
         }
         if (mutation.removedNodes.length > 0) return true;
         return Array.from(mutation.addedNodes).some(

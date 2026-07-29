@@ -216,14 +216,18 @@ public sealed class ConfigStore
 
     private static CalibrationConfig NormalizeCalibration(CalibrationConfig calibration)
     {
+        // Schema-1 single-click signatures did not contain sample/context proof.
+        // Invalidate only that calibration data; names, avatars and appearance stay intact.
         var normalized = calibration with
         {
-            UserTurn = calibration.UserTurn is null
+            UserTurn = !ElementSignatureValidator.IsValidatedMultiSample(
+                calibration.UserTurn)
                 ? null
-                : ElementSignatureValidator.Normalize(calibration.UserTurn),
-            AssistantTurn = calibration.AssistantTurn is null
+                : ElementSignatureValidator.Normalize(calibration.UserTurn!),
+            AssistantTurn = !ElementSignatureValidator.IsValidatedMultiSample(
+                calibration.AssistantTurn)
                 ? null
-                : ElementSignatureValidator.Normalize(calibration.AssistantTurn)
+                : ElementSignatureValidator.Normalize(calibration.AssistantTurn!)
         };
         if (!ElementSignatureValidator.AreDistinctRoles(
                 normalized.UserTurn,

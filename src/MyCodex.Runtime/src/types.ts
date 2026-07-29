@@ -54,6 +54,8 @@ export interface AppearanceConfig {
 
 export interface ElementSignature {
   schemaVersion: number;
+  sampleCount: number;
+  contextFingerprint: string;
   tagName: string;
   role: string | null;
   stableAttributes: Record<string, string>;
@@ -131,6 +133,7 @@ export interface MyCodexRuntimeApi {
   refresh(): RuntimeDiagnostics;
   applyConfig(config: RuntimeConfig): RuntimeDiagnostics;
   startCalibration(role: MessageRole): void;
+  stopCalibration(): void;
   destroy(): void;
   getDiagnostics(): RuntimeDiagnostics;
   getVersion(): RuntimeVersion;

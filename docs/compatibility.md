@@ -38,7 +38,6 @@ The generic DOM layer uses:
   categories;
 - ancestor tag/role chains;
 - child tag histograms;
-- left/right layout category and relative width;
 - capabilities such as Markdown, code, buttons, and tool surfaces;
 - a structural fingerprint containing no text.
 
@@ -54,13 +53,17 @@ cannot override a current high-confidence role. Calibration remains the fallback
 ## Signature
 
 An `ElementSignature` is data, not application-version code. Schema version 1
-contains tag, role, filtered attributes/classes, up to five ancestors,
-child-tag shape, capabilities, layout, and fingerprint. Calibration stores
-separate user and assistant signatures in `calibration.json`.
+now contains tag, role, filtered attributes/classes, up to five ancestors,
+child-tag shape, capabilities, a sample count, conversation-context
+fingerprint, and structural fingerprint. Layout fields remain readable for
+backward compatibility but are not used as a saved-coordinate fallback.
+Calibration stores separate user and assistant signatures in
+`calibration.json`.
 
 The scorer weights stable attributes and element shape more heavily than class
 tokens. A competing user/assistant score within `0.08` is ambiguous and remains
-unknown.
+unknown. A saved signature is eligible only when it represents at least three
+samples and its conversation-context fingerprint matches the current root.
 
 ## Capability detection
 
@@ -125,12 +128,19 @@ calibration, but skips skin mutation on unknown structures.
 
 Pointer events are captured in the renderer. `event.composedPath()` is inspected
 instead of treating a nested text/span target as the whole turn. Semantic turn
-containers are preferred; a bounded structural heuristic chooses a likely
-wrapper otherwise. Hover applies only a temporary namespaced outline.
+containers are preferred; a bounded structural heuristic may climb only to a
+legal message wrapper inside a confirmed conversation root. Composer, editor,
+navigation, dialog, code, Diff, tool, status, toolbar, control, and
+MyCodex-created surfaces are rejected.
 
-Clicking produces a structural signature in memory and returns it through the
-event-only bridge. Escape cancels. Repeating a step is retry/undo for that role.
-No `textContent` is serialized, logged, or fingerprinted.
+Each role collects three different message roots. Their stable majority
+features form a consensus signature with no coordinates, text, generated
+classes, or list indices. Before emitting a result, the rule must match legal
+same-role messages in the current conversation at the validation threshold,
+including at least one held-out message that was not selected as a sample.
+Escape cancels. Old single-sample signatures are invalidated during
+configuration load without resetting names, avatars, appearance, language, or
+other preferences. No `textContent` is serialized, logged, or fingerprinted.
 
 ## Update lifecycle
 
@@ -146,7 +156,7 @@ No `textContent` is serialized, logged, or fingerprinted.
 Expected recovery:
 
 - small class/wrapper update: automatic matching;
-- attribute/layout/depth changes: user recalibration;
+- attribute/context/depth changes: user recalibration;
 - medium DOM redesign: MyCodex DOM matcher/profile update;
 - large renderer or CDP change: MyCodex backend release.
 

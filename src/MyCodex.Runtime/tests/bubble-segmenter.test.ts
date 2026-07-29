@@ -74,6 +74,23 @@ test("whole mode joins all contiguous safe prose", () => {
   );
 });
 
+test("whole mode uses one existing Markdown surface including protected children", () => {
+  const article = turn(
+    `<div class="markdownContent-current">
+       <p>Opening.</p>
+       <pre><code>const value = 1;</code></pre>
+       <p>Closing.</p>
+     </div>`
+  );
+
+  const segments = segmentAssistantProse(article, "Whole");
+
+  assert.equal(segments.length, 1);
+  assert.equal(segments[0]!.element.classList.contains("markdownContent-current"), true);
+  assert.equal(segments[0]!.position, "single");
+  assert.ok(segments[0]!.element.querySelector("pre code"));
+});
+
 test("one very long paragraph is never cut in the middle", () => {
   const text = `${"Complete sentence. ".repeat(100)}`;
   const article = turn(`<p>${text}</p>`);

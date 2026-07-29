@@ -57,6 +57,25 @@ export function stableAttributes(element: Element): Record<string, string> {
     if (!keep || attribute.value.length > 80) continue;
     result[attribute.name] = attribute.value;
   }
+  // Unit keys identify stable containers but do not encode a role. Preserve
+  // text-free descendant evidence so user and assistant units do not collapse
+  // into the same calibration fingerprint.
+  const hasUserBubble =
+    element.matches("[data-user-message-bubble]") ||
+    Boolean(element.querySelector("[data-user-message-bubble]"));
+  if (hasUserBubble) {
+    result["data-user-message-bubble"] = "present";
+  } else if (
+    element.matches(
+      "[data-content-type=prose],[data-testid*=markdown],[class*=markdownContent]"
+    ) ||
+    element.querySelector(
+      "p,blockquote,ul,ol,h1,h2,h3,h4," +
+        "[data-content-type=prose],[data-testid*=markdown],[class*=markdownContent]"
+    )
+  ) {
+    result["data-content-type"] ??= "prose";
+  }
   return result;
 }
 
@@ -85,6 +104,18 @@ export function structuralFingerprint(element: Element): string {
     children,
     element.querySelector("pre,code") ? "code" : "",
     element.querySelector("button,[role=button]") ? "buttons" : ""
+  ].join(";");
+}
+
+export function rootContextFingerprint(element: Element): string {
+  const attributes = Object.entries(stableAttributes(element))
+    .map(([key, value]) => `${key}=${value}`)
+    .join("|");
+  return [
+    element.tagName.toLowerCase(),
+    element.getAttribute("role") ?? "",
+    attributes,
+    element.classList.contains("thread-scroll-container") ? "thread" : ""
   ].join(";");
 }
 
@@ -127,4 +158,36 @@ export function isInteractiveOrTool(element: Element): boolean {
   return /button|toolbar|status|dialog|menu|log/i.test(role) ||
     /tool|command|terminal|diff|approval|action|status/i.test(testId) ||
     /tool|command|terminal|diff|approval|status/i.test(contentType);
+}
+
+const NON_CONVERSATION_REGION_SELECTOR = [
+  "header",
+  "nav",
+  "aside",
+  "footer",
+  "form",
+  "dialog",
+  "[role=dialog]",
+  "[role=navigation]",
+  "[role=toolbar]",
+  "[role=status]",
+  "[contenteditable=true]",
+  "textarea",
+  "input",
+  "select",
+  "[data-testid*=composer]",
+  "[data-testid*=prompt]",
+  "[data-testid*=sidebar]",
+  "[data-testid*=navigation]",
+  "[data-testid*=titlebar]",
+  "[data-content-type=composer]",
+  "[data-content-type=input]"
+].join(",");
+
+export function isInNonConversationRegion(element: Element): boolean {
+  return Boolean(
+    element.closest(
+      `${NON_CONVERSATION_REGION_SELECTOR},[data-mycodex-created=true]`
+    )
+  );
 }

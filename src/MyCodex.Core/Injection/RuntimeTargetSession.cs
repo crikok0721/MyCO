@@ -138,6 +138,27 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
         }
     }
 
+    public async Task StopCalibrationAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            ThrowIfDisposed();
+            await _client.SendCommandAsync(
+                "Runtime.evaluate",
+                new
+                {
+                    expression = "window.__MYCODEX_RUNTIME__?.stopCalibration?.()"
+                },
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _operationGate.Release();
+        }
+    }
+
     public async Task<JsonElement> GetDiagnosticsAsync(
         CancellationToken cancellationToken = default)
     {

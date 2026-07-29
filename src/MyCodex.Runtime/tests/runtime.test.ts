@@ -188,7 +188,7 @@ test("ensureActive repairs a removed style and a replaced conversation root", ()
   dom.window.document.querySelector("#mycodex-runtime-style")!.remove();
   const replacement = dom.window.document.createElement("main");
   replacement.innerHTML = `
-    <div class="group flex min-w-0 flex-col">
+    <div data-content-search-unit-key="assistant-unit" class="group flex min-w-0 flex-col">
       <h4 class="sr-only">Assistant</h4>
       <div class="_markdownContent_changed_42"><p>New response</p></div>
     </div>`;
@@ -276,6 +276,107 @@ test("current Codex unit anchors decorate identities and assistant prose only", 
   assert.equal(diagnostics.decoratedUserTurns, 1);
   assert.equal(diagnostics.decoratedAssistantTurns, 1);
   assert.equal(diagnostics.assistantBubbleBlocks, 1);
+  runtime.destroy();
+});
+
+test("one logical turn owns one identity per role across multiple assistant units", () => {
+  const dom = new JSDOM(
+    `<!doctype html><html><head></head><body>
+      <main class="thread-scroll-container">
+        <section data-content-search-turn-key="logical-turn">
+          <div data-content-search-unit-key="user-unit">
+            <div data-user-message-bubble><p>User prompt</p></div>
+          </div>
+          <div data-content-search-unit-key="assistant-unit-1">
+            <div class="markdownContent-first"><p>First assistant section.</p></div>
+          </div>
+          <div data-testid="tool-card">Tool status</div>
+          <div data-content-search-unit-key="assistant-unit-2">
+            <div class="markdownContent-second"><p>Second assistant section.</p></div>
+          </div>
+        </section>
+      </main>
+    </body></html>`,
+    { url: "app://-/index.html", pretendToBeVisual: true }
+  );
+  const runtime = new MyCodexRuntime(dom.window.document);
+  const config = defaultConfig();
+  config.appearance.bubbleDisplayMode = "Whole";
+  runtime.applyConfig(config);
+
+  const section = dom.window.document.querySelector(
+    "[data-content-search-turn-key]"
+  )!;
+  assert.equal(section.querySelectorAll(".mc-avatar").length, 2);
+  assert.equal(section.querySelectorAll(".mc-nickname").length, 2);
+  assert.equal(
+    section.querySelectorAll('[data-mycodex-role="assistant"]').length,
+    2
+  );
+  assert.equal(
+    section.querySelectorAll('[data-mycodex-prose="assistant"]').length,
+    2
+  );
+  assert.equal(
+    section.querySelectorAll(
+      '[data-mycodex-role="assistant"][data-mycodex-identity-owner="true"]'
+    ).length,
+    1
+  );
+  runtime.destroy();
+});
+
+test("empty workspace and composer surfaces never receive identities", () => {
+  const dom = new JSDOM(
+    `<!doctype html><html><head></head><body>
+      <nav><p>Project navigation</p></nav>
+      <main><div class="group flex min-w-0 flex-col"><p>What should we build?</p></div></main>
+      <form data-testid="composer"><textarea></textarea><p>Draft helper</p></form>
+    </body></html>`,
+    { url: "app://-/index.html", pretendToBeVisual: true }
+  );
+  const runtime = new MyCodexRuntime(dom.window.document);
+  const diagnostics = runtime.applyConfig(defaultConfig());
+  assert.equal(dom.window.document.querySelector(".mc-avatar"), null);
+  assert.equal(dom.window.document.querySelector(".mc-nickname"), null);
+  assert.equal(dom.window.document.querySelector("[data-mycodex-turn]"), null);
+  assert.equal(diagnostics.decoratedUserTurns, 0);
+  assert.equal(diagnostics.decoratedAssistantTurns, 0);
+  runtime.destroy();
+});
+
+test("reconcile removes duplicate and orphaned identity nodes", () => {
+  const dom = fixture();
+  const runtime = new MyCodexRuntime(dom.window.document);
+  runtime.applyConfig(defaultConfig());
+  const assistant = dom.window.document.querySelector(
+    '[data-message-author-role="assistant"]'
+  )!;
+  assistant.querySelector(".mc-avatar")!.cloneNode(true);
+  const duplicate = assistant.querySelector(".mc-avatar")!.cloneNode(true);
+  assistant.append(duplicate);
+  const orphan = dom.window.document.createElement("span");
+  orphan.className = "mc-nickname";
+  orphan.dataset.mycodexCreated = "true";
+  dom.window.document.body.append(orphan);
+
+  runtime.refresh();
+
+  assert.equal(assistant.querySelectorAll(":scope > .mc-avatar").length, 1);
+  assert.equal(dom.window.document.body.contains(orphan), false);
+  runtime.destroy();
+});
+
+test("bubble CSS keeps every rendered surface fully rounded", () => {
+  const dom = fixture();
+  const runtime = new MyCodexRuntime(dom.window.document);
+  runtime.applyConfig(defaultConfig());
+  const css = dom.window.document.querySelector<HTMLStyleElement>(
+    "#mycodex-runtime-style"
+  )!.textContent!;
+
+  assert.doesNotMatch(css, /border-(?:top|bottom)-(?:left|right)-radius:\s*0/);
+  assert.doesNotMatch(css, /border-radius:\s*0\s*!important/);
   runtime.destroy();
 });
 

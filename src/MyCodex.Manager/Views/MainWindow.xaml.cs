@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Threading;
 using MyCodex.Manager.ViewModels;
 using MyCodex.Manager.Services;
@@ -14,6 +13,8 @@ public partial class MainWindow : Window
     private bool _shutdownInProgress;
     private bool _exitRequested;
     private readonly TrayWindowStateMachine _presentation = new();
+    private WindowState _stateBeforeTray = WindowState.Normal;
+    private WindowState _lastNonMinimizedState = WindowState.Normal;
 
     public MainWindow(MainWindowViewModel viewModel)
     {
@@ -24,21 +25,21 @@ public partial class MainWindow : Window
 
     public MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext;
 
-    private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs eventArgs)
-    {
-        if (eventArgs.ClickCount == 2)
-        {
-            WindowState = WindowState == WindowState.Maximized
-                ? WindowState.Normal
-                : WindowState.Maximized;
-            return;
-        }
-        DragMove();
-    }
-
     private void Minimize_Click(object sender, RoutedEventArgs eventArgs)
     {
-        WindowState = WindowState.Minimized;
+        SystemCommands.MinimizeWindow(this);
+    }
+
+    private void MaximizeRestore_Click(object sender, RoutedEventArgs eventArgs)
+    {
+        if (WindowState == WindowState.Maximized)
+        {
+            SystemCommands.RestoreWindow(this);
+        }
+        else
+        {
+            SystemCommands.MaximizeWindow(this);
+        }
     }
 
     private void Close_Click(object sender, RoutedEventArgs eventArgs)
@@ -48,24 +49,39 @@ public partial class MainWindow : Window
 
     public void PrepareForBackground()
     {
-        _presentation.Hide();
+        if (!_presentation.Hide())
+        {
+            return;
+        }
+        _stateBeforeTray = WindowState == WindowState.Minimized
+            ? _lastNonMinimizedState
+            : WindowState;
         ShowInTaskbar = false;
-        WindowState = WindowState.Normal;
         Hide();
     }
 
     public void RestoreFromTray()
     {
-        _presentation.Restore();
-        ShowInTaskbar = true;
-        if (WindowState == WindowState.Minimized)
+        if (!_presentation.Restore() && IsVisible)
         {
-            WindowState = WindowState.Normal;
+            if (WindowState == WindowState.Minimized)
+            {
+                SystemCommands.RestoreWindow(this);
+            }
+            ActivateWindow();
+            return;
         }
+        ShowInTaskbar = true;
         if (!IsVisible)
         {
             Show();
         }
+        WindowState = _stateBeforeTray;
+        ActivateWindow();
+    }
+
+    private void ActivateWindow()
+    {
         Activate();
         Topmost = true;
         Topmost = false;
@@ -82,12 +98,18 @@ public partial class MainWindow : Window
     {
         if (WindowState != WindowState.Minimized)
         {
-            return;
+            _lastNonMinimizedState = WindowState;
         }
-        _presentation.Hide();
-        ShowInTaskbar = false;
-        Hide();
-        WindowState = WindowState.Normal;
+        var maximized = WindowState == WindowState.Maximized;
+        MaximizeGlyph.Visibility = maximized
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        RestoreGlyph.Visibility = maximized
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        MaximizeRestoreButton.SetResourceReference(
+            System.Windows.Controls.ToolTipService.ToolTipProperty,
+            maximized ? "RestoreWindow" : "MaximizeWindow");
     }
 
     protected override async void OnClosing(CancelEventArgs eventArgs)

@@ -46,12 +46,12 @@
     <sys:String x:Key="CalibrationTitle">Calibration</sys:String>
     <sys:String x:Key="CalibrationSubtitle">Teach MyCodex the current renderer structure without saving chat text.</sys:String>
     <sys:String x:Key="CurrentSignatureState">Current signature state</sys:String>
-    <sys:String x:Key="SignatureDescription">Signatures contain tag names, roles, stable semantic attributes, ancestor structure, layout ratios, and capabilities. Message text is never stored.</sys:String>
-    <sys:String x:Key="SelectAssistantTurn">Select an assistant turn</sys:String>
-    <sys:String x:Key="SelectAssistantDescription">Choose the outer turn container, not a code block, diff, status line, or toolbar.</sys:String>
+    <sys:String x:Key="SignatureDescription">Signatures combine three text-free samples using stable semantic attributes, ancestor structure, and capabilities. Message text and screen coordinates are never stored.</sys:String>
+    <sys:String x:Key="SelectAssistantTurn">Select three assistant turns</sys:String>
+    <sys:String x:Key="SelectAssistantDescription">Click inside three varied replies. Code, Diff, status, toolbar, and input surfaces are rejected.</sys:String>
     <sys:String x:Key="CalibrateAssistant">Calibrate assistant</sys:String>
-    <sys:String x:Key="SelectUserTurn">Select a user turn</sys:String>
-    <sys:String x:Key="SelectUserDescription">Pick a normal user message. Press Escape in Codex to cancel selection without changing anything.</sys:String>
+    <sys:String x:Key="SelectUserTurn">Select three user turns</sys:String>
+    <sys:String x:Key="SelectUserDescription">Click inside three different user messages. Press Escape in Codex to cancel without changing settings.</sys:String>
     <sys:String x:Key="CalibrateUser">Calibrate user</sys:String>
     <sys:String x:Key="FailClosed">Fail closed</sys:String>
     <sys:String x:Key="FailClosedDescription">Low confidence means Unknown → keep original. A missing bubble is safer than a broken Codex control.</sys:String>
@@ -89,7 +89,7 @@
     <sys:String x:Key="OnboardingDescription">MyCodex adds local avatars, nicknames, and compact chat bubbles while preserving native code, diff, tool, approval, and toolbar UI.</sys:String>
     <sys:String x:Key="OnboardingStepOne">1   Select the detected official Desktop app</sys:String>
     <sys:String x:Key="OnboardingStepTwo">2   Choose avatars and nicknames in Appearance</sys:String>
-    <sys:String x:Key="OnboardingStepThree">3   Start Codex with MyCodex, then calibrate one user and assistant turn</sys:String>
+    <sys:String x:Key="OnboardingStepThree">3   Start Codex with MyCodex, then calibrate three user and three assistant turns</sys:String>
     <sys:String x:Key="OnboardingPrivacy">Everything runs locally. No telemetry, credentials, cookies, or network interception.</sys:String>
     <sys:String x:Key="OnboardingContinue">Continue to MyCodex</sys:String>
 
@@ -132,7 +132,7 @@
     <sys:String x:Key="StatusLanguageSaved">Interface language saved.</sys:String>
     <sys:String x:Key="StatusSkinDisabled">Skin disabled</sys:String>
     <sys:String x:Key="StatusAppearanceApplied">Appearance applied</sys:String>
-    <sys:String x:Key="StatusSelectTurnFormat">Select a {0} turn in Codex</sys:String>
+    <sys:String x:Key="StatusSelectTurnFormat">Select three different {0} turns in Codex</sys:String>
     <sys:String x:Key="StatusDisconnected">Disconnected</sys:String>
     <sys:String x:Key="StatusReconnectPending">Renderer reconnect pending</sys:String>
     <sys:String x:Key="StatusWaitingForRenderer">Waiting for Codex to become operational…</sys:String>
@@ -150,6 +150,9 @@
     <sys:String x:Key="StartExitedBeforeReady">Codex exited before its renderer became ready after the bounded retries.</sys:String>
     <sys:String x:Key="StartRendererNotReady">Codex is still available, but its renderer did not become ready and MyCodex was not applied.</sys:String>
     <sys:String x:Key="StartShutdownNotReady">The old verified Codex instance did not fully release its process resources in time. No new instance was started.</sys:String>
+    <sys:String x:Key="RestartIdentityUnsafe">MyCodex could not uniquely verify the Codex instance to close. No process was terminated. Exit other Codex instances and try again.</sys:String>
+    <sys:String x:Key="RestartForceCloseFailed">The verified Codex process tree could not be closed safely. MyCodex did not broaden the termination scope. Exit Codex manually and try again.</sys:String>
+    <sys:String x:Key="RestartShutdownFailed">Codex did not complete a safe shutdown. Check that no other Codex instance is exiting or updating, then try again.</sys:String>
     <sys:String x:Key="ErrorSaveAppearance">Unable to save appearance</sys:String>
     <sys:String x:Key="ErrorEnableSkin">Unable to enable skin</sys:String>
     <sys:String x:Key="ErrorDisableSkin">Unable to disable skin</sys:String>
@@ -183,9 +186,12 @@
     <sys:String x:Key="TraySettings">Settings</sys:String>
     <sys:String x:Key="TrayExit">Exit MyCodex</sys:String>
     <sys:String x:Key="MinimizeToTray">Minimize to notification area</sys:String>
+    <sys:String x:Key="MinimizeWindow">Minimize window</sys:String>
+    <sys:String x:Key="MaximizeWindow">Maximize window</sys:String>
+    <sys:String x:Key="RestoreWindow">Restore window</sys:String>
     <sys:String x:Key="ExitMyCodex">Exit MyCodex</sys:String>
     <sys:String x:Key="CloseChoiceTitle">Close MyCodex</sys:String>
-    <sys:String x:Key="CloseChoiceDescription">What would you like MyCodex to do? Codex will keep running if you exit MyCodex.</sys:String>
+    <sys:String x:Key="CloseChoiceDescription">What would you like MyCodex to do?</sys:String>
     <sys:String x:Key="CloseChoiceExit">Exit MyCodex</sys:String>
     <sys:String x:Key="CloseChoiceMinimize">Minimize to notification area</sys:String>
     <sys:String x:Key="CloseChoiceCancel">Cancel</sys:String>

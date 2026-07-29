@@ -126,9 +126,11 @@ function runtimeCss(): string {
 [data-mycodex-turn="true"] {
   position: relative !important;
   box-sizing: border-box !important;
+  overflow: visible !important;
+}
+[data-mycodex-identity-owner="true"] {
   min-height: calc(var(--mc-avatar-size) + 22px) !important;
   padding-top: 22px !important;
-  overflow: visible !important;
 }
 [data-mycodex-role="assistant"] {
   padding-left: calc(var(--mc-avatar-size) + 12px) !important;
@@ -187,28 +189,7 @@ function runtimeCss(): string {
   background: var(--mc-assistant-bubble) !important;
   color: var(--mc-assistant-text) !important;
   overflow-wrap: anywhere !important;
-}
-[data-mycodex-bubble-position="start"] {
-  width: min(var(--mc-message-max-width), 100%) !important;
-  margin-bottom: 0 !important;
-  padding-bottom: calc(var(--mc-bubble-padding-y) / 2) !important;
-  border-bottom-left-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
-}
-[data-mycodex-bubble-position="middle"] {
-  width: min(var(--mc-message-max-width), 100%) !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  padding-top: calc(var(--mc-bubble-padding-y) / 2) !important;
-  padding-bottom: calc(var(--mc-bubble-padding-y) / 2) !important;
-  border-radius: 0 !important;
-}
-[data-mycodex-bubble-position="end"] {
-  width: min(var(--mc-message-max-width), 100%) !important;
-  margin-top: 0 !important;
-  padding-top: calc(var(--mc-bubble-padding-y) / 2) !important;
-  border-top-left-radius: 0 !important;
-  border-top-right-radius: 0 !important;
+  background-clip: padding-box !important;
 }
 [data-mycodex-prose] > :first-child { margin-top: 0 !important; }
 [data-mycodex-prose] > :last-child { margin-bottom: 0 !important; }

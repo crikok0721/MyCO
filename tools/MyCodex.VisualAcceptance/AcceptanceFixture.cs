@@ -36,6 +36,9 @@ internal static class AcceptanceFixture
           const diff = document.getElementById("acceptance-diff");
           const status = document.getElementById("acceptance-status");
           const toolbar = document.getElementById("acceptance-toolbar");
+          const header = document.querySelector(".acceptance-header");
+          const welcome = document.getElementById("acceptance-welcome");
+          const composer = document.getElementById("acceptance-composer");
           const nativeUserBubble = document.getElementById("acceptance-native-user-bubble");
           return {
             fixtureVisible: !!root && getComputedStyle(root).display !== "none",
@@ -63,7 +66,14 @@ internal static class AcceptanceFixture
             toolPreserved: !tool?.hasAttribute("data-mycodex-prose"),
             diffPreserved: !diff?.hasAttribute("data-mycodex-prose"),
             statusPreserved: !status?.hasAttribute("data-mycodex-prose"),
-            toolbarPreserved: !toolbar?.hasAttribute("data-mycodex-prose")
+            toolbarPreserved: !toolbar?.hasAttribute("data-mycodex-prose"),
+            nonConversationRegionsClean:
+              [header, welcome, composer].every(region =>
+                !!region &&
+                !region.hasAttribute("data-mycodex-turn") &&
+                !region.querySelector(
+                  "[data-mycodex-turn],.mc-avatar,.mc-nickname"
+                ))
           };
         })()
         """;
@@ -349,6 +359,13 @@ internal static class AcceptanceFixture
                   </div>
                 </section>
               </main>
+              <section id="acceptance-welcome" aria-label="empty state">
+                <p>What should we build in this synthetic workspace?</p>
+              </section>
+              <form id="acceptance-composer" data-testid="composer">
+                <textarea aria-label="prompt">Synthetic prompt</textarea>
+                <button type="button">Send</button>
+              </form>
             </div>`;
           return {
             runId,
