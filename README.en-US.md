@@ -1,52 +1,49 @@
-# MyCO
+# It's MyCO!!!!!
 
-> It's MyCO!!!!!
+![MyCO home-page cover](./assets/MyCO首页宣传图.jpg)
 
-MyCO `0.3.0-beta.1` is a local Windows manager that adds custom assistant and
-user avatars and nicknames plus compact assistant prose bubbles to the official
-Codex / ChatGPT Desktop conversation view. Official user bubbles stay native.
+[Simplified Chinese](README.md)
 
-It is an independent GUI manager, CDP runtime injector, and DOM skin engine.
-It is not an overlay, OCR renderer, DLL injector, browser extension, API
-client, or `app.asar` patch.
+## Overview
 
-[简体中文（主文档）](README.md)
+MyCO is a lightweight, open-source Codex interface-customization tool. Launch
+Codex through MyCO to personalize the Assistant avatar, nickname, chat bubbles,
+and bubble colors for a more immersive conversation experience. ～(∠・ω< )⌒★
 
-## Screenshot
+MyCO can launch Codex as an associated application. Once the initial setup is
+complete, every Codex launch automatically loads your saved character profile
+and interface settings—no repeated restart cycle is needed.
 
-![Synthetic Reference Dark preview](docs/reference/reference-dark.svg)
+The launcher includes position calibration and palette controls. If an avatar,
+nickname, or bubble is misplaced, calibration can rematch its display position;
+the palette lets you freely adjust chat-bubble colors.
 
-This is a project-owned synthetic preview. It contains no OpenAI assets,
-application bundle, or conversation data.
+MyCO also offers optional smart bubble splitting, which divides long replies
+into naturally sized consecutive bubbles for a more authentic instant-messaging
+feel.
+
+**Tip: pairing MyCO with a distilled-character skill can produce unexpectedly delightful results. ο(=•ω＜=)ρ⌒☆**
+
+## Screenshots
+
+![Screenshot 1](./assets/ScreenShot_Example_1.png)
+![Screenshot 2](./assets/ScreenShot_Example_2.png)
 
 ## Features
 
-- Assistant and user avatars and nicknames
-- Circular, center-cropped avatars by default
-- Instant, persisted English, Simplified Chinese, and Traditional Chinese UI
-- Assistant bubbles that follow the current Codex renderer theme with separate
-  validated dark and light palettes
-- Independent Manager Dark, Light, and live Windows System modes
-- Minimize-to-tray, tray restore, and activation of an already-hidden instance
-- One official multi-resolution icon across windows, taskbar, Alt+Tab, tray,
-  and the release executable
-- Close choices for Exit MyCO, Minimize to tray, or Cancel; exiting leaves
-  Codex running
-- One-click verified restart with stable shutdown, renderer readiness, and
-  automatic Runtime application
-- Persisted Automatic grouping and Whole response assistant-bubble modes
-- Optional per-user login startup and safe Codex startup after MyCO starts
-- Left-aligned assistant and right-aligned user layout
-- Prose-only assistant bubbles: code, diffs, tool cards, status, toolbars, and
-  native controls remain under the official UI
-- Native user bubbles are never recolored, resized, padded, or repositioned
-- Manual structural calibration with hover highlighting and Escape-to-cancel
-- Confidence-based matching that ignores generated CSS class hashes
-- Compatibility probe, degraded mode, and fail-closed safe mode
-- Live configuration updates over CDP
-- Runtime/style health checks, SPA-root self-healing, automatic target
-  reinjection, and reliable disable/destroy cleanup
-- Privacy-safe diagnostics, local-only settings, and zero telemetry
+- Assistant/User avatars and nicknames
+- Center-cropped circular avatars by default
+- Instant, persistent English, Simplified Chinese, and Traditional Chinese UI
+  switching
+- Assistant bubbles automatically follow Codex's light/dark theme and retain
+  independent two-palette settings
+- Automatic split bubbles or one complete-response bubble, persisted and
+  applied immediately
+- Native Codex User bubbles remain supported
+- Structural-signature and confidence-based Assistant/User role recognition
+- Manual message-container calibration
+- Reliable `destroy()` on exit restores the official DOM/CSS
+- Local redacted diagnostics and zero telemetry
 
 ## How it works
 
@@ -353,3 +350,53 @@ synthetic and tests must never include real Desktop DOM snapshots or chat data.
 MyCO is an independent open-source project. It is not affiliated with,
 endorsed by, or sponsored by OpenAI. It requires an official Codex / ChatGPT
 Desktop installation and does not redistribute any part of that application.
+
+MyCO does not provide, host, package, modify, crack, or distribute installation
+packages, source code, binaries, resource files, or any components of Codex,
+ChatGPT Desktop, or other OpenAI software. Users must download and install
+official software through OpenAI's official channels and comply with the latest
+OpenAI terms, software licenses, and applicable local laws. This project is not
+intended for reverse engineering, theft, copying, or bypassing account,
+subscription, usage, security, access-control, or other platform restrictions.
+
+Because the official desktop client may change at any time, MyCO does not
+guarantee permanent compatibility, continuous availability, or absolute
+stability. Any loss caused by software updates, system environments,
+third-party dependencies, user configuration, or improper operation is the
+user's responsibility.
+
+The names, avatars, conversations, and data shown in screenshots are fictional
+examples for demonstration only. Project icons and some visual assets may be
+AI-generated or AI-assisted; they are not intended to depict real people or to
+imitate or infringe any third-party copyright, trademark, portrait, or other
+rights. If you believe an asset is infringing or misleading, please contact the
+maintainer with the relevant location, proof of rights, and requested remedy.
+
+**By downloading, installing, copying, modifying, or using MyCO, you confirm
+that you have read, understood, and accepted this entire disclaimer.**
+
+## A final note
+
+MyCO began after an argument with my partner. She was gentle rather than angry,
+but I still could not find a good way to comfort her. I distilled hundreds of
+thousands of our chat messages into skills so I could repeatedly explore how to
+respond more thoughtfully.
+
+Those skills came surprisingly close to her voice, but something still felt
+missing. That led to MyCO: giving Codex an avatar and nickname made the
+experience feel much more present.
+
+The original approach was very different. To avoid breakage from official
+updates, version one used transparent display rather than modifying injection,
+but it was neither usable nor responsive enough. The current front-end injection
+approach works much better, with one important caveat: any official Codex update
+can break it. MyCO therefore cannot promise permanent stability. ≧ ﹏ ≦
+
+The project was initially called MyCodex, simply meaning a customized Codex,
+but GitHub already had many projects with that name. Removing a few letters
+produced MyCO. The name, icon, and the fictional “Feiyezi” shown in the
+screenshots all grew from that same spontaneous idea.
+
+MyCO is still an immature project with plenty to improve. Contributions, issue
+reports, and maintenance help are sincerely welcome. Thank you for using and
+contributing to MyCO!
