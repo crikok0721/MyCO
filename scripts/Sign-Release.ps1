@@ -11,7 +11,9 @@ param(
 
     [string]$ExpectedSubject = "CN=Crikok",
 
-    [string]$TimestampUrl = ""
+    [string]$TimestampUrl = "",
+
+    [int]$SignTimeoutSeconds = 60
 )
 
 $ErrorActionPreference = "Stop"
@@ -30,28 +32,89 @@ if (-not (Test-Path -LiteralPath $resolvedCertificate -PathType Leaf)) {
     throw "Signing certificate does not exist: $resolvedCertificate"
 }
 
-$certificate = Import-PfxCertificate `
-    -FilePath $resolvedCertificate `
-    -CertStoreLocation "Cert:\CurrentUser\My" `
-    -Password $CertificatePassword `
-    -Exportable:$false
+$signTool = Get-ChildItem `
+    -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" `
+    -Recurse `
+    -Filter "signtool.exe" `
+    -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
+    Sort-Object FullName -Descending |
+    Select-Object -First 1
+
+if ($null -eq $signTool) {
+    throw "SignTool was not found. Install the Windows SDK signing tools."
+}
+
+$plainPassword = [System.Net.NetworkCredential]::new(
+    "",
+    $CertificatePassword).Password
+$certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new(
+    $resolvedCertificate,
+    $plainPassword,
+    [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::EphemeralKeySet)
 
 if ($certificate.Subject -ne $ExpectedSubject) {
-    Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($certificate.Thumbprint)" -Force
     throw "Signing certificate subject '$($certificate.Subject)' does not match '$ExpectedSubject'."
 }
 
-$verificationStores = @()
-try {
-    foreach ($storeName in @("Root", "TrustedPublisher")) {
-        $store = New-Object System.Security.Cryptography.X509Certificates.X509Store(
-            $storeName,
-            [System.Security.Cryptography.X509Certificates.StoreLocation]::CurrentUser)
-        $store.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
-        $store.Add($certificate)
-        $verificationStores += $store
+function Invoke-DirectPfxSigning {
+    param(
+        [Parameter(Mandatory)]
+        [string]$FilePath
+    )
+
+    $arguments = @(
+        "sign",
+        "/f", $resolvedCertificate,
+        "/p", $plainPassword,
+        "/fd", "SHA256",
+        "/d", "MyCO")
+    if (-not [string]::IsNullOrWhiteSpace($TimestampUrl)) {
+        $arguments += @("/tr", $TimestampUrl, "/td", "SHA256")
+    }
+    $arguments += $FilePath
+
+    if ($arguments | Where-Object { $_.Contains('"') }) {
+        throw "Signing arguments must not contain double quotes."
     }
 
+    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $signTool.FullName
+    $startInfo.Arguments = ($arguments | ForEach-Object { '"' + $_ + '"' }) -join " "
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+
+    $process = [System.Diagnostics.Process]::new()
+    $process.StartInfo = $startInfo
+    try {
+        Write-Host "Signing '$FilePath' from the ephemeral PFX file."
+        [void]$process.Start()
+
+        if (-not $process.WaitForExit($SignTimeoutSeconds * 1000)) {
+            $process.Kill()
+            throw "Signing '$FilePath' exceeded the $SignTimeoutSeconds-second timeout."
+        }
+
+        $output = $process.StandardOutput.ReadToEnd()
+        $errorOutput = $process.StandardError.ReadToEnd()
+        if (-not [string]::IsNullOrWhiteSpace($output)) {
+            Write-Host $output.Trim()
+        }
+        if (-not [string]::IsNullOrWhiteSpace($errorOutput)) {
+            Write-Warning $errorOutput.Trim()
+        }
+        if ($process.ExitCode -ne 0) {
+            throw "Signing '$FilePath' failed with exit code $($process.ExitCode)."
+        }
+    }
+    finally {
+        $process.Dispose()
+    }
+}
+
+try {
     $ownedFiles = Get-ChildItem -LiteralPath $resolvedPublish -Recurse -File |
         Where-Object {
             $_.Name -eq "MyCO.exe" -or
@@ -64,28 +127,18 @@ try {
     }
 
     foreach ($file in $ownedFiles) {
-        $signParameters = @{
-            FilePath = $file.FullName
-            Certificate = $certificate
-            HashAlgorithm = "SHA256"
-        }
-        if (-not [string]::IsNullOrWhiteSpace($TimestampUrl)) {
-            $signParameters.TimestampServer = $TimestampUrl
-        }
+        Invoke-DirectPfxSigning -FilePath $file.FullName
 
-        Write-Host "Signing '$($file.FullName)' with Windows Authenticode."
-        $signResult = Set-AuthenticodeSignature @signParameters
-        if ($null -eq $signResult.SignerCertificate) {
-            throw "Authenticode signing did not attach a certificate to '$($file.FullName)'."
-        }
-        if ($signResult.SignerCertificate.Thumbprint -ne $certificate.Thumbprint) {
-            throw "Authenticode signing used an unexpected certificate for '$($file.FullName)'."
-        }
-
-        Write-Host "Verifying '$($file.FullName)' with Get-AuthenticodeSignature."
         $signature = Get-AuthenticodeSignature -LiteralPath $file.FullName
-        if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
+        if ($signature.Status -in @(
+            [System.Management.Automation.SignatureStatus]::NotSigned,
+            [System.Management.Automation.SignatureStatus]::HashMismatch,
+            [System.Management.Automation.SignatureStatus]::NotSupported,
+            [System.Management.Automation.SignatureStatus]::Incompatible)) {
             throw "Authenticode status for '$($file.FullName)' is '$($signature.Status)'."
+        }
+        if ($null -eq $signature.SignerCertificate) {
+            throw "No signer certificate was embedded in '$($file.FullName)'."
         }
         if ($signature.SignerCertificate.Thumbprint -ne $certificate.Thumbprint) {
             throw "Unexpected signer certificate for '$($file.FullName)'."
@@ -102,19 +155,10 @@ try {
             $TimestampUrl
         }
         SignedFiles = $ownedFiles.Count
-        Trust = "Verified only after temporary local trust of the self-signed certificate"
+        Trust = "Self-signed; signature identity verified without adding local trust"
     }
 }
 finally {
-    foreach ($store in $verificationStores) {
-        try {
-            $store.Remove($certificate)
-            $store.Close()
-        }
-        catch {
-            Write-Warning "Could not remove temporary verification trust: $($_.Exception.Message)"
-        }
-    }
-
-    Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($certificate.Thumbprint)" -Force -ErrorAction SilentlyContinue
+    $certificate.Dispose()
+    $plainPassword = $null
 }

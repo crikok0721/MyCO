@@ -26,10 +26,10 @@ artifact attestation, source tag, and release workflow instead.
   with that release is the authority for that release only.
 - Release tags must exactly match the version in `eng/MyCO.Version.props`.
 - Project-owned PE files are signed before the ZIP is created.
-- Windows PowerShell's Authenticode provider performs the default signing; the
-  release does not depend on a separate SignTool process.
-- The signing script temporarily trusts the public certificate only inside the
-  build account for cryptographic verification, then removes that trust.
+- SignTool reads the ephemeral PFX directly; the private key is not imported
+  into the Windows certificate store.
+- Verification checks the embedded signature and exact certificate thumbprint
+  without modifying a Windows trust store.
 - A missing, mismatched, or invalid signature fails the release.
 - Each release publishes the public certificate, archive checksum, SPDX SBOM,
   and GitHub build-provenance attestation.
