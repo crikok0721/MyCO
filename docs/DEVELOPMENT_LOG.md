@@ -595,3 +595,9 @@ Testing:
 - A local direct-PFX smoke test signed `MyCO.exe`, `MyCO.dll`, and
   `MyCO.Core.dll` with `CN=Crikok`; all embedded signer thumbprints matched, and
   the temporary PFX/certificate directory was removed after validation.
+- GitHub Actions validation run
+  [`30566829783`](https://github.com/crikok0721/MyCO/actions/runs/30566829783)
+  completed successfully on `windows-latest`: build/tests, direct-PFX signing,
+  packaged version/signature verification, signed evidence upload, and build
+  provenance attestation all passed. Release publication was correctly skipped
+  because the validation run was dispatched from `main` rather than a tag.
