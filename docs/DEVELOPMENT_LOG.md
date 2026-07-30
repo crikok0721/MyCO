@@ -576,3 +576,7 @@ Testing:
   SBOM, per-file SHA-256 manifest, and archive SHA-256 file.
 - Authenticode signing remains to be verified on the isolated GitHub-hosted
   Windows release runner because the local execution policy blocks PFX handling.
+- The first GitHub signing validation reached Publish after all tests, then was
+  canceled when the initial timestamped SignTool call produced no output for
+  several minutes. SignTool now uses the Microsoft timestamp endpoint with a
+  bounded process timeout and captured diagnostics before the validation rerun.
