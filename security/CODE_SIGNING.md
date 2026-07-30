@@ -1,7 +1,7 @@
 # Code signing policy
 
-MyCO release binaries are Authenticode-signed as `CN=Crikok` with SHA-256 and
-an RFC 3161 timestamp. Each tag-driven GitHub Actions release creates an
+MyCO release binaries are Authenticode-signed as `CN=Crikok` with SHA-256.
+Each tag-driven GitHub Actions release creates an
 ephemeral signing key on its isolated Windows runner and deletes the private
 key after packaging.
 
@@ -11,6 +11,8 @@ The certificate is self-signed. It proves that files carrying the documented
 certificate thumbprint were signed with the corresponding MyCO release key,
 but it is not rooted in the Windows public trust store. Windows and SmartScreen
 can therefore still show an unknown-publisher or reputation warning.
+The autonomous release path deliberately has no external timestamp dependency;
+signature validity is not extended beyond the certificate lifetime.
 
 Do not install the certificate into a Windows trust store merely to suppress a
 warning. Verify the certificate fingerprint, archive SHA-256 file, GitHub

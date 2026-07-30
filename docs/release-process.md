@@ -11,7 +11,7 @@ MyCO uses Semantic Versioning. The repository version is defined once in
 4. A self-contained `win-x64` publish succeeds.
 5. The isolated release runner creates an ephemeral certificate and every
    project-owned PE file is Authenticode-signed as `CN=Crikok`.
-6. The signed files pass temporary local-chain and timestamp verification.
+6. The signed files pass temporary local-chain verification.
 7. The package contains release documents, an SPDX SBOM, and file hashes.
 8. The archive SHA-256 file and GitHub provenance attestation are generated.
 9. The tag matches the repository version exactly.

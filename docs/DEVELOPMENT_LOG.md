@@ -531,8 +531,8 @@ Change:
 - Advanced the single product/runtime/package version source to `0.99.0`.
 - Standardized author, assembly, copyright, SBOM supplier, and signing identity
   metadata on `Crikok`.
-- Added per-release ephemeral self-signed Authenticode generation, SHA-256 and
-  RFC 3161 signing, temporary local-chain verification, and private-key cleanup.
+- Added per-release ephemeral self-signed Authenticode generation, SHA-256
+  signing, temporary local-chain verification, and private-key cleanup.
 - Added a tag-gated GitHub Release workflow, SPDX SBOM, archive and file hash
   manifests, GitHub build provenance, CodeQL, and Dependabot.
 - Added release, signing-policy, integrity-verification, and trust-limitation
@@ -578,5 +578,9 @@ Testing:
   Windows release runner because the local execution policy blocks PFX handling.
 - The first GitHub signing validation reached Publish after all tests, then was
   canceled when the initial timestamped SignTool call produced no output for
-  several minutes. SignTool now uses the Microsoft timestamp endpoint with a
-  bounded process timeout and captured diagnostics before the validation rerun.
+  several minutes. SignTool was changed to the Microsoft timestamp endpoint
+  with a bounded process timeout and captured diagnostics for the rerun.
+- The second validation confirmed that public timestamp dependencies still
+  prevented a bounded autonomous release. The default release therefore signs
+  without an external timestamp; certificate-expiry limitations are explicit
+  in the user, security, release, and architecture documentation.
