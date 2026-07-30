@@ -26,6 +26,8 @@ artifact attestation, source tag, and release workflow instead.
   with that release is the authority for that release only.
 - Release tags must exactly match the version in `eng/MyCO.Version.props`.
 - Project-owned PE files are signed before the ZIP is created.
+- Windows PowerShell's Authenticode provider performs the default signing; the
+  release does not depend on a separate SignTool process.
 - The signing script temporarily trusts the public certificate only inside the
   build account for cryptographic verification, then removes that trust.
 - A missing, mismatched, or invalid signature fails the release.

@@ -180,8 +180,8 @@ transparent windows, or lifecycle risk.
 
 Decision: version `0.99.0` uses a tag-gated GitHub Actions release workflow.
 Each isolated Windows runner creates an ephemeral RSA 3072-bit code-signing
-certificate with subject `CN=Crikok`, signs project-owned PE files with
-Authenticode SHA-256, verifies them under temporary
+certificate with subject `CN=Crikok`, signs project-owned PE files with the
+Windows PowerShell Authenticode provider and SHA-256, verifies them under temporary
 runner-local trust, packages the public certificate, and destroys the private
 key. Releases also publish archive/file SHA-256 values, an SPDX SBOM, and a
 GitHub build-provenance attestation.
