@@ -180,11 +180,11 @@ transparent windows, or lifecycle risk.
 
 Decision: version `0.99.0` uses a tag-gated GitHub Actions release workflow.
 Each isolated Windows runner creates an ephemeral RSA 3072-bit code-signing
-certificate with subject `CN=Crikok`, signs project-owned PE files with the
-Windows PowerShell Authenticode provider and SHA-256, verifies them under temporary
-runner-local trust, packages the public certificate, and destroys the private
-key. Releases also publish archive/file SHA-256 values, an SPDX SBOM, and a
-GitHub build-provenance attestation.
+certificate with subject `CN=Crikok`, signs project-owned PE files directly
+from the ephemeral PFX with SignTool and SHA-256, verifies the embedded signer
+identity without adding local trust, packages the public certificate, and
+destroys the private key. Releases also publish archive/file SHA-256 values, an
+SPDX SBOM, and a GitHub build-provenance attestation.
 
 The certificate is explicitly documented as self-signed and not publicly
 trusted by Windows. It is not described as a SmartScreen bypass or a stable

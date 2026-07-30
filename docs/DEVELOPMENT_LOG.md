@@ -588,3 +588,10 @@ Testing:
   runner-generated temporary key even without timestamping. Default signing now
   uses Windows PowerShell `Set-AuthenticodeSignature` and verification uses
   `Get-AuthenticodeSignature`; no SignTool process is required.
+- The fourth validation showed the PowerShell signer also blocked after
+  importing the PFX private key into the Windows certificate store. Signing now
+  passes the ephemeral PFX directly to SignTool and verifies the embedded
+  signer identity without modifying a Windows trust store.
+- A local direct-PFX smoke test signed `MyCO.exe`, `MyCO.dll`, and
+  `MyCO.Core.dll` with `CN=Crikok`; all embedded signer thumbprints matched, and
+  the temporary PFX/certificate directory was removed after validation.
