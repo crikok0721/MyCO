@@ -18,15 +18,15 @@ jobs:
 
     steps:
       - name: Check out tagged source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up .NET 8
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -99,7 +99,7 @@ jobs:
           Remove-Item -LiteralPath $env:MYCO_SIGNING_PFX_PATH -Force
 
       - name: Upload signed release evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: MyCO-${{ steps.version.outputs.version }}-signed
           path: |
@@ -110,7 +110,7 @@ jobs:
           retention-days: 90
 
       - name: Attest release archive
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             artifacts/MyCO-win-x64.zip
