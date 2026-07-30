@@ -2,9 +2,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
-    <sys:String x:Key="ProductTypeShort">AI 外观陪伴插件</sys:String>
     <sys:String x:Key="LanguageLabel">界面语言</sys:String>
-    <sys:String x:Key="NavMain">MyCO</sys:String>
     <sys:String x:Key="NavHome">首页</sys:String>
     <sys:String x:Key="NavPersonalize">个性化</sys:String>
     <sys:String x:Key="NavAppearance">外观</sys:String>
@@ -39,30 +37,18 @@
     <sys:String x:Key="HomeEditAppearance">编辑外观</sys:String>
 
     <sys:String x:Key="AppearanceTitle">外观</sys:String>
-    <sys:String x:Key="AppearanceSubtitle">Reference Dark · 仅为助手正文添加气泡，用户保留原生气泡</sys:String>
     <sys:String x:Key="AppearancePreviewHint">实时变化 · 尚未保存</sys:String>
     <sys:String x:Key="AppearanceCharacters">角色</sys:String>
-    <sys:String x:Key="AppearanceCharactersHint">角色身份是 MyCO 克制二次元表达的核心。</sys:String>
     <sys:String x:Key="AppearanceChatStyle">聊天样式</sys:String>
     <sys:String x:Key="AppearanceAdvanced">高级间距</sys:String>
     <sys:String x:Key="AppearancePalettes">高级调色板</sys:String>
     <sys:String x:Key="Reset">重置</sys:String>
     <sys:String x:Key="SaveApply">保存并应用</sys:String>
-    <sys:String x:Key="LivePreview">实时预览</sys:String>
-    <sys:String x:Key="PreviewAssistant">我检查了这个项目。原生 Diff 和工具卡片保持不变。</sys:String>
-    <sys:String x:Key="PreviewToolCard">Codex 原生工具卡片 · 保持原样</sys:String>
-    <sys:String x:Key="PreviewUser">短消息保持紧凑。</sys:String>
-    <sys:String x:Key="PreviewAccuracyHint">遵循 MyCO 在 Codex 中的安全美化边界</sys:String>
     <sys:String x:Key="PreviewModeDark">Codex 深色预览</sys:String>
-    <sys:String x:Key="PreviewMarkdownHeading">更柔和的阅读体验</sys:String>
-    <sys:String x:Key="PreviewAssistantLong">MyCO 会加入你选择的角色身份和圆润正文气泡，同时保持原 AI 软件的结构与功能不变。</sys:String>
-    <sys:String x:Key="PreviewAssistantList">• 头像与昵称始终对齐消息&#x0a;• 长回复保持舒适的阅读宽度</sys:String>
-    <sys:String x:Key="PreviewCodeTitle">example.ts</sys:String>
-    <sys:String x:Key="PreviewNativeSurface">原生代码 · 保持不变</sys:String>
-    <sys:String x:Key="PreviewAssistantContinuation">连续的助手正文保持视觉关联，不会重复显示头像和昵称。</sys:String>
-    <sys:String x:Key="PreviewUserLong">用户原生气泡保持紧凑、清晰，并与我的头像正确对齐。</sys:String>
-    <sys:String x:Key="PreviewGenerating">正在预览柔和的生成状态…</sys:String>
-    <sys:String x:Key="PreviewErrorState">原生错误和状态区域会保持明确，并且不会被 MyCO 改写。</sys:String>
+    <sys:String x:Key="PreviewModeLight">Codex 浅色预览</sys:String>
+    <sys:String x:Key="PreviewThemeSelectorHint">选择 Codex 预览主题</sys:String>
+    <sys:String x:Key="PreviewAssistantMessage">这是...我去！！！！！</sys:String>
+    <sys:String x:Key="PreviewUserMessage">It's...MyCO!!!!!</sys:String>
     <sys:String x:Key="AssistantLabel">助手</sys:String>
     <sys:String x:Key="UserLabel">你</sys:String>
     <sys:String x:Key="Nickname">昵称</sys:String>
@@ -85,17 +71,13 @@
     <sys:String x:Key="ShowNicknames">显示昵称</sys:String>
 
     <sys:String x:Key="CalibrationTitle">校准</sys:String>
-    <sys:String x:Key="CalibrationSubtitle">教 MyCO 识别当前渲染器结构，且不保存聊天正文。</sys:String>
     <sys:String x:Key="CurrentSignatureState">当前结构签名状态</sys:String>
-    <sys:String x:Key="SignatureDescription">签名由三个无正文样本归纳稳定语义属性、祖先结构和能力；绝不保存消息正文或屏幕坐标。</sys:String>
     <sys:String x:Key="SelectAssistantTurn">选择三条助手回复</sys:String>
     <sys:String x:Key="SelectAssistantDescription">请在三条不同回复的正文内点击；代码、Diff、状态、工具栏和输入区会被拒绝。</sys:String>
     <sys:String x:Key="CalibrateAssistant">校准助手消息</sys:String>
     <sys:String x:Key="SelectUserTurn">选择三条用户消息</sys:String>
     <sys:String x:Key="SelectUserDescription">请在三条不同用户消息的正文内点击；按 Escape 可取消且不会更改设置。</sys:String>
     <sys:String x:Key="CalibrateUser">校准用户消息</sys:String>
-    <sys:String x:Key="FailClosed">安全失败</sys:String>
-    <sys:String x:Key="FailClosedDescription">低置信度会判为未知并保持原样。少一个气泡也比破坏 Codex 原生控件更安全。</sys:String>
     <sys:String x:Key="CalibrationSummaryFormat">助手：{0}  ·  用户：{1}</sys:String>
     <sys:String x:Key="CalibrationReady">已就绪</sys:String>
     <sys:String x:Key="CalibrationNotCalibrated">未校准</sys:String>

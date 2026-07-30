@@ -10,13 +10,9 @@
         </Grid.RowDefinitions>
 
         <DockPanel LastChildFill="False">
-            <StackPanel>
-                <TextBlock Text="{DynamicResource AppearanceTitle}"
-                           Style="{StaticResource PageTitleText}" />
-                <TextBlock Text="{DynamicResource AppearanceSubtitle}"
-                           Style="{StaticResource MutedBodyText}"
-                           Margin="0,5,0,0" />
-            </StackPanel>
+            <TextBlock Text="{DynamicResource AppearanceTitle}"
+                       Style="{StaticResource PageTitleText}"
+                       VerticalAlignment="Center" />
             <StackPanel DockPanel.Dock="Right"
                         Orientation="Horizontal"
                         HorizontalAlignment="Right">
@@ -64,10 +60,8 @@
                     <Border Style="{StaticResource CardBorder}">
                         <StackPanel>
                             <TextBlock Text="{DynamicResource AppearanceCharacters}"
-                                       Style="{StaticResource SectionTitleText}" />
-                            <TextBlock Text="{DynamicResource AppearanceCharactersHint}"
-                                       Style="{StaticResource CaptionText}"
-                                       Margin="0,4,0,18" />
+                                       Style="{StaticResource SectionTitleText}"
+                                       Margin="0,0,0,18" />
 
                             <Grid>
                                 <Grid.ColumnDefinitions>

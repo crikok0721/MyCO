@@ -56,6 +56,12 @@ The kernel mutex and activation-event names deliberately retain their
 pre-rename values so an old build and a MyCO build cannot run side by side.
 These names are internal compatibility identifiers and are never displayed.
 
+Home and Appearance host the same `ChatPreviewControl` against the same
+`MainWindowViewModel`. A session-local Codex preview-theme selection resolves
+the preview background, borders, both role bubbles, text, nicknames, avatars,
+and elevation together. It is deliberately independent from the Manager theme
+and does not persist or alter the Runtime palette.
+
 ### Core
 
 `MyCO.Core` contains:

@@ -45,6 +45,7 @@ public sealed partial class LocalizationResourceTests
             Path.Combine(manager, "Themes", "Theme.Light.xaml")));
         var used = Directory
             .GetFiles(Path.Combine(manager, "Views"), "*.xaml")
+            .Concat(Directory.GetFiles(Path.Combine(manager, "Controls"), "*.xaml"))
             .Append(Path.Combine(manager, "App.xaml"))
             .SelectMany(path => DynamicResourceRegex()
                 .Matches(File.ReadAllText(path))

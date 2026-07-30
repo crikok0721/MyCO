@@ -1,5 +1,57 @@
 # Development Log
 
+## 2026-07-30 — Final Manager UI preview consolidation
+
+Date:
+
+2026-07-30
+
+Change:
+
+- Simplified the title bar and sidebar brand areas to remove duplicate
+  subtitles while preserving native window chrome and drag behavior.
+- Reduced the shared conversation preview to one Assistant message and one
+  User message, removed its nested scroll/status/demo surfaces, and reused it
+  unchanged on Home and Appearance.
+- Added one session-local Codex Dark/Light preview selection whose resolved
+  palette controls the complete preview independently from the Manager theme.
+- Replaced the About version badge with the canonical portrait asset and
+  removed the requested Calibration and Appearance explanatory copy/cards.
+
+Reason:
+
+Complete the final UI cleanup, remove demonstration-only content, and prevent
+mixed Manager/Codex preview palettes without changing Runtime, calibration,
+process, IPC, or persisted appearance behavior.
+
+Impact:
+
+Manager presentation, localized resources, and preview-only ViewModel state
+changed. Runtime injection, calibration algorithms, process ownership,
+configuration schema, saved palettes, and compatibility identifiers are
+unchanged.
+
+Modified Files:
+
+- `src/MyCO.Manager/Controls/ChatPreviewControl.xaml`
+- `src/MyCO.Manager/Views/{MainWindow,HomePage,AppearancePage,CalibrationPage,AboutPage}.xaml`
+- `src/MyCO.Manager/ViewModels/MainWindowViewModel.cs`
+- `src/MyCO.Manager/Resources/Strings.*.xaml`
+- Manager UI/localization tests and current project records
+
+Testing:
+
+- `dotnet build .\MyCO.sln -c Release` passed with zero warnings/errors;
+  `dotnet test` passed 105/105.
+- Runtime lint/build and 42/42 tests passed through the standard release script.
+- Real desktop inspection passed for the compact Home preview, shared
+  Appearance preview, live Dark/Light selection, title/sidebar cleanup,
+  simplified Calibration, and canonical About icon.
+- The release script produced `MyCO.exe` and `MyCO-win-x64.zip`; archive
+  SHA-256: `e5fbb4c62e494eee38cf42c562adcd80168fdd6a7cb6cfe5813613abb558bc2f`.
+- XAML parsing, localization key parity, deleted-copy residual scanning, and
+  `git diff --check` passed.
+
 ## 2026-07-30 — Phase 3 role-first Manager visual refactor
 
 Date:

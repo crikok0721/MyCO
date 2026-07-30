@@ -1,214 +1,158 @@
-<!-- Representative preview of the surfaces MyCO decorates and the native surfaces it preserves. -->
+<!-- Shared preview used by Home and Appearance. It has one theme state and no nested scrolling. -->
 <UserControl x:Class="MyCO.Manager.Controls.ChatPreviewControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             MinHeight="390"
              UseLayoutRounding="True">
-    <Border Background="{DynamicResource PreviewBrush}"
-            BorderBrush="Transparent"
-            BorderThickness="0"
+    <Border Background="{Binding PreviewBackground}"
+            BorderBrush="{Binding PreviewBorder}"
+            BorderThickness="1"
             CornerRadius="{StaticResource RadiusFloating}"
             Padding="24">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Setter Property="Effect">
+                    <Setter.Value>
+                        <DropShadowEffect Color="#42554D"
+                                          BlurRadius="22"
+                                          ShadowDepth="5"
+                                          Opacity=".08" />
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsDarkCodexPreview}" Value="True">
+                        <Setter Property="Effect">
+                            <Setter.Value>
+                                <DropShadowEffect Color="#050403"
+                                                  BlurRadius="26"
+                                                  ShadowDepth="6"
+                                                  Opacity=".22" />
+                            </Setter.Value>
+                        </Setter>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <DockPanel Margin="0,0,0,20" LastChildFill="False">
-                <StackPanel>
-                    <TextBlock Text="{DynamicResource LivePreview}"
-                               Style="{StaticResource LabelText}" />
-                    <TextBlock Text="{DynamicResource PreviewAccuracyHint}"
-                               Style="{StaticResource CaptionText}"
-                               Margin="0,4,0,0" />
-                </StackPanel>
-                <Border DockPanel.Dock="Right"
-                        Style="{StaticResource StatusPillBorder}"
-                        Background="{DynamicResource PanelBrush}">
-                    <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="7" Height="7"
-                                 Fill="{DynamicResource PrimaryBrush}"
-                                 Margin="0,0,7,0" />
-                        <TextBlock Text="{DynamicResource PreviewModeDark}"
-                                   Style="{StaticResource CaptionText}" />
+            <ComboBox Grid.Row="0"
+                      x:Name="CodexPreviewThemeSelector"
+                      Width="190"
+                      MinHeight="36"
+                      HorizontalAlignment="Right"
+                      ItemsSource="{Binding CodexPreviewThemeOptions}"
+                      SelectedItem="{Binding SelectedCodexPreviewThemeOption}"
+                      ToolTip="{DynamicResource PreviewThemeSelectorHint}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal"
+                                    VerticalAlignment="Center">
+                            <Ellipse Width="7"
+                                     Height="7"
+                                     Fill="{DynamicResource PrimaryBrush}"
+                                     VerticalAlignment="Center"
+                                     Margin="0,0,8,0" />
+                            <TextBlock Text="{Binding DisplayName}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <StackPanel Grid.Row="1" Margin="0,18,0,0">
+                <!-- Assistant identity and one themed message. -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid Width="{Binding AvatarSize}"
+                          Height="{Binding AvatarSize}"
+                          MinWidth="34"
+                          MinHeight="34"
+                          MaxWidth="54"
+                          MaxHeight="54"
+                          VerticalAlignment="Top">
+                        <Ellipse Fill="{Binding PreviewAvatarBackground}" />
+                        <Ellipse Stroke="{Binding PreviewAvatarBorder}"
+                                 StrokeThickness="1">
+                            <Ellipse.Fill>
+                                <ImageBrush ImageSource="{Binding AssistantAvatar}"
+                                            Stretch="UniformToFill" />
+                            </Ellipse.Fill>
+                        </Ellipse>
+                    </Grid>
+                    <StackPanel Grid.Column="1"
+                                Margin="12,-2,0,0">
+                        <TextBlock Text="{Binding AssistantName}"
+                                   Visibility="{Binding NicknameVisible,
+                                       Converter={StaticResource BooleanToVisibilityConverter}}"
+                                   Foreground="{Binding PreviewNicknameColor}"
+                                   FontSize="13"
+                                   Margin="2,0,0,6" />
+                        <Border Background="{Binding PreviewAssistantBubble}"
+                                CornerRadius="{Binding BubbleRadius}"
+                                Padding="{Binding BubblePaddingX}"
+                                HorizontalAlignment="Left"
+                                MaxWidth="560">
+                            <TextBlock Text="{DynamicResource PreviewAssistantMessage}"
+                                       Foreground="{Binding PreviewAssistantText}"
+                                       TextWrapping="Wrap"
+                                       LineHeight="21" />
+                        </Border>
                     </StackPanel>
-                </Border>
-            </DockPanel>
+                </Grid>
 
-            <ScrollViewer Grid.Row="1"
-                          VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled">
-                <StackPanel>
-                    <!-- Assistant turn: MyCO owns identity and safe prose bubbles. -->
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid Width="{Binding AvatarSize}"
-                              Height="{Binding AvatarSize}"
-                              MinWidth="34" MinHeight="34"
-                              MaxWidth="54" MaxHeight="54"
-                              VerticalAlignment="Top">
-                            <Ellipse Fill="{Binding DarkAvatarBackground}" />
-                            <Ellipse Stroke="{Binding DarkAvatarBorder}" StrokeThickness="1">
-                                <Ellipse.Fill>
-                                    <ImageBrush ImageSource="{Binding AssistantAvatar}"
-                                                Stretch="UniformToFill" />
-                                </Ellipse.Fill>
-                            </Ellipse>
-                        </Grid>
-                        <StackPanel Grid.Column="1" Margin="12,-2,0,0">
-                            <TextBlock Text="{Binding AssistantName}"
-                                       Visibility="{Binding NicknameVisible,
-                                           Converter={StaticResource BooleanToVisibilityConverter}}"
-                                       Foreground="{Binding DarkNicknameColor}"
-                                       FontSize="13"
-                                       Margin="2,0,0,6" />
-                            <Border Background="{Binding AssistantBubble}"
-                                    CornerRadius="{Binding BubbleRadius}"
-                                    Padding="{Binding BubblePaddingX}"
-                                    HorizontalAlignment="Left"
-                                    MaxWidth="560">
-                                <StackPanel>
-                                    <TextBlock Text="{DynamicResource PreviewMarkdownHeading}"
-                                               Foreground="{Binding DarkAssistantText}"
-                                               FontWeight="SemiBold"
-                                               FontSize="15"
-                                               Margin="0,0,0,7" />
-                                    <TextBlock Text="{DynamicResource PreviewAssistantLong}"
-                                               Foreground="{Binding DarkAssistantText}"
-                                               TextWrapping="Wrap"
-                                               LineHeight="21" />
-                                    <TextBlock Text="{DynamicResource PreviewAssistantList}"
-                                               Foreground="{Binding DarkAssistantText}"
-                                               TextWrapping="Wrap"
-                                               LineHeight="21"
-                                               Margin="0,7,0,0" />
-                                </StackPanel>
-                            </Border>
-
-                            <!-- Code stays native and outside the assistant prose bubble. -->
-                            <Border Background="{DynamicResource CodeSurfaceBrush}"
-                                    BorderBrush="{DynamicResource ToolBorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="{StaticResource RadiusControl}"
-                                    Padding="14,12"
-                                    Margin="0,10,0,0"
-                                    HorizontalAlignment="Left"
-                                    MaxWidth="560">
-                                <StackPanel>
-                                    <DockPanel Margin="0,0,0,8"
-                                               LastChildFill="False">
-                                        <TextBlock Text="{DynamicResource PreviewCodeTitle}"
-                                                   Foreground="{DynamicResource MutedTextBrush}"
-                                                   FontSize="11" />
-                                        <TextBlock DockPanel.Dock="Right"
-                                                   Text="{DynamicResource PreviewNativeSurface}"
-                                                   Foreground="{DynamicResource PrimaryTextBrush}"
-                                                   FontSize="11" />
-                                    </DockPanel>
-                                    <TextBlock Text="const theme = &quot;myco-mint&quot;;&#x0a;applyAppearance(theme);"
-                                               FontFamily="{StaticResource CodeFontFamily}"
-                                               Foreground="{DynamicResource CodeTextBrush}"
-                                               FontSize="12"
-                                               LineHeight="19" />
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
+                <!-- User identity and one message from the same selected Codex theme. -->
+                <Grid Margin="64,24,0,0"
+                      HorizontalAlignment="Right">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel HorizontalAlignment="Right"
+                                Margin="0,-2,12,0">
+                        <TextBlock Text="{Binding UserName}"
+                                   TextAlignment="Right"
+                                   Visibility="{Binding NicknameVisible,
+                                       Converter={StaticResource BooleanToVisibilityConverter}}"
+                                   Foreground="{Binding PreviewNicknameColor}"
+                                   FontSize="13"
+                                   Margin="0,0,2,6" />
+                        <Border Background="{Binding PreviewUserBubble}"
+                                BorderBrush="{Binding PreviewBorder}"
+                                BorderThickness="1"
+                                CornerRadius="{Binding BubbleRadius}"
+                                Padding="{Binding BubblePaddingX}"
+                                MaxWidth="430">
+                            <TextBlock Text="{DynamicResource PreviewUserMessage}"
+                                       Foreground="{Binding PreviewUserText}"
+                                       TextWrapping="Wrap"
+                                       LineHeight="21" />
+                        </Border>
+                    </StackPanel>
+                    <Grid Grid.Column="1"
+                          Width="{Binding AvatarSize}"
+                          Height="{Binding AvatarSize}"
+                          MinWidth="34"
+                          MinHeight="34"
+                          MaxWidth="54"
+                          MaxHeight="54">
+                        <Ellipse Fill="{Binding PreviewAvatarBackground}" />
+                        <Ellipse Stroke="{Binding PreviewAvatarBorder}"
+                                 StrokeThickness="1">
+                            <Ellipse.Fill>
+                                <ImageBrush ImageSource="{Binding UserAvatar}"
+                                            Stretch="UniformToFill" />
+                            </Ellipse.Fill>
+                        </Ellipse>
                     </Grid>
-
-                    <!-- Consecutive assistant prose avoids repeating identity. -->
-                    <Border Background="{Binding AssistantBubble}"
-                            CornerRadius="{Binding BubbleRadius}"
-                            Padding="{Binding BubblePaddingX}"
-                            HorizontalAlignment="Left"
-                            MaxWidth="520"
-                            Margin="52,12,0,0">
-                        <TextBlock Text="{DynamicResource PreviewAssistantContinuation}"
-                                   Foreground="{Binding DarkAssistantText}"
-                                   TextWrapping="Wrap"
-                                   LineHeight="21" />
-                    </Border>
-
-                    <!-- The official user bubble is represented, not recolored by MyCO. -->
-                    <Grid Margin="84,24,0,0" HorizontalAlignment="Right">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel HorizontalAlignment="Right" Margin="0,-2,12,0">
-                            <TextBlock Text="{Binding UserName}"
-                                       TextAlignment="Right"
-                                       Visibility="{Binding NicknameVisible,
-                                           Converter={StaticResource BooleanToVisibilityConverter}}"
-                                       Foreground="{DynamicResource MutedTextBrush}"
-                                       FontSize="13"
-                                       Margin="0,0,2,6" />
-                            <Border Background="{DynamicResource NativeUserBubbleBrush}"
-                                    CornerRadius="{StaticResource RadiusCard}"
-                                    Padding="14,10"
-                                    MaxWidth="430">
-                                <TextBlock Text="{DynamicResource PreviewUserLong}"
-                                           Foreground="{DynamicResource NativeUserTextBrush}"
-                                           TextWrapping="Wrap"
-                                           LineHeight="21" />
-                            </Border>
-                        </StackPanel>
-                        <Grid Grid.Column="1"
-                              Width="{Binding AvatarSize}"
-                              Height="{Binding AvatarSize}"
-                              MinWidth="34" MinHeight="34"
-                              MaxWidth="54" MaxHeight="54">
-                            <Ellipse Fill="{DynamicResource AvatarPlaceholderBrush}" />
-                            <Ellipse>
-                                <Ellipse.Fill>
-                                    <ImageBrush ImageSource="{Binding UserAvatar}"
-                                                Stretch="UniformToFill" />
-                                </Ellipse.Fill>
-                            </Ellipse>
-                        </Grid>
-                    </Grid>
-
-                    <!-- Streaming and error states remain calm and explicit. -->
-                    <Grid Margin="52,22,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Ellipse Width="8" Height="8"
-                                 Fill="{DynamicResource PrimaryBrush}"
-                                 VerticalAlignment="Center" />
-                        <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                            <TextBlock Text="{DynamicResource PreviewGenerating}"
-                                       Style="{StaticResource CaptionText}" />
-                            <ProgressBar IsIndeterminate="True"
-                                         Width="132"
-                                         HorizontalAlignment="Left"
-                                         Margin="0,7,0,0" />
-                        </StackPanel>
-                    </Grid>
-
-                    <Border Background="{DynamicResource ErrorPanelBrush}"
-                            BorderBrush="{DynamicResource ErrorBorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="{StaticResource RadiusControl}"
-                            Padding="14,11"
-                            Margin="52,18,0,0"
-                            HorizontalAlignment="Left">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="!"
-                                       Foreground="{DynamicResource ErrorTextBrush}"
-                                       FontWeight="Bold"
-                                       Margin="0,0,9,0" />
-                            <TextBlock Text="{DynamicResource PreviewErrorState}"
-                                       Foreground="{DynamicResource ErrorTextBrush}"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </ScrollViewer>
+                </Grid>
+            </StackPanel>
         </Grid>
     </Border>
 </UserControl>

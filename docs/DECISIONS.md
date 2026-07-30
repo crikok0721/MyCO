@@ -141,11 +141,12 @@ small state accents. Express character through avatars, names, conversation
 preview, and restrained motion rather than decorative clutter.
 
 The Manager home page composes existing application, session, identity, theme,
-and command state. It does not introduce a second lifecycle path. The shared
-preview shows MyCO-owned Assistant identity/prose and explicitly represents
-native User, code, and error surfaces as preserved. Windows animation
-preferences disable non-essential motion. Expensive full-window transparency
-and a new UI framework are not used.
+and command state. It does not introduce a second lifecycle path. Home and
+Appearance use one compact shared preview with exactly one Assistant and one
+User message. One session-local Codex preview-theme state atomically controls
+both roles and remains independent from the Manager theme and persisted Runtime
+palette. Windows animation preferences disable non-essential motion. Expensive
+full-window transparency and a new UI framework are not used.
 
 Reason: this provides a consistent premium identity and a lower-cognitive-load
 workflow while preserving WPF performance, Windows 10/11 compatibility, the

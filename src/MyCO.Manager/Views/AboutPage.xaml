@@ -17,15 +17,16 @@
                             <ColumnDefinition Width="58" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Border Width="46" Height="46" CornerRadius="13"
-                                Background="{DynamicResource PrimaryBrush}">
-                            <Grid>
-                                <Path Data="M7,9 H39 V32 H25 L17,39 V32 H7 Z"
-                                      Stroke="White" StrokeThickness="2" Fill="Transparent" />
-                                <TextBlock Text="M" FontSize="18" FontWeight="Bold"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center" />
-                            </Grid>
+                        <Border Width="46"
+                                Height="46"
+                                CornerRadius="13"
+                                Background="{DynamicResource PrimaryMutedBrush}"
+                                BorderBrush="{DynamicResource AccentBorderBrush}"
+                                BorderThickness="1"
+                                ClipToBounds="True">
+                            <Image Source="/MyCO;component/Assets/MyCO-logo.png"
+                                   Stretch="Uniform"
+                                   RenderOptions.BitmapScalingMode="HighQuality" />
                         </Border>
                         <StackPanel Grid.Column="1">
                             <StackPanel Orientation="Horizontal">

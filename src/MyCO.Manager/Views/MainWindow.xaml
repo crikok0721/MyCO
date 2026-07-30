@@ -59,14 +59,11 @@
                                    Stretch="Uniform"
                                    RenderOptions.BitmapScalingMode="HighQuality" />
                         </Border>
-                        <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="MyCO"
-                                       FontWeight="SemiBold"
-                                       FontSize="14" />
-                            <TextBlock Text="{DynamicResource ProductTypeShort}"
-                                       Style="{StaticResource CaptionText}"
-                                       FontSize="10" />
-                        </StackPanel>
+                        <TextBlock Text="MyCO"
+                                   Margin="10,0,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   FontSize="14" />
                     </StackPanel>
 
                     <Border Grid.Column="1"
@@ -158,10 +155,6 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel>
-                            <TextBlock Text="{DynamicResource NavMain}"
-                                       Style="{StaticResource CaptionText}"
-                                       FontWeight="SemiBold"
-                                       Margin="12,0,0,8" />
                             <ToggleButton Style="{StaticResource NavToggleButton}"
                                           IsChecked="{Binding IsHomePage, Mode=OneWay}"
                                           Command="{Binding SelectHomeCommand}">

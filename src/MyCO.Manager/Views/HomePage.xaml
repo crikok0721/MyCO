@@ -224,8 +224,7 @@
                             Command="{Binding SelectAppearanceCommand}"
                             Style="{StaticResource GhostButton}" />
                 </DockPanel>
-                <controls:ChatPreviewControl Grid.Row="1"
-                                             MaxHeight="500" />
+                <controls:ChatPreviewControl Grid.Row="1" />
             </Grid>
         </Grid>
     </ScrollViewer>

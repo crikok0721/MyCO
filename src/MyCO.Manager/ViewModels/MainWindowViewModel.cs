@@ -29,6 +29,20 @@ public enum ManagerPage
     Settings
 }
 
+public enum CodexPreviewTheme
+{
+    Dark,
+    Light
+}
+
+public sealed class CodexPreviewThemeOption(
+    CodexPreviewTheme theme,
+    string displayName)
+{
+    public CodexPreviewTheme Theme { get; } = theme;
+    public string DisplayName { get; } = displayName;
+}
+
 public sealed class ManagerThemeOption(
     ManagerThemeMode mode,
     string displayName)
@@ -92,6 +106,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string _lightNicknameColor = "#5F6672";
     private string _lightAvatarBackground = "#E5E7EB";
     private string _lightAvatarBorder = "#00000024";
+    private CodexPreviewThemeOption? _selectedCodexPreviewThemeOption;
     private ManagerThemeOption? _selectedManagerThemeOption;
     private BubbleDisplayModeOption? _selectedBubbleDisplayModeOption;
     private bool _launchAtLogin;
@@ -110,6 +125,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public MainWindowViewModel()
     {
         // Keep service construction here so the views contain no business logic.
+        RefreshCodexPreviewThemeOptions(CodexPreviewTheme.Dark);
         _configStore = new ConfigStore(_paths);
         _avatarService = new AvatarService(_paths.AvatarsDirectory);
         _logger = new PrivacySafeLogger(_paths.LogsDirectory);
@@ -187,6 +203,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<ApplicationCandidate> Candidates { get; } = [];
     public IReadOnlyList<LanguageOption> SupportedLanguages =>
         LocalizationService.SupportedLanguages;
+    public ObservableCollection<CodexPreviewThemeOption> CodexPreviewThemeOptions { get; } =
+        [];
     public ObservableCollection<ManagerThemeOption> ManagerThemeOptions { get; } = [];
     public ObservableCollection<BubbleDisplayModeOption> BubbleDisplayModeOptions { get; } =
         [];
@@ -268,6 +286,40 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public bool IsDiagnosticsPage => CurrentPage == ManagerPage.Diagnostics;
     public bool IsAboutPage => CurrentPage == ManagerPage.About;
     public bool IsSettingsPage => CurrentPage == ManagerPage.Settings;
+
+    public CodexPreviewThemeOption? SelectedCodexPreviewThemeOption
+    {
+        get => _selectedCodexPreviewThemeOption;
+        set
+        {
+            if (value is null || !Set(ref _selectedCodexPreviewThemeOption, value))
+            {
+                return;
+            }
+            RaisePreviewPalette();
+        }
+    }
+
+    public bool IsDarkCodexPreview =>
+        SelectedCodexPreviewThemeOption?.Theme != CodexPreviewTheme.Light;
+    public string PreviewBackground =>
+        IsDarkCodexPreview ? "#181513" : "#F1F5F3";
+    public string PreviewBorder =>
+        IsDarkCodexPreview ? "#403833" : "#D7DFDC";
+    public string PreviewAssistantBubble =>
+        IsDarkCodexPreview ? AssistantBubble : LightAssistantBubble;
+    public string PreviewAssistantText =>
+        IsDarkCodexPreview ? DarkAssistantText : LightAssistantText;
+    public string PreviewNicknameColor =>
+        IsDarkCodexPreview ? DarkNicknameColor : LightNicknameColor;
+    public string PreviewAvatarBackground =>
+        IsDarkCodexPreview ? DarkAvatarBackground : LightAvatarBackground;
+    public string PreviewAvatarBorder =>
+        IsDarkCodexPreview ? DarkAvatarBorder : LightAvatarBorder;
+    public string PreviewUserBubble =>
+        IsDarkCodexPreview ? "#2B2724" : "#E9EEEB";
+    public string PreviewUserText =>
+        IsDarkCodexPreview ? "#F4F0EC" : "#222A26";
 
     public ManagerThemeOption? SelectedManagerThemeOption
     {
@@ -438,61 +490,121 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public string AssistantBubble
     {
         get => _assistantBubble;
-        set => Set(ref _assistantBubble, value);
+        set
+        {
+            if (Set(ref _assistantBubble, value))
+            {
+                Raise(nameof(PreviewAssistantBubble));
+            }
+        }
     }
 
     public string DarkAssistantText
     {
         get => _darkAssistantText;
-        set => Set(ref _darkAssistantText, value);
+        set
+        {
+            if (Set(ref _darkAssistantText, value))
+            {
+                Raise(nameof(PreviewAssistantText));
+            }
+        }
     }
 
     public string DarkNicknameColor
     {
         get => _darkNicknameColor;
-        set => Set(ref _darkNicknameColor, value);
+        set
+        {
+            if (Set(ref _darkNicknameColor, value))
+            {
+                Raise(nameof(PreviewNicknameColor));
+            }
+        }
     }
 
     public string DarkAvatarBackground
     {
         get => _darkAvatarBackground;
-        set => Set(ref _darkAvatarBackground, value);
+        set
+        {
+            if (Set(ref _darkAvatarBackground, value))
+            {
+                Raise(nameof(PreviewAvatarBackground));
+            }
+        }
     }
 
     public string DarkAvatarBorder
     {
         get => _darkAvatarBorder;
-        set => Set(ref _darkAvatarBorder, value);
+        set
+        {
+            if (Set(ref _darkAvatarBorder, value))
+            {
+                Raise(nameof(PreviewAvatarBorder));
+            }
+        }
     }
 
     public string LightAssistantBubble
     {
         get => _lightAssistantBubble;
-        set => Set(ref _lightAssistantBubble, value);
+        set
+        {
+            if (Set(ref _lightAssistantBubble, value))
+            {
+                Raise(nameof(PreviewAssistantBubble));
+            }
+        }
     }
 
     public string LightAssistantText
     {
         get => _lightAssistantText;
-        set => Set(ref _lightAssistantText, value);
+        set
+        {
+            if (Set(ref _lightAssistantText, value))
+            {
+                Raise(nameof(PreviewAssistantText));
+            }
+        }
     }
 
     public string LightNicknameColor
     {
         get => _lightNicknameColor;
-        set => Set(ref _lightNicknameColor, value);
+        set
+        {
+            if (Set(ref _lightNicknameColor, value))
+            {
+                Raise(nameof(PreviewNicknameColor));
+            }
+        }
     }
 
     public string LightAvatarBackground
     {
         get => _lightAvatarBackground;
-        set => Set(ref _lightAvatarBackground, value);
+        set
+        {
+            if (Set(ref _lightAvatarBackground, value))
+            {
+                Raise(nameof(PreviewAvatarBackground));
+            }
+        }
     }
 
     public string LightAvatarBorder
     {
         get => _lightAvatarBorder;
-        set => Set(ref _lightAvatarBorder, value);
+        set
+        {
+            if (Set(ref _lightAvatarBorder, value))
+            {
+                Raise(nameof(PreviewAvatarBorder));
+            }
+        }
     }
 
     public string Status
@@ -1431,6 +1543,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private void RefreshLocalizedProperties()
     {
+        RefreshCodexPreviewThemeOptions(
+            SelectedCodexPreviewThemeOption?.Theme ?? CodexPreviewTheme.Dark);
         RefreshManagerThemeOptions(
             SelectedManagerThemeOption?.Mode ?? ManagerThemeMode.System);
         RefreshBubbleDisplayModeOptions(
@@ -1505,6 +1619,35 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 LocalizationService.Get("ManagerThemeSystem")));
         SelectedManagerThemeOption = ManagerThemeOptions.First(
             option => option.Mode == selectedMode);
+    }
+
+    private void RefreshCodexPreviewThemeOptions(CodexPreviewTheme selectedTheme)
+    {
+        CodexPreviewThemeOptions.Clear();
+        CodexPreviewThemeOptions.Add(
+            new CodexPreviewThemeOption(
+                CodexPreviewTheme.Dark,
+                LocalizationService.Get("PreviewModeDark")));
+        CodexPreviewThemeOptions.Add(
+            new CodexPreviewThemeOption(
+                CodexPreviewTheme.Light,
+                LocalizationService.Get("PreviewModeLight")));
+        SelectedCodexPreviewThemeOption = CodexPreviewThemeOptions.First(
+            option => option.Theme == selectedTheme);
+    }
+
+    private void RaisePreviewPalette()
+    {
+        Raise(nameof(IsDarkCodexPreview));
+        Raise(nameof(PreviewBackground));
+        Raise(nameof(PreviewBorder));
+        Raise(nameof(PreviewAssistantBubble));
+        Raise(nameof(PreviewAssistantText));
+        Raise(nameof(PreviewNicknameColor));
+        Raise(nameof(PreviewAvatarBackground));
+        Raise(nameof(PreviewAvatarBorder));
+        Raise(nameof(PreviewUserBubble));
+        Raise(nameof(PreviewUserText));
     }
 
     private void RefreshBubbleDisplayModeOptions(BubbleDisplayMode selectedMode)

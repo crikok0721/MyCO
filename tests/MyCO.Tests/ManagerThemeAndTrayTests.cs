@@ -147,7 +147,7 @@ public sealed partial class ManagerThemeAndTrayTests
     }
 
     [Fact]
-    public void PremiumHomeUsesExistingCommandsAndPreviewPreservesNativeSurfaces()
+    public void PremiumHomeUsesOneCompactSharedPreviewAndExistingCommands()
     {
         var root = FindRepositoryRoot();
         var manager = Path.Combine(root, "src", "MyCO.Manager");
@@ -163,6 +163,22 @@ public sealed partial class ManagerThemeAndTrayTests
             manager,
             "Controls",
             "ChatPreviewControl.xaml"));
+        var appearance = File.ReadAllText(Path.Combine(
+            manager,
+            "Views",
+            "AppearancePage.xaml"));
+        var calibration = File.ReadAllText(Path.Combine(
+            manager,
+            "Views",
+            "CalibrationPage.xaml"));
+        var about = File.ReadAllText(Path.Combine(
+            manager,
+            "Views",
+            "AboutPage.xaml"));
+        var viewModel = File.ReadAllText(Path.Combine(
+            manager,
+            "ViewModels",
+            "MainWindowViewModel.cs"));
         var app = File.ReadAllText(Path.Combine(manager, "App.xaml.cs"));
         var windowCode = File.ReadAllText(Path.Combine(
             manager,
@@ -183,10 +199,27 @@ public sealed partial class ManagerThemeAndTrayTests
         Assert.Contains("CornerRadius=\"16\"", shell);
         Assert.Contains("RadiusWindow", shell);
         Assert.Contains("DwmSetWindowAttribute", windowCode);
-        Assert.Contains("AssistantBubble", preview);
-        Assert.Contains("NativeUserBubbleBrush", preview);
-        Assert.Contains("CodeSurfaceBrush", preview);
-        Assert.DoesNotContain("Background=\"{Binding UserBubble}\"", preview);
+        Assert.Contains("PreviewAssistantMessage", preview);
+        Assert.Contains("PreviewUserMessage", preview);
+        Assert.Contains("PreviewAssistantBubble", preview);
+        Assert.Contains("PreviewUserBubble", preview);
+        Assert.Contains("CodexPreviewThemeSelector", preview);
+        Assert.DoesNotContain("<ScrollViewer", preview);
+        Assert.DoesNotContain("CodeSurfaceBrush", preview);
+        Assert.DoesNotContain("PreviewGenerating", preview);
+        Assert.DoesNotContain("PreviewErrorState", preview);
+        Assert.Single(Regex.Matches(home, "ChatPreviewControl").Cast<Match>());
+        Assert.Single(Regex.Matches(appearance, "ChatPreviewControl").Cast<Match>());
+        Assert.DoesNotContain("ProductTypeShort", shell);
+        Assert.DoesNotContain("NavMain", shell);
+        Assert.DoesNotContain("AppearanceSubtitle", appearance);
+        Assert.DoesNotContain("AppearanceCharactersHint", appearance);
+        Assert.DoesNotContain("CalibrationSubtitle", calibration);
+        Assert.DoesNotContain("SignatureDescription", calibration);
+        Assert.DoesNotContain("FailClosed", calibration);
+        Assert.Contains("Assets/MyCO-logo.png", about);
+        Assert.Contains("SelectedCodexPreviewThemeOption", viewModel);
+        Assert.Contains("RaisePreviewPalette", viewModel);
         Assert.Contains("SystemParameters.ClientAreaAnimation", app);
         Assert.Contains("TimeSpan.Zero", app);
     }
@@ -204,8 +237,10 @@ public sealed partial class ManagerThemeAndTrayTests
                 "Resources",
                 $"Strings.{culture}.xaml"));
 
-            Assert.Contains("<sys:String x:Key=\"NavMain\">MyCO</sys:String>", resources);
             Assert.Contains("<sys:String x:Key=\"HomeTheme\">MyCO", resources);
+            Assert.Contains(
+                "<sys:String x:Key=\"PreviewUserMessage\">It's...MyCO!!!!!</sys:String>",
+                resources);
             Assert.DoesNotContain(">MYCO<", resources);
             Assert.DoesNotContain(">MYCO ", resources);
         }
