@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-MyCodex is currently an alpha project. Security fixes target the latest
+MyCO is currently an alpha project. Security fixes target the latest
 published version only.
 
 | Version | Supported |
@@ -18,7 +18,7 @@ repository's private GitHub Security Advisory reporting flow when available.
 
 Include:
 
-- affected MyCodex version and official Desktop version;
+- affected MyCO version and official Desktop version;
 - Windows version and architecture;
 - minimal reproduction steps;
 - expected and observed behavior;
@@ -33,8 +33,8 @@ Include:
 - The runtime-to-host Binding has a random per-session name and accepts only
   whitelisted event types.
 - Injected JavaScript cannot request shell execution, file access, process
-  launch, or arbitrary network activity through MyCodex.
-- MyCodex does not read cookies, intercept network traffic, modify `app.asar`,
+  launch, or arbitrary network activity through MyCO.
+- MyCO does not read cookies, intercept network traffic, modify `app.asar`,
   patch official binaries, or inject native code.
 - Avatar imports are size/dimension-limited, checked by file signature, copied
   under a content-hash name, and served only from the managed non-reparse path.

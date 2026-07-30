@@ -1,10 +1,10 @@
 # Privacy
 
-MyCodex is designed to run locally.
+MyCO is designed to run locally.
 
-## Data MyCodex does not collect
+## Data MyCO does not collect
 
-MyCodex:
+MyCO:
 
 - does not upload conversations;
 - does not require or request OpenAI credentials;
@@ -14,11 +14,11 @@ MyCodex:
 - does not send configuration, diagnostics, or usage statistics to a project
   server.
 
-There is no MyCodex cloud service.
+There is no MyCO cloud service.
 
 ## Local data
 
-MyCodex stores the following under `%APPDATA%\MyCodex`:
+MyCO stores the following under `%APPDATA%\Myco`:
 
 - `config.json`: names and appearance settings;
 - `calibration.json`: schema-versioned structural signatures;
@@ -52,14 +52,14 @@ or redacted. Review any diagnostic file before attaching it to a public issue.
 
 ## Network behavior
 
-MyCodex communicates with Chromium DevTools Protocol over private inherited
+MyCO communicates with Chromium DevTools Protocol over private inherited
 pipes by default. If the user explicitly approves the fallback, it uses a
 randomly selected `127.0.0.1` port and never a LAN interface. Dependency
 downloads occur only while developers build the project; the published app has
-no MyCodex update or telemetry endpoint.
+no MyCO update or telemetry endpoint.
 
 ## Deletion
 
-Exit MyCodex, then delete `%APPDATA%\MyCodex` to remove its local configuration,
+Exit MyCO, then delete `%APPDATA%\Myco` to remove its local configuration,
 calibration, avatars, logs, and backups. This does not alter the official
 Desktop installation.

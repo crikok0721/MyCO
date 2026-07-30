@@ -8,11 +8,11 @@ param(
 # Reproduces CI locally: runtime checks, .NET build/test, self-contained publish, and zip.
 $ErrorActionPreference = "Stop"
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
-$runtimeRoot = Join-Path $repoRoot "src\MyCodex.Runtime"
-$managerProject = Join-Path $repoRoot "src\MyCodex.Manager\MyCodex.Manager.csproj"
-$solution = Join-Path $repoRoot "MyCodex.sln"
+$runtimeRoot = Join-Path $repoRoot "src\MyCO.Runtime"
+$managerProject = Join-Path $repoRoot "src\MyCO.Manager\MyCO.Manager.csproj"
+$solution = Join-Path $repoRoot "MyCO.sln"
 $artifactsRoot = Join-Path $repoRoot "artifacts"
-$artifactName = "MyCodex-$RuntimeIdentifier"
+$artifactName = "MyCO-$RuntimeIdentifier"
 $publishRoot = Join-Path $artifactsRoot $artifactName
 $archivePath = Join-Path $artifactsRoot "$artifactName.zip"
 
@@ -113,7 +113,7 @@ Compress-Archive -Path (Join-Path $publishRoot "*") -DestinationPath $archivePat
 
 $hash = Get-FileHash -LiteralPath $archivePath -Algorithm SHA256
 [pscustomobject]@{
-    Executable = Join-Path $publishRoot "MyCodex.exe"
+    Executable = Join-Path $publishRoot "MyCO.exe"
     Archive = $archivePath
     Sha256 = $hash.Hash.ToLowerInvariant()
 } | Format-List

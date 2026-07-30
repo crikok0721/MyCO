@@ -1,0 +1,83 @@
+<!-- Two-step renderer calibration workflow for assistant and user turn signatures. -->
+<UserControl x:Class="MyCO.Manager.Views.CalibrationPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="{StaticResource PagePadding}" MaxWidth="900">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Text="{DynamicResource CalibrationTitle}"
+                       Style="{StaticResource PageTitleText}" />
+
+            <!-- Read-only summary of the signatures currently stored in config. -->
+            <Border Grid.Row="1"
+                    Style="{StaticResource ElevatedCardBorder}"
+                    Margin="0,24,0,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="44" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="34" Height="34"
+                            CornerRadius="{StaticResource RadiusControl}"
+                            Background="{DynamicResource PrimaryMutedBrush}"
+                            VerticalAlignment="Top">
+                        <TextBlock Text="⌖" FontSize="17"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="{DynamicResource CurrentSignatureState}" FontWeight="SemiBold"
+                                   FontSize="16" />
+                        <TextBlock Text="{Binding CalibrationSummary}"
+                                   Foreground="{DynamicResource MutedTextBrush}"
+                                   Margin="0,7,0,0" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Each command asks the user to select one visible turn in the desktop app. -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Border Style="{StaticResource CardBorder}">
+                    <StackPanel>
+                        <TextBlock Text="1" Foreground="{DynamicResource PrimaryTextBrush}"
+                                   FontWeight="Bold" />
+                        <TextBlock Text="{DynamicResource SelectAssistantTurn}" FontSize="17"
+                                   FontWeight="SemiBold" Margin="0,9,0,0" />
+                        <TextBlock Text="{DynamicResource SelectAssistantDescription}"
+                                   Foreground="{DynamicResource MutedTextBrush}"
+                                   TextWrapping="Wrap" Margin="0,8,0,18" />
+                        <Button Content="{DynamicResource CalibrateAssistant}"
+                                Command="{Binding CalibrateAssistantCommand}"
+                                Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Left" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2"
+                        Style="{StaticResource CardBorder}">
+                    <StackPanel>
+                        <TextBlock Text="2" Foreground="{DynamicResource PrimaryTextBrush}"
+                                   FontWeight="Bold" />
+                        <TextBlock Text="{DynamicResource SelectUserTurn}" FontSize="17"
+                                   FontWeight="SemiBold" Margin="0,9,0,0" />
+                        <TextBlock Text="{DynamicResource SelectUserDescription}"
+                                   Foreground="{DynamicResource MutedTextBrush}"
+                                   TextWrapping="Wrap" Margin="0,8,0,18" />
+                        <Button Content="{DynamicResource CalibrateUser}"
+                                Command="{Binding CalibrateUserCommand}"
+                                Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Left" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

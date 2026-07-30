@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for helping MyCodex remain small, local, and resilient.
+Thank you for helping MyCO remain small, local, and resilient.
 
 ## Before opening a change
 
@@ -17,13 +17,13 @@ Thank you for helping MyCodex remain small, local, and resilient.
 Run:
 
 ```powershell
-cd src\MyCodex.Runtime
+cd src\MyCO.Runtime
 npm ci
 npm run check
 cd ..\..
-dotnet restore MyCodex.sln
-dotnet build MyCodex.sln -c Release --no-restore
-dotnet test MyCodex.sln -c Release --no-build
+dotnet restore MyCO.sln
+dotnet build MyCO.sln -c Release --no-restore
+dotnet test MyCO.sln -c Release --no-build
 ```
 
 On a supported Windows machine, also launch the manager and verify appearance,
@@ -47,7 +47,7 @@ without adding real conversation content.
 
 - C#: nullable enabled, async cancellation for I/O, immutable records for data
   contracts, no swallowed unexpected exceptions.
-- TypeScript: strict mode, scoped `data-mycodex-*` hooks, no dependency on
+- TypeScript: strict mode, scoped `data-myco-*` hooks, no dependency on
   minified class names, no page-global CSS outside the skin scope.
 - Runtime mutations must be idempotent and fully reversible by `destroy()`.
 - Logs and diagnostics must use an explicit allowlist.
