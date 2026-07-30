@@ -1,5 +1,7 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Threading;
 using MyCO.Manager.ViewModels;
 using MyCO.Manager.Services;
@@ -15,6 +17,8 @@ public partial class MainWindow : Window
     private readonly TrayWindowStateMachine _presentation = new();
     private WindowState _stateBeforeTray = WindowState.Normal;
     private WindowState _lastNonMinimizedState = WindowState.Normal;
+    private const int DwmWindowCornerPreference = 33;
+    private const int DwmWindowCornerRound = 2;
 
     public MainWindow(MainWindowViewModel viewModel)
     {
@@ -110,7 +114,57 @@ public partial class MainWindow : Window
         MaximizeRestoreButton.SetResourceReference(
             System.Windows.Controls.ToolTipService.ToolTipProperty,
             maximized ? "RestoreWindow" : "MaximizeWindow");
+        if (maximized)
+        {
+            RootShell.CornerRadius = new CornerRadius(0);
+        }
+        else
+        {
+            RootShell.SetResourceReference(
+                System.Windows.Controls.Border.CornerRadiusProperty,
+                "RadiusWindow");
+            RequestNativeRoundedCorners();
+        }
     }
+
+    protected override void OnSourceInitialized(EventArgs eventArgs)
+    {
+        base.OnSourceInitialized(eventArgs);
+        RequestNativeRoundedCorners();
+    }
+
+    private void RequestNativeRoundedCorners()
+    {
+        if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000))
+        {
+            return;
+        }
+
+        try
+        {
+            var preference = DwmWindowCornerRound;
+            _ = DwmSetWindowAttribute(
+                new WindowInteropHelper(this).Handle,
+                DwmWindowCornerPreference,
+                ref preference,
+                Marshal.SizeOf<int>());
+        }
+        catch (DllNotFoundException)
+        {
+            // WindowChrome remains the compatibility fallback.
+        }
+        catch (EntryPointNotFoundException)
+        {
+            // WindowChrome remains the compatibility fallback.
+        }
+    }
+
+    [DllImport("dwmapi.dll", PreserveSig = true)]
+    private static extern int DwmSetWindowAttribute(
+        nint windowHandle,
+        int attribute,
+        ref int attributeValue,
+        int attributeSize);
 
     protected override async void OnClosing(CancelEventArgs eventArgs)
     {

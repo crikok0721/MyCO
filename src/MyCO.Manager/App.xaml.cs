@@ -30,6 +30,7 @@ public partial class App : System.Windows.Application
     protected override async void OnStartup(StartupEventArgs eventArgs)
     {
         base.OnStartup(eventArgs);
+        ApplyMotionPreference();
         _logger = TryCreateLogger();
         DispatcherUnhandledException += HandleDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += HandleDomainUnhandledException;
@@ -176,6 +177,19 @@ public partial class App : System.Windows.Application
         {
             return null;
         }
+    }
+
+    private void ApplyMotionPreference()
+    {
+        if (SystemParameters.ClientAreaAnimation && !SystemParameters.HighContrast)
+        {
+            return;
+        }
+        var disabled = new Duration(TimeSpan.Zero);
+        Resources["MotionInstantDuration"] = disabled;
+        Resources["MotionFastDuration"] = disabled;
+        Resources["MotionStandardDuration"] = disabled;
+        Resources["MotionRelaxedDuration"] = disabled;
     }
 
     private static void TryApplyStoredLanguage()

@@ -2,11 +2,13 @@
 param(
     [string]$Source = (Join-Path $PSScriptRoot "..\assets\MyCO-source.ico"),
     [string]$Output = (Join-Path $PSScriptRoot "..\assets\MyCO.ico"),
-    [string]$PngOutput = (Join-Path $PSScriptRoot "..\assets\MyCO-logo.png")
+    [string]$PngOutput = (Join-Path $PSScriptRoot "..\assets\MyCO-logo.png"),
+    [double]$CornerRadiusRatio = 0.18
 )
 
 # Generates the packaged UI PNG and multi-resolution Windows ICO from the
-# repository-owned canonical icon source.
+# repository-owned canonical artwork. Derived frames receive one deterministic,
+# anti-aliased rounded-rectangle mask; the portrait pixels are never redrawn.
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
 
@@ -84,6 +86,136 @@ function Convert-BitmapToIconDib {
     }
 }
 
+function New-RoundedRectanglePath {
+    param(
+        [float]$Width,
+        [float]$Height,
+        [float]$Radius
+    )
+
+    $diameter = [Math]::Max(1.0, $Radius * 2.0)
+    $path = [System.Drawing.Drawing2D.GraphicsPath]::new()
+    $path.StartFigure()
+    $path.AddArc(
+        [System.Drawing.RectangleF]::new(0, 0, $diameter, $diameter),
+        180,
+        90)
+    $path.AddArc(
+        [System.Drawing.RectangleF]::new(
+            $Width - $diameter,
+            0,
+            $diameter,
+            $diameter),
+        270,
+        90)
+    $path.AddArc(
+        [System.Drawing.RectangleF]::new(
+            $Width - $diameter,
+            $Height - $diameter,
+            $diameter,
+            $diameter),
+        0,
+        90)
+    $path.AddArc(
+        [System.Drawing.RectangleF]::new(
+            0,
+            $Height - $diameter,
+            $diameter,
+            $diameter),
+        90,
+        90)
+    $path.CloseFigure()
+    return $path
+}
+
+function Set-RoundedRectangleAlpha {
+    param(
+        [System.Drawing.Bitmap]$Bitmap,
+        [double]$RadiusRatio
+    )
+
+    $supersample = 4
+    $maskSize = $Bitmap.Width * $supersample
+    $maskLarge = [System.Drawing.Bitmap]::new(
+        $maskSize,
+        $maskSize,
+        [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $mask = [System.Drawing.Bitmap]::new(
+        $Bitmap.Width,
+        $Bitmap.Height,
+        [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    try {
+        $graphics = [System.Drawing.Graphics]::FromImage($maskLarge)
+        try {
+            $graphics.Clear([System.Drawing.Color]::Transparent)
+            $graphics.CompositingMode =
+                [System.Drawing.Drawing2D.CompositingMode]::SourceCopy
+            $graphics.SmoothingMode =
+                [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+            $radius = [float]($maskSize * $RadiusRatio)
+            $path = New-RoundedRectanglePath `
+                -Width ([float]$maskSize) `
+                -Height ([float]$maskSize) `
+                -Radius $radius
+            try {
+                $graphics.FillPath([System.Drawing.Brushes]::White, $path)
+            }
+            finally {
+                $path.Dispose()
+            }
+        }
+        finally {
+            $graphics.Dispose()
+        }
+
+        $graphics = [System.Drawing.Graphics]::FromImage($mask)
+        try {
+            $graphics.Clear([System.Drawing.Color]::Transparent)
+            $graphics.CompositingMode =
+                [System.Drawing.Drawing2D.CompositingMode]::SourceCopy
+            $graphics.CompositingQuality =
+                [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+            $graphics.InterpolationMode =
+                [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+            $graphics.PixelOffsetMode =
+                [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+            $graphics.DrawImage(
+                $maskLarge,
+                [System.Drawing.Rectangle]::new(
+                    0,
+                    0,
+                    $Bitmap.Width,
+                    $Bitmap.Height))
+        }
+        finally {
+            $graphics.Dispose()
+        }
+
+        for ($y = 0; $y -lt $Bitmap.Height; $y++) {
+            for ($x = 0; $x -lt $Bitmap.Width; $x++) {
+                $source = $Bitmap.GetPixel($x, $y)
+                $maskAlpha = $mask.GetPixel($x, $y).A
+                if ($maskAlpha -lt 255) {
+                    $alpha = [byte][Math]::Round(
+                        $source.A * $maskAlpha / 255.0)
+                    $Bitmap.SetPixel(
+                        $x,
+                        $y,
+                        [System.Drawing.Color]::FromArgb(
+                            $alpha,
+                            $source.R,
+                            $source.G,
+                            $source.B))
+                }
+            }
+        }
+    }
+    finally {
+        $mask.Dispose()
+        $maskLarge.Dispose()
+    }
+}
+
 $sourcePath = [System.IO.Path]::GetFullPath($Source)
 $outputPath = [System.IO.Path]::GetFullPath($Output)
 $pngOutputPath = if ([string]::IsNullOrWhiteSpace($PngOutput)) {
@@ -97,6 +229,9 @@ if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
 }
 if ($sourcePath.Equals($outputPath, [System.StringComparison]::OrdinalIgnoreCase)) {
     throw "The canonical icon source and generated ICO output must be different files."
+}
+if ($CornerRadiusRatio -lt 0.08 -or $CornerRadiusRatio -gt 0.30) {
+    throw "CornerRadiusRatio must be between 0.08 and 0.30."
 }
 
 $sizes = @(16, 20, 24, 32, 40, 48, 64, 128, 256)
@@ -210,6 +345,9 @@ try {
                     $graphics.Dispose()
                 }
 
+                Set-RoundedRectangleAlpha `
+                    -Bitmap $bitmap `
+                    -RadiusRatio $CornerRadiusRatio
                 $frames.Add((Convert-BitmapToIconDib -Bitmap $bitmap))
                 if ($size -eq 256) {
                     $pngStream = [System.IO.MemoryStream]::new()

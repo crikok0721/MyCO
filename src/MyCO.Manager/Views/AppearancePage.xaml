@@ -1,282 +1,283 @@
-<!-- Appearance editor with live preview, identities, and geometry controls. -->
+<!-- Split appearance studio: representative preview plus progressively disclosed controls. -->
 <UserControl x:Class="MyCO.Manager.Views.AppearancePage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <Grid Margin="34,28,34,34" MaxWidth="900" HorizontalAlignment="Stretch">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:MyCO.Manager.Controls">
+    <Grid Margin="{StaticResource PagePadding}" MaxWidth="1120">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-            <DockPanel>
-                <StackPanel>
-                    <TextBlock Text="{DynamicResource AppearanceTitle}" FontSize="26" FontWeight="SemiBold" />
-                    <TextBlock Text="{DynamicResource AppearanceSubtitle}"
-                               Foreground="{DynamicResource MutedTextBrush}" Margin="0,5,0,0" />
-                </StackPanel>
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
-                            HorizontalAlignment="Right">
-                    <Button Content="{DynamicResource Reset}" Command="{Binding ResetAppearanceCommand}"
-                            Margin="0,0,8,0" />
-                    <Button Content="{DynamicResource SaveApply}" Command="{Binding SaveCommand}"
-                            Style="{StaticResource PrimaryButton}" />
-                </StackPanel>
-            </DockPanel>
+        <DockPanel LastChildFill="False">
+            <StackPanel>
+                <TextBlock Text="{DynamicResource AppearanceTitle}"
+                           Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="{DynamicResource AppearanceSubtitle}"
+                           Style="{StaticResource MutedBodyText}"
+                           Margin="0,5,0,0" />
+            </StackPanel>
+            <StackPanel DockPanel.Dock="Right"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right">
+                <Button Content="{DynamicResource Reset}"
+                        Command="{Binding ResetAppearanceCommand}"
+                        Style="{StaticResource GhostButton}"
+                        Margin="0,0,8,0" />
+                <Button Content="{DynamicResource SaveApply}"
+                        Command="{Binding SaveCommand}"
+                        Style="{StaticResource PrimaryButton}" />
+            </StackPanel>
+        </DockPanel>
 
-            <!-- The preview uses the same bound values that are saved to AppConfig. -->
-            <Border Grid.Row="1" Margin="0,24,0,18" Padding="26"
-                    Background="{DynamicResource PreviewBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="14">
-                <StackPanel>
-                    <TextBlock Text="{DynamicResource LivePreview}" FontSize="10" FontWeight="SemiBold"
-                               Foreground="{DynamicResource MutedTextBrush}" />
-                    <Grid Margin="0,24,0,10">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="28" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Grid Width="{Binding AvatarSize}" Height="{Binding AvatarSize}"
-                                  VerticalAlignment="Top">
-                                <Grid.RenderTransform>
-                                    <TranslateTransform X="{Binding AvatarOffsetX}"
-                                                        Y="{Binding AvatarOffsetY}" />
-                                </Grid.RenderTransform>
-                                <Ellipse Fill="{DynamicResource AvatarPlaceholderBrush}" />
-                                <Ellipse>
-                                    <Ellipse.Fill>
-                                        <ImageBrush ImageSource="{Binding AssistantAvatar}"
-                                                    Stretch="UniformToFill" />
-                                    </Ellipse.Fill>
-                                </Ellipse>
-                            </Grid>
-                            <StackPanel Grid.Column="1" Margin="12,-2,0,0">
-                                <TextBlock Text="{Binding AssistantName}"
-                                           Visibility="{Binding NicknameVisible,
-                                             Converter={StaticResource BooleanToVisibilityConverter}}"
-                                           Foreground="{Binding DarkNicknameColor}"
-                                           FontSize="13" Margin="1,0,0,5" />
-                                <Border Background="{Binding AssistantBubble}"
-                                        CornerRadius="{Binding BubbleRadius}"
-                                        Padding="{Binding BubblePaddingX}">
-                                    <TextBlock Text="{DynamicResource PreviewAssistant}"
-                                               Foreground="{Binding DarkAssistantText}"
-                                               TextWrapping="Wrap" MaxWidth="450" />
-                                </Border>
-                                <Border Background="{DynamicResource ToolPanelBrush}"
-                                        BorderBrush="{DynamicResource ToolBorderBrush}"
-                                        BorderThickness="1" CornerRadius="8" Padding="12"
-                                        Margin="0,10,0,0" MaxWidth="520"
-                                        HorizontalAlignment="Left">
-                                    <TextBlock Text="{DynamicResource PreviewToolCard}"
-                                               FontFamily="Consolas"
-                                               Foreground="{DynamicResource ToolTextBrush}" />
-                                </Border>
-                            </StackPanel>
-                        </Grid>
-                        <Grid Grid.Row="2" HorizontalAlignment="Right">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel HorizontalAlignment="Right" Margin="0,-2,12,0">
-                                <TextBlock Text="{Binding UserName}" TextAlignment="Right"
-                                           Visibility="{Binding NicknameVisible,
-                                             Converter={StaticResource BooleanToVisibilityConverter}}"
-                                           Foreground="{DynamicResource MutedTextBrush}"
-                                           FontSize="13" Margin="0,0,1,5" />
-                                <Border Background="{DynamicResource NativeUserBubbleBrush}"
-                                        CornerRadius="16"
-                                        Padding="12,8"
-                                        HorizontalAlignment="Right">
-                                    <TextBlock Text="{DynamicResource PreviewUser}"
-                                               Foreground="{DynamicResource NativeUserTextBrush}" />
-                                </Border>
-                            </StackPanel>
-                            <Grid Grid.Column="1" Width="{Binding AvatarSize}"
-                                  Height="{Binding AvatarSize}" VerticalAlignment="Top">
-                                <Grid.RenderTransform>
-                                    <TranslateTransform X="{Binding UserAvatarOffsetX}"
-                                                        Y="{Binding AvatarOffsetY}" />
-                                </Grid.RenderTransform>
-                                <Ellipse Fill="{DynamicResource AvatarPlaceholderBrush}" />
-                                <Ellipse>
-                                    <Ellipse.Fill>
-                                        <ImageBrush ImageSource="{Binding UserAvatar}"
-                                                    Stretch="UniformToFill" />
-                                    </Ellipse.Fill>
-                                </Ellipse>
-                            </Grid>
-                        </Grid>
-                    </Grid>
-                </StackPanel>
-            </Border>
+        <Grid Grid.Row="1" Margin="0,22,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.25*" MinWidth="420" />
+                <ColumnDefinition Width="18" />
+                <ColumnDefinition Width="*" MinWidth="330" MaxWidth="430" />
+            </Grid.ColumnDefinitions>
 
-            <!-- Assistant and user identity settings -->
-            <Grid Grid.Row="2">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition />
-                    <ColumnDefinition Width="16" />
-                    <ColumnDefinition />
-                </Grid.ColumnDefinitions>
-                <Border Background="{DynamicResource PanelBrush}"
-                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                        CornerRadius="12" Padding="20">
-                    <StackPanel>
-                        <TextBlock Text="{DynamicResource AssistantLabel}" FontWeight="SemiBold" FontSize="16" />
-                        <TextBlock Text="{DynamicResource Nickname}" Foreground="{DynamicResource MutedTextBrush}"
-                                   FontSize="11" Margin="0,18,0,6" />
-                        <TextBox Text="{Binding AssistantName, UpdateSourceTrigger=PropertyChanged}" />
-                        <Button Content="{DynamicResource ChooseAssistantAvatar}"
-                                Command="{Binding PickAssistantAvatarCommand}"
-                                Margin="0,12,0,0" HorizontalAlignment="Left" />
-                        <TextBlock Text="{Binding AssistantAvatar}" FontSize="10"
-                                   Foreground="{DynamicResource MutedTextBrush}"
-                                   TextTrimming="CharacterEllipsis" Margin="0,7,0,0" />
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Border Style="{StaticResource StatusPillBorder}"
+                        HorizontalAlignment="Left"
+                        Margin="4,0,0,10">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="7" Height="7"
+                                 Fill="{DynamicResource PrimaryBrush}"
+                                 Margin="0,0,7,0" />
+                        <TextBlock Text="{DynamicResource AppearancePreviewHint}"
+                                   Style="{StaticResource CaptionText}" />
                     </StackPanel>
                 </Border>
-                <Border Grid.Column="2" Background="{DynamicResource PanelBrush}"
-                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                        CornerRadius="12" Padding="20">
-                    <StackPanel>
-                        <TextBlock Text="{DynamicResource UserLabel}" FontWeight="SemiBold" FontSize="16" />
-                        <TextBlock Text="{DynamicResource Nickname}" Foreground="{DynamicResource MutedTextBrush}"
-                                   FontSize="11" Margin="0,18,0,6" />
-                        <TextBox Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" />
-                        <Button Content="{DynamicResource ChooseUserAvatar}"
-                                Command="{Binding PickUserAvatarCommand}"
-                                Margin="0,12,0,0" HorizontalAlignment="Left" />
-                        <TextBlock Text="{Binding UserAvatar}" FontSize="10"
-                                   Foreground="{DynamicResource MutedTextBrush}"
-                                   TextTrimming="CharacterEllipsis" Margin="0,7,0,0" />
-                    </StackPanel>
-                </Border>
+                <controls:ChatPreviewControl Grid.Row="1" />
             </Grid>
 
-            <!-- Numeric controls are constrained to ranges validated by ConfigStore. -->
-            <Border Grid.Row="3" Margin="0,18,0,0" Background="{DynamicResource PanelBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                    CornerRadius="12" Padding="20">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition />
-                        <ColumnDefinition Width="32" />
-                        <ColumnDefinition />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <TextBlock Text="{DynamicResource Geometry}" FontWeight="SemiBold" FontSize="16" />
-                        <TextBlock Text="{Binding AvatarSizeLabel}"
-                                   Margin="0,17,0,3" />
-                        <Slider Minimum="24" Maximum="72" Value="{Binding AvatarSize}" />
-                        <TextBlock Text="{Binding AvatarOffsetXLabel}"
-                                   Margin="0,13,0,3" />
-                        <Slider Minimum="-32" Maximum="32" Value="{Binding AvatarOffsetX}" />
-                        <TextBlock Text="{Binding AvatarOffsetYLabel}"
-                                   Margin="0,13,0,3" />
-                        <Slider Minimum="-20" Maximum="40" Value="{Binding AvatarOffsetY}" />
-                        <TextBlock Text="{Binding BubbleRadiusLabel}"
-                                   Margin="0,13,0,3" />
-                        <Slider Minimum="0" Maximum="30" Value="{Binding BubbleRadius}" />
-                        <TextBlock Text="{Binding MessageGapLabel}"
-                                   Margin="0,13,0,3" />
-                        <Slider Minimum="8" Maximum="64" Value="{Binding MessageGap}" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="{DynamicResource BubbleBehavior}" FontWeight="SemiBold" FontSize="16" />
-                        <TextBlock Text="{DynamicResource BubbleDisplayMode}"
-                                   Margin="0,17,0,5" />
-                        <ComboBox ItemsSource="{Binding BubbleDisplayModeOptions}"
-                                  SelectedItem="{Binding SelectedBubbleDisplayModeOption}"
-                                  DisplayMemberPath="DisplayName" />
-                        <TextBlock Text="{DynamicResource BubbleDisplayModeDescription}"
-                                   Foreground="{DynamicResource MutedTextBrush}"
-                                   FontSize="11" TextWrapping="Wrap"
-                                   Margin="0,6,0,4" />
-                        <TextBlock Text="{Binding BubblePaddingXLabel}"
-                                   Margin="0,13,0,3" />
-                        <Slider Minimum="6" Maximum="28" Value="{Binding BubblePaddingX}" />
-                        <TextBlock Text="{Binding BubblePaddingYLabel}"
-                                   Margin="0,13,0,3" />
-                        <Slider Minimum="6" Maximum="22" Value="{Binding BubblePaddingY}" />
-                        <TextBlock Text="{Binding MessageMaxWidthLabel}"
-                                   Margin="0,13,0,3" />
-                        <Slider Minimum="45" Maximum="80" Value="{Binding MessageMaxWidth}" />
-                        <CheckBox Content="{DynamicResource ShowNicknames}" IsChecked="{Binding NicknameVisible}"
-                                  Margin="0,16,0,0" />
-                    </StackPanel>
-                </Grid>
-            </Border>
+            <ScrollViewer Grid.Column="2"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="0,0,8,0">
+                    <!-- Character expression: the primary source of the restrained anime tone. -->
+                    <Border Style="{StaticResource CardBorder}">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource AppearanceCharacters}"
+                                       Style="{StaticResource SectionTitleText}" />
+                            <TextBlock Text="{DynamicResource AppearanceCharactersHint}"
+                                       Style="{StaticResource CaptionText}"
+                                       Margin="0,4,0,18" />
 
-            <Border Grid.Row="4" Margin="0,18,0,0"
-                    Background="{DynamicResource PanelBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                    CornerRadius="12" Padding="20">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition />
-                        <ColumnDefinition Width="32" />
-                        <ColumnDefinition />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <TextBlock Text="{DynamicResource DarkPalette}"
-                                   FontWeight="SemiBold" FontSize="16" />
-                        <TextBlock Text="{DynamicResource AssistantBubbleColor}"
-                                   Margin="0,16,0,5" />
-                        <TextBox Text="{Binding AssistantBubble,
-                                  UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBlock Text="{DynamicResource AssistantTextColor}"
-                                   Margin="0,12,0,5" />
-                        <TextBox Text="{Binding DarkAssistantText,
-                                  UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBlock Text="{DynamicResource NicknameColor}"
-                                   Margin="0,12,0,5" />
-                        <TextBox Text="{Binding DarkNicknameColor,
-                                  UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBlock Text="{DynamicResource AvatarBackgroundColor}"
-                                   Margin="0,12,0,5" />
-                        <TextBox Text="{Binding DarkAvatarBackground,
-                                  UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBlock Text="{DynamicResource AvatarBorderColor}"
-                                   Margin="0,12,0,5" />
-                        <TextBox Text="{Binding DarkAvatarBorder,
-                                  UpdateSourceTrigger=PropertyChanged}" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="{DynamicResource LightPalette}"
-                                   FontWeight="SemiBold" FontSize="16" />
-                        <TextBlock Text="{DynamicResource AssistantBubbleColor}"
-                                   Margin="0,16,0,5" />
-                        <TextBox Text="{Binding LightAssistantBubble,
-                                  UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBlock Text="{DynamicResource AssistantTextColor}"
-                                   Margin="0,12,0,5" />
-                        <TextBox Text="{Binding LightAssistantText,
-                                  UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBlock Text="{DynamicResource NicknameColor}"
-                                   Margin="0,12,0,5" />
-                        <TextBox Text="{Binding LightNicknameColor,
-                                  UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBlock Text="{DynamicResource AvatarBackgroundColor}"
-                                   Margin="0,12,0,5" />
-                        <TextBox Text="{Binding LightAvatarBackground,
-                                  UpdateSourceTrigger=PropertyChanged}" />
-                        <TextBlock Text="{DynamicResource AvatarBorderColor}"
-                                   Margin="0,12,0,5" />
-                        <TextBox Text="{Binding LightAvatarBorder,
-                                  UpdateSourceTrigger=PropertyChanged}" />
-                    </StackPanel>
-                </Grid>
-            </Border>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="46" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Width="42" Height="42">
+                                    <Ellipse Fill="{Binding DarkAvatarBackground}" />
+                                    <Ellipse Stroke="{Binding DarkAvatarBorder}" StrokeThickness="1">
+                                        <Ellipse.Fill>
+                                            <ImageBrush ImageSource="{Binding AssistantAvatar}"
+                                                        Stretch="UniformToFill" />
+                                        </Ellipse.Fill>
+                                    </Ellipse>
+                                </Grid>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{DynamicResource AssistantLabel}"
+                                               Style="{StaticResource LabelText}" />
+                                    <TextBox Text="{Binding AssistantName,
+                                                      UpdateSourceTrigger=PropertyChanged}"
+                                             Margin="0,6,0,0" />
+                                    <Button Content="{DynamicResource ChooseAssistantAvatar}"
+                                            Command="{Binding PickAssistantAvatarCommand}"
+                                            Style="{StaticResource GhostButton}"
+                                            HorizontalAlignment="Left"
+                                            Margin="0,6,0,0"
+                                            Padding="8,5"
+                                            MinHeight="30" />
+                                </StackPanel>
+                            </Grid>
+
+                            <Border Height="1"
+                                    Background="{DynamicResource BorderBrush}"
+                                    Margin="0,17,0,17" />
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="46" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Width="42" Height="42">
+                                    <Ellipse Fill="{DynamicResource AvatarPlaceholderBrush}" />
+                                    <Ellipse>
+                                        <Ellipse.Fill>
+                                            <ImageBrush ImageSource="{Binding UserAvatar}"
+                                                        Stretch="UniformToFill" />
+                                        </Ellipse.Fill>
+                                    </Ellipse>
+                                </Grid>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{DynamicResource UserLabel}"
+                                               Style="{StaticResource LabelText}" />
+                                    <TextBox Text="{Binding UserName,
+                                                      UpdateSourceTrigger=PropertyChanged}"
+                                             Margin="0,6,0,0" />
+                                    <Button Content="{DynamicResource ChooseUserAvatar}"
+                                            Command="{Binding PickUserAvatarCommand}"
+                                            Style="{StaticResource GhostButton}"
+                                            HorizontalAlignment="Left"
+                                            Margin="0,6,0,0"
+                                            Padding="8,5"
+                                            MinHeight="30" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource CardBorder}" Margin="0,14,0,0">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource AppearanceChatStyle}"
+                                       Style="{StaticResource SectionTitleText}" />
+                            <TextBlock Text="{DynamicResource BubbleDisplayMode}"
+                                       Style="{StaticResource LabelText}"
+                                       Margin="0,17,0,6" />
+                            <ComboBox ItemsSource="{Binding BubbleDisplayModeOptions}"
+                                      SelectedItem="{Binding SelectedBubbleDisplayModeOption}"
+                                      DisplayMemberPath="DisplayName" />
+                            <TextBlock Text="{DynamicResource BubbleDisplayModeDescription}"
+                                       Style="{StaticResource CaptionText}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,6,0,8" />
+
+                            <TextBlock Text="{Binding BubbleRadiusLabel}" Margin="0,12,0,4" />
+                            <Slider Minimum="0" Maximum="30" Value="{Binding BubbleRadius}" />
+                            <TextBlock Text="{Binding BubblePaddingXLabel}" Margin="0,12,0,4" />
+                            <Slider Minimum="6" Maximum="28" Value="{Binding BubblePaddingX}" />
+                            <TextBlock Text="{Binding BubblePaddingYLabel}" Margin="0,12,0,4" />
+                            <Slider Minimum="6" Maximum="22" Value="{Binding BubblePaddingY}" />
+                            <TextBlock Text="{Binding MessageMaxWidthLabel}" Margin="0,12,0,4" />
+                            <Slider Minimum="45" Maximum="80" Value="{Binding MessageMaxWidth}" />
+                            <CheckBox Content="{DynamicResource ShowNicknames}"
+                                      IsChecked="{Binding NicknameVisible}"
+                                      Margin="0,15,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Advanced geometry is available without dominating the default workflow. -->
+                    <Border Style="{StaticResource CardBorder}" Margin="0,14,0,0">
+                        <Expander Header="{DynamicResource AppearanceAdvanced}"
+                                  IsExpanded="False"
+                                  Foreground="{DynamicResource TextBrush}">
+                            <StackPanel Margin="0,16,0,0">
+                                <TextBlock Text="{Binding AvatarSizeLabel}" Margin="0,0,0,4" />
+                                <Slider Minimum="24" Maximum="72" Value="{Binding AvatarSize}" />
+                                <TextBlock Text="{Binding AvatarOffsetXLabel}" Margin="0,12,0,4" />
+                                <Slider Minimum="-32" Maximum="32" Value="{Binding AvatarOffsetX}" />
+                                <TextBlock Text="{Binding AvatarOffsetYLabel}" Margin="0,12,0,4" />
+                                <Slider Minimum="-20" Maximum="40" Value="{Binding AvatarOffsetY}" />
+                                <TextBlock Text="{Binding MessageGapLabel}" Margin="0,12,0,4" />
+                                <Slider Minimum="8" Maximum="64" Value="{Binding MessageGap}" />
+                            </StackPanel>
+                        </Expander>
+                    </Border>
+
+                    <!-- Raw palette values remain available for advanced personalization. -->
+                    <Border Style="{StaticResource CardBorder}" Margin="0,14,0,0">
+                        <Expander Header="{DynamicResource AppearancePalettes}"
+                                  IsExpanded="False"
+                                  Foreground="{DynamicResource TextBrush}">
+                            <StackPanel Margin="0,16,0,0">
+                                <TextBlock Text="{DynamicResource DarkPalette}"
+                                           Style="{StaticResource LabelText}" />
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="28" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="20" Height="20"
+                                            CornerRadius="6"
+                                            Background="{Binding AssistantBubble}"
+                                            BorderBrush="{DynamicResource BorderStrongBrush}"
+                                            BorderThickness="1" />
+                                    <TextBox Grid.Column="1"
+                                             Text="{Binding AssistantBubble,
+                                                 UpdateSourceTrigger=PropertyChanged}" />
+                                </Grid>
+                                <TextBlock Text="{DynamicResource AssistantTextColor}"
+                                           Style="{StaticResource CaptionText}"
+                                           Margin="28,9,0,4" />
+                                <TextBox Text="{Binding DarkAssistantText,
+                                                 UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="28,0,0,0" />
+                                <TextBlock Text="{DynamicResource NicknameColor}"
+                                           Style="{StaticResource CaptionText}"
+                                           Margin="28,9,0,4" />
+                                <TextBox Text="{Binding DarkNicknameColor,
+                                                 UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="28,0,0,0" />
+                                <TextBlock Text="{DynamicResource AvatarBackgroundColor}"
+                                           Style="{StaticResource CaptionText}"
+                                           Margin="28,9,0,4" />
+                                <TextBox Text="{Binding DarkAvatarBackground,
+                                                 UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="28,0,0,0" />
+                                <TextBlock Text="{DynamicResource AvatarBorderColor}"
+                                           Style="{StaticResource CaptionText}"
+                                           Margin="28,9,0,4" />
+                                <TextBox Text="{Binding DarkAvatarBorder,
+                                                 UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="28,0,0,0" />
+
+                                <Border Height="1"
+                                        Background="{DynamicResource BorderBrush}"
+                                        Margin="0,18,0,18" />
+
+                                <TextBlock Text="{DynamicResource LightPalette}"
+                                           Style="{StaticResource LabelText}" />
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="28" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="20" Height="20"
+                                            CornerRadius="6"
+                                            Background="{Binding LightAssistantBubble}"
+                                            BorderBrush="{DynamicResource BorderStrongBrush}"
+                                            BorderThickness="1" />
+                                    <TextBox Grid.Column="1"
+                                             Text="{Binding LightAssistantBubble,
+                                                 UpdateSourceTrigger=PropertyChanged}" />
+                                </Grid>
+                                <TextBlock Text="{DynamicResource AssistantTextColor}"
+                                           Style="{StaticResource CaptionText}"
+                                           Margin="28,9,0,4" />
+                                <TextBox Text="{Binding LightAssistantText,
+                                                 UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="28,0,0,0" />
+                                <TextBlock Text="{DynamicResource NicknameColor}"
+                                           Style="{StaticResource CaptionText}"
+                                           Margin="28,9,0,4" />
+                                <TextBox Text="{Binding LightNicknameColor,
+                                                 UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="28,0,0,0" />
+                                <TextBlock Text="{DynamicResource AvatarBackgroundColor}"
+                                           Style="{StaticResource CaptionText}"
+                                           Margin="28,9,0,4" />
+                                <TextBox Text="{Binding LightAvatarBackground,
+                                                 UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="28,0,0,0" />
+                                <TextBlock Text="{DynamicResource AvatarBorderColor}"
+                                           Style="{StaticResource CaptionText}"
+                                           Margin="28,9,0,4" />
+                                <TextBox Text="{Binding LightAvatarBorder,
+                                                 UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="28,0,0,0" />
+                            </StackPanel>
+                        </Expander>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
-    </ScrollViewer>
+    </Grid>
 </UserControl>

@@ -21,6 +21,7 @@ namespace MyCO.Manager.ViewModels;
 
 public enum ManagerPage
 {
+    Home,
     Appearance,
     Calibration,
     Diagnostics,
@@ -66,7 +67,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private ApplicationCandidate? _selectedCandidate;
     private LanguageOption _selectedLanguage =
         LocalizationService.SupportedLanguages[0];
-    private ManagerPage _currentPage = ManagerPage.Appearance;
+    private ManagerPage _currentPage = ManagerPage.Home;
     private string _assistantName = "Codex";
     private string _userName = "You";
     private string _assistantAvatar = string.Empty;
@@ -122,6 +123,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _controller.StateChanged += HandleStateChanged;
         _controller.RuntimeEventReceived += HandleRuntimeEvent;
 
+        SelectHomeCommand = new RelayCommand(() => CurrentPage = ManagerPage.Home);
         SelectAppearanceCommand = new RelayCommand(() => CurrentPage = ManagerPage.Appearance);
         SelectCalibrationCommand = new RelayCommand(() => CurrentPage = ManagerPage.Calibration);
         SelectDiagnosticsCommand = new RelayCommand(() => CurrentPage = ManagerPage.Diagnostics);
@@ -189,6 +191,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<BubbleDisplayModeOption> BubbleDisplayModeOptions { get; } =
         [];
 
+    public ICommand SelectHomeCommand { get; }
     public ICommand SelectAppearanceCommand { get; }
     public ICommand SelectCalibrationCommand { get; }
     public ICommand SelectDiagnosticsCommand { get; }
@@ -235,6 +238,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             if (Set(ref _selectedCandidate, value))
             {
+                RaiseHomeActionState();
                 RaiseCommandCanExecute();
             }
         }
@@ -249,6 +253,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             {
                 return;
             }
+            Raise(nameof(IsHomePage));
             Raise(nameof(IsAppearancePage));
             Raise(nameof(IsCalibrationPage));
             Raise(nameof(IsDiagnosticsPage));
@@ -257,6 +262,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    public bool IsHomePage => CurrentPage == ManagerPage.Home;
     public bool IsAppearancePage => CurrentPage == ManagerPage.Appearance;
     public bool IsCalibrationPage => CurrentPage == ManagerPage.Calibration;
     public bool IsDiagnosticsPage => CurrentPage == ManagerPage.Diagnostics;
@@ -515,6 +521,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             Raise(nameof(IsSkinEnabled));
             Raise(nameof(IsSkinRequested));
             Raise(nameof(SessionStatus));
+            Raise(nameof(AppearanceStatus));
+            RaiseHomeActionState();
             RaiseCommandCanExecute();
         }
     }
@@ -522,6 +530,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public bool IsConnected => SessionState.IsConnected;
     public bool IsSkinEnabled => SessionState.IsSkinEnabled;
     public bool IsSkinRequested => SessionState.IsSkinRequested;
+    public bool HasSelectedCandidate => SelectedCandidate is not null;
+    public bool ShowDetectAction => SelectedCandidate is null;
+    public bool ShowStartAction => SelectedCandidate is not null && !IsConnected;
+    public bool ShowEnableAction => IsConnected && !IsSkinRequested;
+    public bool ShowDisableAction => IsConnected && IsSkinRequested;
+    public bool ShowRestartAction => SelectedCandidate is not null && IsConnected;
     public string ConnectionSummary =>
         SessionState.IsConnected
             ? SessionState.Transport == DesktopDebugTransport.Pipe
@@ -543,6 +557,13 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 ? LocalizationService.Get("CalibrationNotCalibrated")
                 : LocalizationService.Get("CalibrationReady"));
     public string SessionStatus => LocalizeSessionStatus(SessionState.Status);
+    public string AppearanceStatus =>
+        LocalizationService.Get(
+            IsSkinEnabled
+                ? "HomeAppearanceActive"
+                : IsSkinRequested
+                    ? "HomeAppearancePending"
+                    : "HomeAppearanceOff");
     public string AvatarSizeLabel =>
         LocalizationService.Format("AvatarSizeFormat", AvatarSize);
     public string AvatarOffsetXLabel =>
@@ -1417,6 +1438,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Raise(nameof(ConnectionSummary));
         Raise(nameof(CalibrationSummary));
         Raise(nameof(SessionStatus));
+        Raise(nameof(AppearanceStatus));
         Raise(nameof(AvatarSizeLabel));
         Raise(nameof(AvatarOffsetXLabel));
         Raise(nameof(AvatarOffsetYLabel));
@@ -1433,6 +1455,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             DiagnosticsText = LocalizationService.Get("DiagnosticsNotRefreshed");
         }
+    }
+
+    private void RaiseHomeActionState()
+    {
+        Raise(nameof(HasSelectedCandidate));
+        Raise(nameof(ShowDetectAction));
+        Raise(nameof(ShowStartAction));
+        Raise(nameof(ShowEnableAction));
+        Raise(nameof(ShowDisableAction));
+        Raise(nameof(ShowRestartAction));
     }
 
     private async Task RunDesktopOperationAsync(Func<Task> operation)

@@ -3,7 +3,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
          Title="{DynamicResource OnboardingWindowTitle}"
-         Icon="/Assets/MyCO.ico"
+         Icon="/MyCO;component/Assets/MyCO.ico"
         Width="620" Height="480"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
@@ -16,7 +16,7 @@
         </Grid.RowDefinitions>
         <StackPanel>
             <Image Width="58" Height="58"
-                   Source="/Assets/MyCO-logo.png"
+                   Source="/MyCO;component/Assets/MyCO-logo.png"
                    Stretch="Uniform"
                    RenderOptions.BitmapScalingMode="HighQuality"
                    HorizontalAlignment="Left" />

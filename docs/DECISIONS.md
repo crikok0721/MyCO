@@ -1,6 +1,6 @@
 # Technical Decisions
 
-Last updated: 2026-07-29
+Last updated: 2026-07-30
 
 This file records current decisions. Historical detail remains in
 `docs/development-notes.md` and `docs/CODEX_HANDOFF.md`.
@@ -97,11 +97,14 @@ bubbles, while DOM restructuring risks breaking native interaction.
 
 Decision: preserve the uploaded official icon byte-for-byte as
 `assets/MyCO-source.ico`, then generate the UI PNG and multi-frame packaged
-ICO from that source. Use the PNG for WPF content images and the generated ICO
-for executable, window, taskbar, and tray surfaces.
+ICO from that source. During generation, apply one deterministic,
+anti-aliased rounded-rectangle alpha mask to every derived frame without
+redrawing or recoloring the portrait. Use the PNG for WPF content images and
+the generated ICO for executable, window, taskbar, and tray surfaces.
 
 Reason: one repository-owned source prevents old artwork or local upload paths
-from reappearing while derived sizes keep Windows icon surfaces consistent.
+from reappearing, while the derived mask gives every Windows icon surface the
+same modern silhouette and leaves the source artwork recoverable.
 
 ## D-009 — Log state transitions, not every poll
 
@@ -126,3 +129,48 @@ Rejected:
   title bar, or sidebar as a message.
 - Reusing low-confidence legacy calibration: a missing avatar is safer than an
   identity attached to the wrong native surface.
+
+## D-011 — Use a neutral, mint-accented premium Manager design system
+
+Decision: position the Manager as the control surface of a lightly anime-styled
+AI appearance plugin, not an agent workspace or developer dashboard. Build the
+WPF visual system as primitive, semantic, and component resources. Use black,
+white, and warm neutral surfaces for most of the interface; reserve a complete
+low-saturation mint scale for primary actions, selection, progress, focus, and
+small state accents. Express character through avatars, names, conversation
+preview, and restrained motion rather than decorative clutter.
+
+The Manager home page composes existing application, session, identity, theme,
+and command state. It does not introduce a second lifecycle path. The shared
+preview shows MyCO-owned Assistant identity/prose and explicitly represents
+native User, code, and error surfaces as preserved. Windows animation
+preferences disable non-essential motion. Expensive full-window transparency
+and a new UI framework are not used.
+
+Reason: this provides a consistent premium identity and a lower-cognitive-load
+workflow while preserving WPF performance, Windows 10/11 compatibility, the
+existing Runtime decoration boundary, and all upgrade-sensitive behavior.
+
+## D-012 — Make characters the home-page center and keep native window behavior
+
+Decision: the home page is a role-and-appearance control center. Assistant and
+User identities occupy one primary surface and are keyboard-accessible buttons
+that open the existing Appearance page. Theme, appearance, and calibration
+summaries share that surface. Connection state, target selection, and the
+existing lifecycle commands live in one compact sidebar dock; no duplicate
+controller path is introduced.
+
+Use solid semantic surfaces and whitespace for hierarchy. Default cards have
+no decorative outline, only the primary role surface receives a restrained
+shadow, and status chips use a small rounded rectangle rather than a pill.
+Avatar circles and intrinsically pill-shaped switch/progress geometry remain.
+
+Request native Windows 11 corners through DWM and retain `WindowChrome` as the
+compatibility path. Maximized content is square and restored content regains
+the window radius. Do not enable WPF full-window transparency or replace native
+resize, drag, maximize, restore, close, tray, or single-instance behavior.
+
+Reason: role-first information architecture matches MyCO's appearance-companion
+positioning. Native DWM corners and the existing command surface provide the
+requested desktop polish without a new UI dependency, software-rendered
+transparent windows, or lifecycle risk.

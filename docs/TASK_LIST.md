@@ -1,6 +1,6 @@
 # Task List
 
-Last updated: 2026-07-29
+Last updated: 2026-07-30
 
 ## Current release gate
 
@@ -47,6 +47,9 @@ below.
 
 ## Completed in the current repair
 
+- [x] Phase 3 Manager visual system: native rounded shell, deterministic rounded
+  icon derivatives, solid surface hierarchy, reduced pill geometry, role-first
+  home page, and compact sidebar connection dock.
 - [x] Rename the product, projects, namespaces, Runtime bundle, executable, and
   release archive to MyCO with legacy data/startup/runtime compatibility.
 - [x] One-transaction restart with automatic verified force fallback,

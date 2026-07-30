@@ -106,6 +106,109 @@ public sealed partial class ManagerThemeAndTrayTests
         Assert.Contains("ControlDisabledBrush", dark);
         Assert.Contains("FocusBrush", dark);
         Assert.Contains("SelectionBrush", dark);
+        Assert.Contains("AccentBorderBrush", dark);
+        Assert.Contains("WarningPanelBrush", dark);
+        Assert.Contains("ErrorPanelBrush", dark);
+        Assert.Contains("FloatingShadowEffect", dark);
+    }
+
+    [Fact]
+    public void PremiumDesignTokensExposeTheCompleteMintAndMotionScales()
+    {
+        var root = FindRepositoryRoot();
+        var tokens = ReadKeys(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "Themes",
+            "DesignTokens.xaml"));
+
+        foreach (var key in new[]
+                 {
+                     "Mint50Color",
+                     "Mint100Color",
+                     "Mint200Color",
+                     "Mint300Color",
+                     "Mint400Color",
+                     "Mint500Color",
+                     "Mint600Color",
+                     "Mint700Color",
+                     "RadiusControl",
+                     "RadiusChip",
+                     "RadiusCard",
+                     "RadiusFloating",
+                     "RadiusWindow",
+                     "MotionFastDuration",
+                     "MotionStandardDuration"
+                 })
+        {
+            Assert.Contains(key, tokens);
+        }
+    }
+
+    [Fact]
+    public void PremiumHomeUsesExistingCommandsAndPreviewPreservesNativeSurfaces()
+    {
+        var root = FindRepositoryRoot();
+        var manager = Path.Combine(root, "src", "MyCO.Manager");
+        var shell = File.ReadAllText(Path.Combine(
+            manager,
+            "Views",
+            "MainWindow.xaml"));
+        var home = File.ReadAllText(Path.Combine(
+            manager,
+            "Views",
+            "HomePage.xaml"));
+        var preview = File.ReadAllText(Path.Combine(
+            manager,
+            "Controls",
+            "ChatPreviewControl.xaml"));
+        var app = File.ReadAllText(Path.Combine(manager, "App.xaml.cs"));
+        var windowCode = File.ReadAllText(Path.Combine(
+            manager,
+            "Views",
+            "MainWindow.xaml.cs"));
+
+        Assert.Contains("<views:HomePage", shell);
+        Assert.Contains("SelectHomeCommand", shell);
+        Assert.Contains("StartCommand", shell);
+        Assert.Contains("RestartCommand", shell);
+        Assert.Contains("EnableCommand", shell);
+        Assert.Contains("DisableCommand", shell);
+        Assert.Contains("SidebarDockBorder", shell);
+        Assert.DoesNotContain("StartCommand", home);
+        Assert.Contains("CharacterButton", home);
+        Assert.Contains("SelectAppearanceCommand", home);
+        Assert.Contains("AppearanceStatus", home);
+        Assert.Contains("CornerRadius=\"16\"", shell);
+        Assert.Contains("RadiusWindow", shell);
+        Assert.Contains("DwmSetWindowAttribute", windowCode);
+        Assert.Contains("AssistantBubble", preview);
+        Assert.Contains("NativeUserBubbleBrush", preview);
+        Assert.Contains("CodeSurfaceBrush", preview);
+        Assert.DoesNotContain("Background=\"{Binding UserBubble}\"", preview);
+        Assert.Contains("SystemParameters.ClientAreaAnimation", app);
+        Assert.Contains("TimeSpan.Zero", app);
+    }
+
+    [Fact]
+    public void PremiumManagerResourcesUseTheExactVisibleMyCOBrand()
+    {
+        var root = FindRepositoryRoot();
+        foreach (var culture in new[] { "en-US", "zh-CN", "zh-TW" })
+        {
+            var resources = File.ReadAllText(Path.Combine(
+                root,
+                "src",
+                "MyCO.Manager",
+                "Resources",
+                $"Strings.{culture}.xaml"));
+
+            Assert.Contains("<sys:String x:Key=\"NavMain\">MyCO</sys:String>", resources);
+            Assert.Contains("<sys:String x:Key=\"HomeTheme\">MyCO", resources);
+            Assert.DoesNotContain(">MYCO<", resources);
+            Assert.DoesNotContain(">MYCO ", resources);
+        }
     }
 
     [Fact]
@@ -134,6 +237,15 @@ public sealed partial class ManagerThemeAndTrayTests
             png.Take(8).ToArray());
         Assert.Equal(256, ReadBigEndianInt32(png, 16));
         Assert.Equal(256, ReadBigEndianInt32(png, 20));
+        using (var bitmap = new System.Drawing.Bitmap(Path.Combine(
+                   root,
+                   "assets",
+                   "MyCO-logo.png")))
+        {
+            Assert.Equal(0, bitmap.GetPixel(0, 0).A);
+            Assert.Equal(0, bitmap.GetPixel(255, 255).A);
+            Assert.Equal(255, bitmap.GetPixel(128, 128).A);
+        }
 
         var project = File.ReadAllText(Path.Combine(
             root,
@@ -150,7 +262,7 @@ public sealed partial class ManagerThemeAndTrayTests
                  })
         {
             Assert.Contains(
-                "Icon=\"/Assets/MyCO.ico\"",
+                "Icon=\"/MyCO;component/Assets/MyCO.ico\"",
                 File.ReadAllText(Path.Combine(
                     root,
                     "src",
@@ -165,7 +277,7 @@ public sealed partial class ManagerThemeAndTrayTests
                  })
         {
             Assert.Contains(
-                "Source=\"/Assets/MyCO-logo.png\"",
+                "Source=\"/MyCO;component/Assets/MyCO-logo.png\"",
                 File.ReadAllText(Path.Combine(
                     root,
                     "src",

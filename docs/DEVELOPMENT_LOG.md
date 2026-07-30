@@ -1,5 +1,64 @@
 # Development Log
 
+## 2026-07-30 — Phase 3 role-first Manager visual refactor
+
+Date:
+
+2026-07-30
+
+Change:
+
+- Replaced pill-heavy and outline-heavy Manager components with a layered
+  rounded-rectangle shape system and solid semantic surfaces.
+- Added a Windows 11 DWM corner request with `WindowChrome` fallback and
+  maximize/restore-aware content clipping.
+- Rebuilt Home around clickable Assistant/User identities and moved connection
+  state, target selection, and existing lifecycle commands into a compact
+  sidebar dock.
+- Applied a deterministic anti-aliased rounded-rectangle mask to every derived
+  PNG/ICO frame while preserving the canonical portrait artwork.
+- Aligned Appearance, Calibration, and the shared conversation preview with the
+  revised surface and shape hierarchy.
+
+Reason:
+
+Match MyCO's role as a lightly anime-styled appearance companion, reduce
+template-like dashboard styling, and improve native desktop polish without
+changing application behavior.
+
+Impact:
+
+Manager presentation and home-page information architecture changed. Runtime,
+configuration, calibration rules, process ownership, startup, tray, IPC, and
+upgrade-compatible identifiers are unchanged. No dependency was added.
+
+Modified Files:
+
+- `src/MyCO.Manager/Themes/*`
+- `src/MyCO.Manager/Views/MainWindow.*`, `HomePage.xaml`,
+  `CalibrationPage.xaml`
+- `src/MyCO.Manager/Controls/ChatPreviewControl.xaml`
+- `src/MyCO.Manager/ViewModels/MainWindowViewModel.cs`
+- `src/MyCO.Manager/Resources/Strings.*.xaml`
+- `scripts/build-app-icon.ps1`, `assets/MyCO.ico`,
+  `assets/MyCO-logo.png`
+- Manager UI tests and current project records
+
+Testing:
+
+- Manager Release build and 15 focused localization/UI tests passed.
+- Real desktop inspection passed for role-first Home, role navigation,
+  Appearance, Calibration, Light/Dark themes, focus states, and
+  maximize/restore behavior.
+- Runtime strict checks and 42/42 tests passed.
+- `dotnet build .\MyCO.sln -c Release` passed with zero warnings/errors;
+  `dotnet test` passed 105/105.
+- The standard release script produced `MyCO.exe` and
+  `MyCO-win-x64.zip`; the current archive SHA-256 is recorded in the task
+  completion report.
+- The packaged executable was started and visually inspected, then closed
+  through MyCO's orderly exit path. `git diff --check` passed.
+
 ## 2026-07-29 — MyCO engineering-name normalization
 
 Date:
@@ -330,3 +389,81 @@ Testing:
 - Real signed-in Codex visual operation was not performed because the active
   Computer Use policy forbids automating Codex Desktop; this remains a release
   Blocker in `TASK_LIST.md`.
+
+## 2026-07-30 — Premium Manager visual foundation and core home
+
+Date:
+
+2026-07-30
+
+Change:
+
+- Added a three-layer WPF design-token foundation with a complete mint scale,
+  unified typography, spacing, shape, elevation, and motion resources.
+- Reworked light and dark Manager themes around neutral surfaces, restrained
+  mint accents, and a subtle warm near-black dark palette.
+- Added complete shared states for buttons, inputs, navigation, selection,
+  focus, disabled controls, switches, progress, cards, and page entry motion.
+- Rebuilt the application shell so navigation is separate from lifecycle
+  actions and connection state is truthful in every theme.
+- Added a state-led home page using the existing detect/start/restart/enable/
+  disable commands.
+- Added one shared representative conversation preview and reused it on Home
+  and Appearance. The preview distinguishes decorated Assistant prose from
+  native User, code, and status surfaces.
+- Reorganized Appearance into a live preview plus a progressively disclosed
+  inspector without changing the configuration schema.
+- Added three-language UI resources and source-level visual-boundary tests.
+- Fixed runtime-only WPF resource resolution and dynamic-null-placeholder
+  parsing defects found by launching the isolated publish.
+- Corrected right-docked status pills and actions so they size to content, and
+  normalized the remaining visible `MYCO` labels to `MyCO`.
+
+Reason:
+
+The Manager needed a mature, low-cognitive-load interface consistent with
+MyCO's actual role as a lightly anime-styled AI appearance plugin. Central
+tokens and shared components prevent continued theme and state drift.
+
+Impact:
+
+- Existing configuration, Runtime, CDP, restart, tray, injection, and packaging
+  behavior remain unchanged.
+- MyCO now opens on a core state-and-preview home page.
+- Windows reduced-motion and high-contrast preferences collapse decorative
+  animation durations to zero.
+- No third-party UI or animation dependency was added.
+
+Modified Files:
+
+- `src/MyCO.Manager/Themes/**`
+- `src/MyCO.Manager/Controls/ChatPreviewControl.*`
+- `src/MyCO.Manager/Views/MainWindow.xaml`
+- `src/MyCO.Manager/Views/HomePage.*`
+- `src/MyCO.Manager/Views/AppearancePage.xaml`
+- `src/MyCO.Manager/ViewModels/MainWindowViewModel.cs`
+- `src/MyCO.Manager/Resources/Strings.*.xaml`
+- `src/MyCO.Manager/App.xaml*`
+- `tests/MyCO.Tests/ManagerThemeAndTrayTests.cs`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/DECISIONS.md`
+- `docs/DEVELOPMENT_LOG.md`
+
+Testing:
+
+- Runtime lint/build and 42 tests passed.
+- Release solution build passed with zero warnings and zero errors.
+- 105 .NET tests passed, including premium token, theme-key parity,
+  localization, command reuse, and native-preview-boundary checks.
+- An isolated self-contained `win-x64` publish completed successfully.
+- The standard release script completed and refreshed
+  `artifacts/MyCO-win-x64` plus `MyCO-win-x64.zip`; the ZIP SHA-256 is
+  `f4fb5fe72acca59c0c663a8ba97b1857e47e9d0f20eedaf9fc3c8cd11dc3bab4`.
+- All named XAML resources resolved, core XAML parsed, `git diff --check`
+  passed, and checked light/dark text pairs met their intended contrast target.
+- Computer Use verified the isolated self-contained build in dark and light
+  themes at the default size and the 980x660 minimum, including Home,
+  Appearance, Settings, preview/native-surface boundaries, page transition,
+  visible keyboard focus, maximize/restore, and the themed close dialog.
+- No lifecycle action targeting Codex was invoked during Manager visual
+  verification. The isolated Manager process exited normally after acceptance.

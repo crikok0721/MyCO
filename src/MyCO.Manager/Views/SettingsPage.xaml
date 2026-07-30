@@ -4,7 +4,7 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <Grid Margin="34,28,34,34" MaxWidth="820">
             <StackPanel>
-                <DockPanel>
+                <DockPanel LastChildFill="False">
                     <StackPanel>
                         <TextBlock Text="{DynamicResource SettingsTitle}"
                                    FontSize="26" FontWeight="SemiBold" />
@@ -53,14 +53,16 @@
                         <TextBlock Text="{DynamicResource StartupDescription}"
                                    Foreground="{DynamicResource MutedTextBrush}"
                                    TextWrapping="Wrap" Margin="0,7,0,16" />
-                        <CheckBox Content="{DynamicResource LaunchAtLogin}"
-                                  IsChecked="{Binding LaunchAtLogin}"
-                                  Margin="0,0,0,12" />
+                <CheckBox Content="{DynamicResource LaunchAtLogin}"
+                          Style="{StaticResource SwitchCheckBox}"
+                          IsChecked="{Binding LaunchAtLogin}"
+                          Margin="0,0,0,12" />
                         <TextBlock Text="{DynamicResource LaunchAtLoginDescription}"
                                    Foreground="{DynamicResource MutedTextBrush}"
                                    TextWrapping="Wrap" Margin="24,-7,0,15" />
-                        <CheckBox Content="{DynamicResource LaunchCodexOnStart}"
-                                  IsChecked="{Binding LaunchCodexOnMycoStart}" />
+                <CheckBox Content="{DynamicResource LaunchCodexOnStart}"
+                          Style="{StaticResource SwitchCheckBox}"
+                          IsChecked="{Binding LaunchCodexOnMycoStart}" />
                         <TextBlock Text="{DynamicResource LaunchCodexOnStartDescription}"
                                    Foreground="{DynamicResource MutedTextBrush}"
                                    TextWrapping="Wrap" Margin="24,5,0,0" />
