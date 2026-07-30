@@ -11,9 +11,7 @@ param(
 
     [string]$ExpectedSubject = "CN=Crikok",
 
-    [string]$TimestampUrl = "",
-
-    [int]$SignToolTimeoutSeconds = 90
+    [string]$TimestampUrl = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -30,62 +28,6 @@ if (-not (Test-Path -LiteralPath $resolvedPublish -PathType Container)) {
 }
 if (-not (Test-Path -LiteralPath $resolvedCertificate -PathType Leaf)) {
     throw "Signing certificate does not exist: $resolvedCertificate"
-}
-
-$signTool = Get-ChildItem `
-    -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" `
-    -Recurse `
-    -Filter "signtool.exe" `
-    -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
-    Sort-Object FullName -Descending |
-    Select-Object -First 1
-
-if ($null -eq $signTool) {
-    throw "SignTool was not found. Install the Windows SDK signing tools."
-}
-
-function Invoke-SignTool {
-    param(
-        [Parameter(Mandatory)]
-        [string[]]$Arguments,
-
-        [Parameter(Mandatory)]
-        [string]$Operation
-    )
-
-    $standardOutput = [System.IO.Path]::GetTempFileName()
-    $standardError = [System.IO.Path]::GetTempFileName()
-    try {
-        $process = Start-Process `
-            -FilePath $signTool.FullName `
-            -ArgumentList $Arguments `
-            -RedirectStandardOutput $standardOutput `
-            -RedirectStandardError $standardError `
-            -NoNewWindow `
-            -PassThru
-
-        if (-not $process.WaitForExit($SignToolTimeoutSeconds * 1000)) {
-            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-            throw "$Operation exceeded the $SignToolTimeoutSeconds-second timeout."
-        }
-
-        $output = Get-Content -LiteralPath $standardOutput -Raw -ErrorAction SilentlyContinue
-        $errorOutput = Get-Content -LiteralPath $standardError -Raw -ErrorAction SilentlyContinue
-        if (-not [string]::IsNullOrWhiteSpace($output)) {
-            Write-Host $output.Trim()
-        }
-        if (-not [string]::IsNullOrWhiteSpace($errorOutput)) {
-            Write-Warning $errorOutput.Trim()
-        }
-        if ($process.ExitCode -ne 0) {
-            throw "$Operation failed with exit code $($process.ExitCode)."
-        }
-    }
-    finally {
-        Remove-Item -LiteralPath $standardOutput, $standardError `
-            -Force -ErrorAction SilentlyContinue
-    }
 }
 
 $certificate = Import-PfxCertificate `
@@ -122,34 +64,25 @@ try {
     }
 
     foreach ($file in $ownedFiles) {
-        $signArguments = @(
-            "sign",
-            "/sha1", $certificate.Thumbprint,
-            "/s", "My",
-            "/fd", "SHA256",
-            "/d", "MyCO")
-        if (-not [string]::IsNullOrWhiteSpace($TimestampUrl)) {
-            $signArguments += @(
-                "/tr", $TimestampUrl,
-                "/td", "SHA256")
+        $signParameters = @{
+            FilePath = $file.FullName
+            Certificate = $certificate
+            HashAlgorithm = "SHA256"
         }
-        $signArguments += $file.FullName
-
-        Write-Host "Signing '$($file.FullName)' without public timestamp dependency."
-        Invoke-SignTool `
-            -Operation "Signing '$($file.FullName)'" `
-            -Arguments $signArguments
-
-        $verifyArguments = @("verify", "/pa", "/all")
         if (-not [string]::IsNullOrWhiteSpace($TimestampUrl)) {
-            $verifyArguments += "/tw"
+            $signParameters.TimestampServer = $TimestampUrl
         }
-        $verifyArguments += $file.FullName
-        Write-Host "Verifying '$($file.FullName)'."
-        Invoke-SignTool `
-            -Operation "Verifying '$($file.FullName)'" `
-            -Arguments $verifyArguments
 
+        Write-Host "Signing '$($file.FullName)' with Windows Authenticode."
+        $signResult = Set-AuthenticodeSignature @signParameters
+        if ($null -eq $signResult.SignerCertificate) {
+            throw "Authenticode signing did not attach a certificate to '$($file.FullName)'."
+        }
+        if ($signResult.SignerCertificate.Thumbprint -ne $certificate.Thumbprint) {
+            throw "Authenticode signing used an unexpected certificate for '$($file.FullName)'."
+        }
+
+        Write-Host "Verifying '$($file.FullName)' with Get-AuthenticodeSignature."
         $signature = Get-AuthenticodeSignature -LiteralPath $file.FullName
         if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
             throw "Authenticode status for '$($file.FullName)' is '$($signature.Status)'."

@@ -584,3 +584,7 @@ Testing:
   prevented a bounded autonomous release. The default release therefore signs
   without an external timestamp; certificate-expiry limitations are explicit
   in the user, security, release, and architecture documentation.
+- The third validation showed that SignTool itself remained blocked with the
+  runner-generated temporary key even without timestamping. Default signing now
+  uses Windows PowerShell `Set-AuthenticodeSignature` and verification uses
+  `Get-AuthenticodeSignature`; no SignTool process is required.
