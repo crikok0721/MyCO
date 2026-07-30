@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title description">
-  <title id="title">MyCodex Reference Dark preview</title>
+  <title id="title">MyCO Reference Dark preview</title>
   <desc id="description">A synthetic dark chat preview with assistant messages on the left and user messages on the right.</desc>
   <rect width="1280" height="720" fill="#111315"/>
   <rect width="214" height="720" fill="#0d0f11"/>
   <rect x="20" y="24" width="174" height="42" rx="12" fill="#1b1e21"/>
   <path d="M43 34h18a7 7 0 0 1 7 7v8a7 7 0 0 1-7 7h-5l-6 6v-6h-7a7 7 0 0 1-7-7v-8a7 7 0 0 1 7-7z" fill="none" stroke="#b8affa" stroke-width="2"/>
-  <text x="82" y="51" font-family="Segoe UI, sans-serif" font-size="16" fill="#f1f1f1">MyCodex</text>
+  <text x="82" y="51" font-family="Segoe UI, sans-serif" font-size="16" fill="#f1f1f1">MyCO</text>
   <rect x="20" y="92" width="174" height="34" rx="8" fill="#17191b"/>
   <text x="38" y="114" font-family="Segoe UI, sans-serif" font-size="13" fill="#989da4">Reference Dark</text>
   <text x="254" y="56" font-family="Segoe UI, sans-serif" font-size="17" font-weight="600" fill="#f2f2f2">A local conversation preview</text>
@@ -21,7 +21,7 @@
   <rect x="304" y="248" width="530" height="106" rx="10" fill="#17191c" stroke="#30343a"/>
   <text x="326" y="277" font-family="Consolas, monospace" font-size="13" fill="#949aa2">NATIVE TOOL SURFACE</text>
   <rect x="326" y="294" width="482" height="1" fill="#30343a"/>
-  <text x="326" y="324" font-family="Consolas, monospace" font-size="14" fill="#c5c9ce">src/MyCodex.Runtime · 3 files inspected</text>
+  <text x="326" y="324" font-family="Consolas, monospace" font-size="14" fill="#c5c9ce">src/MyCO.Runtime · 3 files inspected</text>
 
   <rect x="304" y="370" width="240" height="50" rx="14" fill="#222222"/>
   <text x="324" y="401" font-family="Segoe UI, sans-serif" font-size="16" fill="#f2f2f2">Only prose becomes a bubble.</text>

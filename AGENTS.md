@@ -1,8 +1,8 @@
-# MyCodex repository instructions
+# MyCO repository instructions
 
 ## Scope
 
-MyCodex is a Windows 10/11 x64, .NET 8 WPF manager plus an embedded
+MyCO is a Windows 10/11 x64, .NET 8 WPF manager plus an embedded
 TypeScript runtime. Keep application discovery, CDP transport, runtime
 injection, DOM matching, and visual decoration separated.
 
@@ -11,13 +11,13 @@ injection, DOM matching, and visual decoration separated.
 From the repository root:
 
 ```powershell
-Push-Location .\src\MyCodex.Runtime
+Push-Location .\src\MyCO.Runtime
 npm ci
 npm run check
 Pop-Location
 
-dotnet build .\MyCodex.sln -c Release
-dotnet test .\MyCodex.sln -c Release --no-build
+dotnet build .\MyCO.sln -c Release
+dotnet test .\MyCO.sln -c Release --no-build
 ```
 
 Use `scripts\build-release.ps1` for a self-contained release build. Add
@@ -25,23 +25,23 @@ Use `scripts\build-release.ps1` for a self-contained release build. Add
 China. Mirror selection must remain local to the build; do not commit
 region-specific registry or package-source settings.
 
-`src\MyCodex.Runtime\dist\mycodex.runtime.js` is generated and embedded by the
-WPF project. Change TypeScript under `src\MyCodex.Runtime\src`, then regenerate
+`src\MyCO.Runtime\dist\MyCO.runtime.js` is generated and embedded by the
+WPF project. Change TypeScript under `src\MyCO.Runtime\src`, then regenerate
 the bundle with `npm run check`; do not hand-edit the bundle.
 
 When changing the shared version or protocol, keep
-`eng\MyCodex.Version.props`, Runtime package metadata, the generated bundle,
+`eng\MyCO.Version.props`, Runtime package metadata, the generated bundle,
 tests, compatibility documentation, and changelog consistent.
 
 ## Code and localization rules
 
 - C#: nullable enabled, async cancellation for I/O, immutable records for data
   contracts, and no swallowed unexpected exceptions.
-- TypeScript: strict mode, project-scoped `data-mycodex-*` hooks, no dependence
+- TypeScript: strict mode, project-scoped `data-myco-*` hooks, no dependence
   on generated/minified class names, and no page-global CSS outside the
-  MyCodex scope.
+  MyCO scope.
 - Runtime installation must be idempotent. `destroy()` must remove every
-  MyCodex observer, listener, attribute, element, style, and CSS variable.
+  MyCO observer, listener, attribute, element, style, and CSS variable.
 - Any user-facing Manager text must be added consistently to English,
   Simplified Chinese, and Traditional Chinese resource dictionaries.
 - Configuration writes remain atomic and backward compatible with versioned
@@ -67,7 +67,7 @@ tests, compatibility documentation, and changelog consistent.
   unreadable identity, or multiple matching roots must fail closed. Never use
   a process-name-wide termination fallback.
 - Development visual acceptance must use the isolated profile under
-  `%TEMP%\MyCodex\VisualAcceptance\<run-id>`, close only the exact owned target
+  `%TEMP%\MyCO\VisualAcceptance\<run-id>`, close only the exact owned target
   PID, and leave the controlling Codex and all user sessions alive.
 - Automated tests, DOM assertions, and logs do not prove visual correctness.
   For a visual acceptance claim, use Computer Use to inspect the isolated

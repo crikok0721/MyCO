@@ -7,7 +7,7 @@
 
 # Node
 **/node_modules/
-src/MyCodex.Runtime/.test-dist/
+**/.test-dist/
 npm-debug.log*
 
 # Build and release output

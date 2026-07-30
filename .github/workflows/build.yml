@@ -28,60 +28,60 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: src/MyCodex.Runtime/package-lock.json
+          cache-dependency-path: src/MyCO.Runtime/package-lock.json
 
       - name: Install runtime dependencies
-        working-directory: src/MyCodex.Runtime
+        working-directory: src/MyCO.Runtime
         run: npm ci
 
       - name: Lint, test, and bundle runtime
-        working-directory: src/MyCodex.Runtime
+        working-directory: src/MyCO.Runtime
         run: npm run check
 
       - name: Audit runtime dependencies
-        working-directory: src/MyCodex.Runtime
+        working-directory: src/MyCO.Runtime
         run: npm audit --audit-level=high
 
       - name: Restore solution
-        run: dotnet restore MyCodex.sln
+        run: dotnet restore MyCO.sln
 
       - name: Restore Windows runtime
-        run: dotnet restore src/MyCodex.Manager/MyCodex.Manager.csproj -r win-x64
+        run: dotnet restore src/MyCO.Manager/MyCO.Manager.csproj -r win-x64
 
       - name: Build
-        run: dotnet build MyCodex.sln -c Release --no-restore
+        run: dotnet build MyCO.sln -c Release --no-restore
 
       - name: Test
-        run: dotnet test MyCodex.sln -c Release --no-build --no-restore
+        run: dotnet test MyCO.sln -c Release --no-build --no-restore
 
       - name: Publish self-contained app
         run: >
-          dotnet publish src/MyCodex.Manager/MyCodex.Manager.csproj
+          dotnet publish src/MyCO.Manager/MyCO.Manager.csproj
           -c Release
           -r win-x64
           --self-contained true
           --no-restore
-          -o artifacts/MyCodex-win-x64
+          -o artifacts/MyCO-win-x64
 
       - name: Add release documents
         shell: pwsh
         run: |
           Copy-Item README.md, README.en-US.md, PRIVACY.md, SECURITY.md, `
-            CHANGELOG.md, CONTRIBUTING.md, LICENSE -Destination artifacts/MyCodex-win-x64
-          Copy-Item docs -Destination artifacts/MyCodex-win-x64 -Recurse
+            CHANGELOG.md, CONTRIBUTING.md, LICENSE -Destination artifacts/MyCO-win-x64
+          Copy-Item docs -Destination artifacts/MyCO-win-x64 -Recurse
 
       - name: Create release archive
         shell: pwsh
         run: |
-          Compress-Archive -Path artifacts/MyCodex-win-x64/* `
-            -DestinationPath artifacts/MyCodex-win-x64.zip `
+          Compress-Archive -Path artifacts/MyCO-win-x64/* `
+            -DestinationPath artifacts/MyCO-win-x64.zip `
             -CompressionLevel Optimal
-          Get-FileHash artifacts/MyCodex-win-x64.zip -Algorithm SHA256
+          Get-FileHash artifacts/MyCO-win-x64.zip -Algorithm SHA256
 
       - name: Upload release archive
         uses: actions/upload-artifact@v4
         with:
-          name: MyCodex-win-x64
-          path: artifacts/MyCodex-win-x64.zip
+          name: MyCO-win-x64
+          path: artifacts/MyCO-win-x64.zip
           if-no-files-found: error
           retention-days: 14

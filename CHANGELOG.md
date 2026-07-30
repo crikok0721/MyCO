@@ -2,6 +2,33 @@
 
 All notable project changes are documented here.
 
+## [Unreleased]
+
+### Changed
+
+- Rename the current product, solution, projects, namespaces, Runtime bundle,
+  executable, assets, documentation, build paths, and release archive from
+  MyCodex to MyCO without changing version
+  `0.3.0-beta.1`.
+- Normalize the final user-visible brand, executable metadata, startup display
+  name, executable, and release archive to MyCO; add the slogan "It's MyCO!!!!!"
+  to the existing About and README brand areas.
+- Advance Config schema to 4 for the renamed startup field.
+
+### Compatibility
+
+- Copy the legacy `%APPDATA%\MyCodex` tree to `%APPDATA%\Myco` only when the
+  new directory does not exist; preserve the old directory and continue startup
+  after a migration failure.
+- Migrate the known legacy `MyCodex` and transitional `Myco` per-user Run
+  values to `MyCO` without touching other startup entries.
+- Keep the legacy single-instance kernel identifiers so old and renamed builds
+  cannot run together, and destroy the pre-rename injected Runtime before
+  installing MyCO hooks.
+
+Historical entries below retain the product name and paths that were accurate
+for those releases.
+
 ## [0.3.0-beta.1] - 2026-07-28
 
 ### Added

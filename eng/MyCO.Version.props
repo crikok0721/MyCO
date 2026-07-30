@@ -1,0 +1,20 @@
+<Project>
+  <PropertyGroup>
+    <MyCOVersion>0.3.0-beta.1</MyCOVersion>
+    <MyCOProtocolVersion>1</MyCOProtocolVersion>
+    <MyCOConfigSchemaVersion>4</MyCOConfigSchemaVersion>
+    <MyCOCalibrationSchemaVersion>1</MyCOCalibrationSchemaVersion>
+
+    <Version>$(MyCOVersion)</Version>
+    <PackageVersion>$(MyCOVersion)</PackageVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="MyCOProtocolVersion"
+                      Value="$(MyCOProtocolVersion)" />
+    <AssemblyMetadata Include="MyCOConfigSchemaVersion"
+                      Value="$(MyCOConfigSchemaVersion)" />
+    <AssemblyMetadata Include="MyCOCalibrationSchemaVersion"
+                      Value="$(MyCOCalibrationSchemaVersion)" />
+  </ItemGroup>
+</Project>

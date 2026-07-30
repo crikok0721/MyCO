@@ -2,7 +2,7 @@
 
 ## Design goals
 
-MyCodex changes the real conversation DOM while preserving the official
+MyCO changes the real conversation DOM while preserving the official
 application's window, navigation, composer, code/diff/tool surfaces, and native
 controls. It is local, reversible, update-aware, and fail closed.
 
@@ -10,7 +10,7 @@ controls. It is local, reversible, update-aware, and fail closed.
 
 ```mermaid
 flowchart TB
-  subgraph Host["MyCodex host (.NET 8 / WPF)"]
+  subgraph Host["MyCO host (.NET 8 / WPF)"]
     UI["Manager UI"]
     CFG["Config + avatar services"]
     APP["Application adapters + discovery"]
@@ -21,7 +21,7 @@ flowchart TB
   end
   subgraph Desktop["Official Desktop process"]
     PAGE["Chromium renderer"]
-    RT["MyCodex TypeScript runtime"]
+    RT["MyCO TypeScript runtime"]
     MATCH["DOM matcher + compatibility probe"]
     SKIN["Scoped skin decorator"]
   end
@@ -40,7 +40,7 @@ flowchart TB
 
 ### Manager
 
-`MyCodex.Manager` is a single-instance WPF application. It owns preview/editing,
+`MyCO.Manager` is a single-instance WPF application. It owns preview/editing,
 calibration commands, diagnostics, its independent WPF theme, verified restart,
 and orderly shutdown. `WindowChrome` delegates minimize, maximize, restore,
 caption drag, and resize to the Windows window state machine. Taskbar minimize
@@ -52,9 +52,13 @@ Cancel. Exiting calls runtime `destroy()`, disconnects CDP, unsubscribes
 system-theme events, and disposes the icon; duplicated pipe peer handles owned
 by the exact Codex root prevent that disconnect from closing Codex.
 
+The kernel mutex and activation-event names deliberately retain their
+pre-rename values so an old build and a MyCO build cannot run side by side.
+These names are internal compatibility identifiers and are never displayed.
+
 ### Core
 
-`MyCodex.Core` contains:
+`MyCO.Core` contains:
 
 - installed/running application discovery and candidate scoring;
 - `ChatGptDesktopAdapter` and `LegacyCodexAdapter`;
@@ -80,9 +84,9 @@ The skin engine has no compile-time dependency on a particular Desktop version.
 
 ### Development-only visual acceptance
 
-`MyCodex.VisualAcceptance` reuses `WindowsPipeProcessLauncher`,
+`MyCO.VisualAcceptance` reuses `WindowsPipeProcessLauncher`,
 `PipeCdpConnection`, `RuntimeInjector`, and the production Runtime bundle. It
-creates one isolated profile under `%TEMP%\MyCodex\VisualAcceptance\<run-id>`,
+creates one isolated profile under `%TEMP%\MyCO\VisualAcceptance\<run-id>`,
 installs a synthetic fixture in the official `app://` renderer, and exposes
 Start, Restart Target, Status, Disable/destroy, and Stop commands.
 
@@ -96,7 +100,10 @@ path, and removes the run directory.
 ### Runtime
 
 The embedded IIFE exposes a non-enumerable API through
-`Symbol.for("mycodex.runtime.protocol.1")` and a compatibility window property.
+`Symbol.for("myco.runtime.protocol.1")` and a compatibility window property.
+Before installation it detects and destroys the pre-rename Runtime symbol/API,
+then removes that legacy registry entry so old and new DOM ownership cannot
+overlap.
 `install()` is idempotent. `ensureActive()` verifies and repairs the style,
 observer, and current SPA conversation root. `applyConfig()` updates CSS
 variables and structural calibration. `destroy()` removes observers, listeners,
@@ -176,15 +183,16 @@ For a self-contained ZIP application, per-user `HKCU Run` was selected:
 | `HKCU\...\Run` | Selected: standard-user, reversible, simple background command |
 | Startup-folder shortcut | Rejected: extra Shell-link lifecycle and path-drift handling |
 | Task Scheduler | Rejected: unnecessary persistence/complexity and possible policy friction |
-| MSIX `StartupTask` | Deferred until MyCodex is actually packaged as MSIX |
+| MSIX `StartupTask` | Deferred until MyCO is actually packaged as MSIX |
 
-The fixed value is `MyCodex`; its data is the fully quoted current executable
-plus `--background`. Save is transactional with the versioned config, and
-startup reconciliation corrects a moved executable or precisely removes only
-that value. Background launch never asks for TCP consent or shows a blocking
-dialog. It starts Codex over the existing private-pipe route only when no
-Desktop is already running; an uncontrolled running Desktop is reported rather
-than duplicated.
+The current visible value is `MyCO`; its data is the fully quoted current
+executable plus `--background`. Startup reconciliation accepts the prior
+`Myco` and legacy `MyCodex` values, then verifies the current value before
+removing only those known predecessors. Save is transactional with the
+versioned config, and reconciliation corrects a moved executable. Background
+launch never asks for TCP consent or shows a blocking dialog. It starts Codex
+over the existing private-pipe route only when no Desktop is already running;
+an uncontrolled running Desktop is reported rather than duplicated.
 
 The existing `TrayService` is the single notification-icon owner. The caption
 minimize command calls the native taskbar minimize path and never hides the
@@ -247,9 +255,13 @@ shell, filesystem, process, credential, or networking capability.
 
 ## Configuration
 
-`%APPDATA%\MyCodex` contains `config.json`, `calibration.json`, `avatars/`,
-`logs/`, and `backups/`. Writes use a unique temporary file followed by an
-atomic move. Config schema 3 adds `bubbleDisplayMode`; schema 2 separates
+`%APPDATA%\Myco` contains `config.json`, `calibration.json`, `avatars/`,
+`logs/`, and `backups/`. On first renamed launch, when this directory does not
+exist, the legacy `%APPDATA%\MyCodex` tree is copied through a same-parent
+staging directory and atomically adopted. Existing new data is never
+overwritten and legacy data is never deleted. Writes use a unique temporary
+file followed by an atomic move. Config schema 4 migrates the renamed startup
+field; schema 3 adds `bubbleDisplayMode`; schema 2 separates
 Manager theme/startup options and Dark/Light bubble palettes. Schema 0/1 names,
 avatar paths, layout, language,
 custom Assistant colors migrate without reset; legacy colors become the Dark
@@ -277,7 +289,7 @@ shutdown/quiescence failure, launch failure, or renderer-readiness failure.
 The Manager refreshes actual process state after a failed transaction, so the
 next Start/Restart action never depends on a stale half-closed candidate.
 
-MyCodex never changes an official install, injects native code, intercepts
+MyCO never changes an official install, injects native code, intercepts
 traffic, or falls back to patching.
 
 The complete development acceptance command chain is documented in

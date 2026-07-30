@@ -1,6 +1,8 @@
-# MyCodex
+# MyCO
 
-MyCodex `0.3.0-beta.1` is a local Windows manager that adds custom assistant and
+> It's MyCO!!!!!
+
+MyCO `0.3.0-beta.1` is a local Windows manager that adds custom assistant and
 user avatars and nicknames plus compact assistant prose bubbles to the official
 Codex / ChatGPT Desktop conversation view. Official user bubbles stay native.
 
@@ -28,12 +30,12 @@ application bundle, or conversation data.
 - Minimize-to-tray, tray restore, and activation of an already-hidden instance
 - One official multi-resolution icon across windows, taskbar, Alt+Tab, tray,
   and the release executable
-- Close choices for Exit MyCodex, Minimize to tray, or Cancel; exiting leaves
+- Close choices for Exit MyCO, Minimize to tray, or Cancel; exiting leaves
   Codex running
 - One-click verified restart with stable shutdown, renderer readiness, and
   automatic Runtime application
 - Persisted Automatic grouping and Whole response assistant-bubble modes
-- Optional per-user login startup and safe Codex startup after MyCodex starts
+- Optional per-user login startup and safe Codex startup after MyCO starts
 - Left-aligned assistant and right-aligned user layout
 - Prose-only assistant bubbles: code, diffs, tool cards, status, toolbars, and
   native controls remain under the official UI
@@ -50,7 +52,7 @@ application bundle, or conversation data.
 
 ```mermaid
 flowchart LR
-  M["MyCodex WPF Manager"] -->|"default: private CDP pipe"| D["Official Desktop"]
+  M["MyCO WPF Manager"] -->|"default: private CDP pipe"| D["Official Desktop"]
   M -. "after explicit consent: random 127.0.0.1 TCP" .-> D
   M -->|"transport-neutral CDP session"| R["Chromium renderer"]
   R --> I["Idempotent Skin Runtime"]
@@ -76,28 +78,34 @@ Requirements:
 - Windows 10/11 x64
 - An official Codex / ChatGPT Desktop installation
 
-Download `MyCodex-win-x64.zip` from GitHub Releases, extract it to a writable
-folder, and run `MyCodex.exe`. The release is self-contained; .NET, Node.js,
+Download `MyCO-win-x64.zip` from GitHub Releases, extract it to a writable
+folder, and run `MyCO.exe`. The release is self-contained; .NET, Node.js,
 npm, and Visual Studio are not required.
 
 Windows may show a reputation warning for an unsigned alpha build. Review the
 release source and checksum before choosing to run it.
 
+When upgrading from the pre-rename build, MyCO copies `%APPDATA%\MyCodex` to
+`%APPDATA%\Myco` only when the new directory does not exist. It never deletes
+the legacy directory or overwrites existing MyCO data. The old per-user login
+startup values named `MyCodex` or `Myco` are migrated to `MyCO` during
+settings reconciliation.
+
 ## First setup
 
-1. Start MyCodex and complete the local-only introduction.
+1. Start MyCO and complete the local-only introduction.
 2. Confirm the detected official Desktop installation.
-3. Select **Start Codex with MyCodex**.
+3. Select **Start Codex with MyCO**.
 4. If Desktop is already running, allow a normal restart. If its window closes
-   but the app remains in the tray, MyCodex keeps tracking the exact pre-close
+   but the app remains in the tray, MyCO keeps tracking the exact pre-close
    PID, path, and start time before offering a separately confirmed tree
-   termination. Multiple roots or uncertain identity fail closed. MyCodex then
+   termination. Multiple roots or uncertain identity fail closed. MyCO then
    waits for stable resource release, launches Codex, waits for renderer
    readiness, and applies the Runtime without a second click.
 5. Open a conversation. If automatic matching is not confident, complete both
    calibration steps.
 
-The default pipe mode opens no TCP listener. If the pipe fails, MyCodex asks
+The default pipe mode opens no TCP listener. If the pipe fails, MyCO asks
 before using a new `127.0.0.1`-only TCP port for that session.
 
 ## Customization
@@ -122,12 +130,12 @@ renderers without a page reload. **Disable skin** calls runtime cleanup and
 restores the original DOM/CSS without closing Desktop.
 
 Settings provides Manager Dark, Light, and Windows System modes plus independent
-options to start MyCodex at Windows sign-in and to start Codex after MyCodex
+options to start MyCO at Windows sign-in and to start Codex after MyCO
 starts. Per-user startup uses `HKCU\...\Run` with `--background`, requires no
-administrator rights, and corrects path drift after moving a release. MyCodex
+administrator rights, and corrects path drift after moving a release. MyCO
 does not modify official shortcuts, protocol associations, or installation
-files. Close offers Exit MyCodex, Minimize to tray, or Cancel. Exit releases
-only MyCodex resources and leaves Codex running. See [Settings](docs/settings.md).
+files. Close offers Exit MyCO, Minimize to tray, or Cancel. Exit releases
+only MyCO resources and leaves Codex running. See [Settings](docs/settings.md).
 
 ## Calibration
 
@@ -153,7 +161,7 @@ are filtered out.
 
 - **Compatible**: both roles match with strong confidence; skin is enabled.
 - **Degraded**: structure still matches but recalibration is recommended.
-- **Safe mode**: the page is unknown; MyCodex performs no skin mutation.
+- **Safe mode**: the page is unknown; MyCO performs no skin mutation.
 - **Injection unavailable**: CDP cannot be reached; official files are never
   patched as a fallback.
 
@@ -169,10 +177,10 @@ Desktop updates are handled in three layers:
    as a fallback. Runtime and stylesheet health are rechecked while connected.
 2. **Recalibration** repairs expected wrapper, attribute, layout, or generated
    class changes without losing appearance settings or the older profile.
-3. **A new MyCodex release** is required if the application changes the
+3. **A new MyCO release** is required if the application changes the
    injection boundary or substantially restructures the renderer.
 
-MyCodex does not claim permanent compatibility with every future Codex or
+MyCO does not claim permanent compatibility with every future Codex or
 ChatGPT Desktop release.
 
 ## Diagnostics
@@ -183,15 +191,15 @@ confidence, observer state, and error codes. It omits message text, prompts,
 code, tokens, cookies, authorization data, account details, and unnecessary
 paths.
 
-Logs are written locally under `%APPDATA%\MyCodex\logs`. Attach only diagnostics
+Logs are written locally under `%APPDATA%\Myco\logs`. Attach only diagnostics
 you have reviewed when opening an issue.
 
 ## Privacy
 
-MyCodex runs locally, requires no OpenAI credentials, uploads no conversations,
+MyCO runs locally, requires no OpenAI credentials, uploads no conversations,
 does not read authentication cookies, does not intercept network requests, and
 contains no analytics or telemetry. Configuration is stored under
-`%APPDATA%\MyCodex`.
+`%APPDATA%\Myco`.
 
 Read [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md).
 
@@ -200,7 +208,7 @@ Read [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md).
 - This is an unsigned beta Windows x64 release.
 - An official Desktop restart is required when it was started without CDP.
 - DOM updates can require recalibration; a major update can require a new
-  MyCodex release.
+  MyCO release.
 - Calibration is per local configuration and currently targets the visible
   renderer.
 - Windows ARM64, Windows 10 22H2, every DPI/language combination, and contrast
@@ -211,16 +219,16 @@ Read [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md).
 
 ## Repository architecture
 
-MyCodex has a native manager and a small browser runtime. The manager owns
+MyCO has a native manager and a small browser runtime. The manager owns
 configuration and process/session lifecycle; the runtime owns reversible DOM
 decoration inside the selected renderer.
 
 ```mermaid
 flowchart LR
-    UI["MyCodex.Manager<br/>WPF UI and MVVM"] --> Core["MyCodex.Core<br/>Discovery, config, compatibility"]
+    UI["MyCO.Manager<br/>WPF UI and MVVM"] --> Core["MyCO.Core<br/>Discovery, config, compatibility"]
     Core --> Desktop["ChatGPT / Codex Desktop"]
     Core --> CDP["Local CDP<br/>private pipe first / loopback TCP fallback"]
-    CDP --> Runtime["MyCodex.Runtime<br/>Injected TypeScript bundle"]
+    CDP --> Runtime["MyCO.Runtime<br/>Injected TypeScript bundle"]
     Runtime --> DOM["Renderer DOM<br/>Identity and assistant prose styling"]
     Runtime -->|"Allow-listed events"| Core
 ```
@@ -228,14 +236,14 @@ flowchart LR
 ```text
 .
 ├─ src/
-│  ├─ MyCodex.Manager/       WPF application, localization, pages, and view model
-│  ├─ MyCodex.Core/          application discovery, config, CDP, injection, safety
-│  └─ MyCodex.Runtime/
+│  ├─ MyCO.Manager/       WPF application, localization, pages, and view model
+│  ├─ MyCO.Core/          application discovery, config, CDP, injection, safety
+│  └─ MyCO.Runtime/
 │     ├─ src/                hand-written TypeScript runtime
 │     ├─ tests/              jsdom behavior and compatibility tests
 │     └─ dist/               generated bundle embedded in the WPF executable
-├─ tests/MyCodex.Tests/      xUnit tests for Core and localization
-├─ tools/MyCodex.CdpProbe/   isolated end-to-end CDP/runtime feasibility gate
+├─ tests/MyCO.Tests/      xUnit tests for Core and localization
+├─ tools/MyCO.CdpProbe/   isolated end-to-end CDP/runtime feasibility gate
 ├─ scripts/                  reproducible release build
 ├─ docs/                     detailed architecture and compatibility notes
 ├─ assets/                   project-owned visual assets
@@ -244,8 +252,8 @@ flowchart LR
 
 The main execution path is:
 
-1. `MyCodex.Manager` loads `%APPDATA%\MyCodex\config.json` and discovers
-   supported desktop installations through `MyCodex.Core`.
+1. `MyCO.Manager` loads `%APPDATA%\Myco\config.json` and discovers
+   supported desktop installations through `MyCO.Core`.
 2. The selected desktop is launched through a private CDP pipe; loopback TCP
    is used only after explicit confirmation.
 3. Core ranks renderer targets, injects the generated Runtime bundle, and
@@ -270,18 +278,18 @@ Install and verify:
 Important rules before changing code:
 
 - Run commands from the repository root unless a command explicitly changes to
-  `src/MyCodex.Runtime`.
-- Edit `src/MyCodex.Runtime/src`, never the minified
-  `dist/mycodex.runtime.js` directly. Run `npm run build` and commit the updated
+  `src/MyCO.Runtime`.
+- Edit `src/MyCO.Runtime/src`, never the minified
+  `dist/MyCO.runtime.js` directly. Run `npm run build` and commit the updated
   generated bundle with Runtime changes.
 - Build the Runtime before the WPF project. The WPF project embeds the current
-  `dist/mycodex.runtime.js`; MSBuild does not generate it automatically.
-- Change release/protocol/schema values only in `eng/MyCodex.Version.props`;
+  `dist/MyCO.runtime.js`; MSBuild does not generate it automatically.
+- Change release/protocol/schema values only in `eng/MyCO.Version.props`;
   C#, the TypeScript bundle, UI, and release artifacts consume that source.
 - Keep every localization `x:Key` identical in `Strings.en-US.xaml`,
   `Strings.zh-CN.xaml`, and `Strings.zh-TW.xaml`.
 - User config, avatars, logs, calibration data, and backups belong under
-  `%APPDATA%\MyCodex`, never in the repository.
+  `%APPDATA%\Myco`, never in the repository.
 - Do not commit official OpenAI binaries, bundles, DOM snapshots, icons,
   source, credentials, or real conversation data. Compatibility fixtures must
   be synthetic.
@@ -297,21 +305,21 @@ For a normal change:
 1. Update the smallest owning project: Core, Manager, or Runtime.
 2. If Runtime changed, run `npm run check` before building .NET.
 3. Run the xUnit suite for Core/Manager behavior.
-4. Use `MyCodex.CdpProbe` for changes to application discovery, injection,
+4. Use `MyCO.CdpProbe` for changes to application discovery, injection,
    renderer recovery, or DOM compatibility.
 5. Run the release script before publishing a user-facing build.
 
 ## Build
 
 ```powershell
-cd src\MyCodex.Runtime
+cd src\MyCO.Runtime
 npm ci
 npm run check
 cd ..\..
-dotnet restore MyCodex.sln
-dotnet build MyCodex.sln -c Release --no-restore
-dotnet test MyCodex.sln -c Release --no-build
-dotnet publish src\MyCodex.Manager\MyCodex.Manager.csproj `
+dotnet restore MyCO.sln
+dotnet build MyCO.sln -c Release --no-restore
+dotnet test MyCO.sln -c Release --no-build
+dotnet publish src\MyCO.Manager\MyCO.Manager.csproj `
   -c Release -r win-x64 --self-contained true
 ```
 
@@ -338,10 +346,10 @@ synthetic and tests must never include real Desktop DOM snapshots or chat data.
 
 ## License
 
-[MIT](LICENSE), copyright © 2026 MyCodex Contributors.
+[MIT](LICENSE), copyright © 2026 MyCO Contributors.
 
 ## Disclaimer
 
-MyCodex is an independent open-source project. It is not affiliated with,
+MyCO is an independent open-source project. It is not affiliated with,
 endorsed by, or sponsored by OpenAI. It requires an official Codex / ChatGPT
 Desktop installation and does not redistribute any part of that application.

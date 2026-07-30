@@ -4,17 +4,24 @@ Last updated: 2026-07-29 (Asia/Hong_Kong)
 
 Repository: `C:\Users\crikok\Documents\MyCodex`
 
+Target local path: `C:\Users\crikok\Documents\MyCO` (rename pending until the
+current VS Code/Codex workspace releases the directory)
+
+GitHub: `https://github.com/crikok0721/MyCO`
+
 ## 1. Current status
 
-MyCodex is a Windows 10/11 x64 .NET 8 WPF manager plus an embedded TypeScript
+MyCO is a Windows 10/11 x64 .NET 8 WPF manager plus an embedded TypeScript
 Runtime for the official Codex/ChatGPT Desktop renderer. It is local, reversible,
 privacy-safe, and fail-closed.
 
 - Phase: Phase 3 — Beta testing and pre-release stability remediation
 - Version: `0.3.0-beta.1`
-- Branch: `beta1`
-- Base HEAD: `9b62ea7488116b3a3db9f5874764dabc6cef0e41` (`beta1`)
-- Working tree: intentionally modified by the Beta 1 systemic repair
+- Branch: `beta2`
+- Base HEAD: `59c46670a938a91e36dbc5314ab33e55318405c7` (`beta2`)
+- Working tree: intentionally modified by the MyCodex → MyCO engineering
+  migration, final MyCO display normalization, repository-name normalization,
+  and the pre-existing title-bar version-label removal
 - Git actions: no commit, push, pull request, or release was created
 - Release conclusion: fix the remaining Blockers before public testing
 
@@ -39,6 +46,29 @@ Alpha evidence, but this file describes the current working tree.
 
 ## 3. Completed in this session
 
+### Product rename, display normalization, and upgrade compatibility
+
+- Renamed current projects, namespaces, solution, assets, and embedded Runtime
+  bundle from the old brand to `MyCO`.
+- Standardized the user-visible brand and file metadata to MyCO. The final
+  package contains `MyCO.exe` and is archived as `MyCO-win-x64.zip`.
+- Added the exact slogan `It's MyCO!!!!!` to the existing About page and both
+  README brand areas without changing layout.
+- Preserved version `0.3.0-beta.1`; Config schema advanced to 4 only for the
+  renamed persisted startup field.
+- Added copy-only migration from legacy `%APPDATA%\MyCodex` when the retained
+  compatibility directory `%APPDATA%\Myco` does not exist, including safe
+  avatar-path rewriting.
+- Migrated known `MyCodex` and transitional `Myco` `HKCU\...\Run` values to
+  the exact visible `MyCO` name after verifying the new command. Case-only
+  registry migration deletes/recreates with rollback because registry value
+  lookup is case-insensitive.
+- Kept the legacy mutex/activation-event values so old and new launchers remain
+  one cross-version instance.
+- Added Runtime hot-upgrade cleanup for the pre-rename Symbol/window API before
+  installing the MyCO DOM hooks.
+- Preserved the user's earlier removal of the title-bar version badge.
+
 ### Restart lifecycle
 
 - Added one `CloseForRestartAsync` transaction with explicit stages.
@@ -56,9 +86,9 @@ Alpha evidence, but this file describes the current working tree.
 
 Primary files:
 
-- `src/MyCodex.Core/Applications/ApplicationRestartService.cs`
-- `src/MyCodex.Manager/ViewModels/MainWindowViewModel.cs`
-- `tests/MyCodex.Tests/ApplicationRestartTests.cs`
+- `src/MyCO.Core/Applications/ApplicationRestartService.cs`
+- `src/MyCO.Manager/ViewModels/MainWindowViewModel.cs`
+- `tests/MyCO.Tests/ApplicationRestartTests.cs`
 
 ### Window, tray, and close behavior
 
@@ -76,15 +106,15 @@ Primary files:
 
 Primary files:
 
-- `src/MyCodex.Manager/Views/MainWindow.xaml`
-- `src/MyCodex.Manager/Views/MainWindow.xaml.cs`
-- `src/MyCodex.Manager/Views/CloseChoiceWindow.xaml`
-- `src/MyCodex.Manager/Views/CloseChoiceWindow.xaml.cs`
-- `src/MyCodex.Manager/Resources/Strings.*.xaml`
+- `src/MyCO.Manager/Views/MainWindow.xaml`
+- `src/MyCO.Manager/Views/MainWindow.xaml.cs`
+- `src/MyCO.Manager/Views/CloseChoiceWindow.xaml`
+- `src/MyCO.Manager/Views/CloseChoiceWindow.xaml.cs`
+- `src/MyCO.Manager/Resources/Strings.*.xaml`
 
 ### Icon pipeline
 
-- `assets/mycodex-source.ico` is the byte-identical official source of truth.
+- `assets/MyCO-source.ico` is the byte-identical official source of truth.
 - `scripts/build-app-icon.ps1` generates a 256×256 WPF PNG and a nine-frame ICO
   from that source and replaces output atomically.
 - WPF header/onboarding images use the PNG; executable, windows, taskbar, and
@@ -94,12 +124,12 @@ Primary files:
 
 Primary files:
 
-- `assets/mycodex-source.ico`
-- `assets/mycodex-logo.png`
-- `assets/mycodex.ico`
+- `assets/MyCO-source.ico`
+- `assets/MyCO-logo.png`
+- `assets/MyCO.ico`
 - `scripts/build-app-icon.ps1`
-- `src/MyCodex.Manager/MyCodex.Manager.csproj`
-- `src/MyCodex.Manager/Views/OnboardingWindow.xaml`
+- `src/MyCO.Manager/MyCO.Manager.csproj`
+- `src/MyCO.Manager/Views/OnboardingWindow.xaml`
 
 ### Calibration and identity ownership
 
@@ -125,19 +155,19 @@ Primary files:
 
 Primary files:
 
-- `src/MyCodex.Core/Injection/DesktopSessionController.cs`
-- `src/MyCodex.Core/Injection/RuntimeTargetSession.cs`
-- `src/MyCodex.Runtime/src/calibration.ts`
-- `src/MyCodex.Runtime/src/dom-utils.ts`
-- `src/MyCodex.Runtime/src/matcher.ts`
-- `src/MyCodex.Runtime/src/scanner.ts`
-- `src/MyCodex.Runtime/src/classifier.ts`
-- `src/MyCodex.Runtime/src/decorator.ts`
-- `src/MyCodex.Runtime/src/observer.ts`
-- `src/MyCodex.Runtime/src/runtime.ts`
-- `src/MyCodex.Core/Compatibility/ElementSignature.cs`
-- `src/MyCodex.Core/Compatibility/ElementSignatureValidator.cs`
-- `src/MyCodex.Core/Configuration/ConfigStore.cs`
+- `src/MyCO.Core/Injection/DesktopSessionController.cs`
+- `src/MyCO.Core/Injection/RuntimeTargetSession.cs`
+- `src/MyCO.Runtime/src/calibration.ts`
+- `src/MyCO.Runtime/src/dom-utils.ts`
+- `src/MyCO.Runtime/src/matcher.ts`
+- `src/MyCO.Runtime/src/scanner.ts`
+- `src/MyCO.Runtime/src/classifier.ts`
+- `src/MyCO.Runtime/src/decorator.ts`
+- `src/MyCO.Runtime/src/observer.ts`
+- `src/MyCO.Runtime/src/runtime.ts`
+- `src/MyCO.Core/Compatibility/ElementSignature.cs`
+- `src/MyCO.Core/Compatibility/ElementSignatureValidator.cs`
+- `src/MyCO.Core/Configuration/ConfigStore.cs`
 
 ### Bubble structure and style
 
@@ -153,10 +183,10 @@ Primary files:
 
 Primary files:
 
-- `src/MyCodex.Runtime/src/bubble-segmenter.ts`
-- `src/MyCodex.Runtime/src/style-manager.ts`
-- `src/MyCodex.Runtime/src/runtime.ts`
-- `src/MyCodex.Runtime/dist/mycodex.runtime.js` (generated)
+- `src/MyCO.Runtime/src/bubble-segmenter.ts`
+- `src/MyCO.Runtime/src/style-manager.ts`
+- `src/MyCO.Runtime/src/runtime.ts`
+- `src/MyCO.Runtime/dist/MyCO.runtime.js` (generated)
 
 ### Diagnostics
 
@@ -171,17 +201,22 @@ From the final source state:
 - `npm ci`: passed; 0 vulnerabilities.
 - `npm run check`: passed.
   - TypeScript strict lint: passed.
-  - Runtime tests: 41/41 passed.
+  - Runtime tests: 42/42 passed, including pre-rename Runtime cleanup.
   - Embedded Runtime bundle regenerated.
-- `dotnet build .\MyCodex.sln -c Release`: passed with 0 warnings and 0 errors.
-- `dotnet test .\MyCodex.sln -c Release --no-build`: 97/97 passed.
-- `scripts\build-release.ps1`: Runtime/.NET stages passed, but its fixed prior
-  publish directory was in use by the user's already-running background
-  MyCodex and was deliberately not closed.
-- Equivalent self-contained `win-x64` publish and ZIP creation to an isolated
-  final-source artifact path: passed. Final local ZIP:
-  `artifacts\MyCodex-win-x64-message-recognition-final.zip`, SHA-256
-  `301405a669ccb739aa6c2f96fd3cf853f16dcaaf1b70d20b7570451b10bd8387`.
+- `dotnet build .\MyCO.sln -c Release`: passed with 0 warnings and 0 errors.
+- `dotnet test .\MyCO.sln -c Release --no-build`: 102/102 passed, including
+  legacy data, persisted-field, and login-startup migration.
+- `scripts\build-release.ps1`: passed end to end and produced
+  `artifacts\MyCO-win-x64\MyCO.exe` plus `artifacts\MyCO-win-x64.zip`.
+- The release script emitted the final ZIP SHA-256; record it with the
+  distributed artifact rather than embedding a self-referential hash here.
+- Published EXE metadata reports Product/File Description `MyCO`, Company
+  `MyCO Contributors`, and original filename `MyCO.dll`; the ZIP has no
+  old-brand entry names.
+- The Release Manager started successfully. First-run upgrade copied the
+  existing legacy user-data directory while preserving it, and startup
+  registration reconciled to one exact `MyCO` value with no `Myco` or
+  `MyCodex` duplicate.
 - `git diff --check`: passed.
 - The canonical source SHA-256 matched the uploaded ICO:
   `c5825c0da0171efea5f96bc7fce755241091a6d85505abb9ed7514e1866686a0`.
@@ -201,7 +236,7 @@ Isolated official Desktop acceptance:
   markers while leaving the fixture visible: passed.
 - Stop removed the exact target and isolated profile directory: passed.
 
-Manager Computer Use observations:
+Historical Manager Computer Use observations from the prior Beta remediation:
 
 - The official icon was crisp in the Manager header/title, Windows taskbar, and
   File Explorer after the normal Explorer refresh.
@@ -213,6 +248,14 @@ Manager Computer Use observations:
 - Close dialog showed one prompt and three correctly labelled choices; Escape
   cancelled.
 - The temporary Manager process was closed after inspection.
+
+Current MyCO Computer Use observations:
+
+- The published Manager window title, header, start action, close dialog,
+  About title, product card, license line, and disclaimer display MyCO.
+- The About page displays the exact slogan `It's MyCO!!!!!`.
+- `%APPDATA%\Myco` is shown only as the intentionally retained data path.
+- Exit through the Manager's own close dialog removed the tested MyCO process.
 
 ## 5. Not verified in this environment
 
@@ -230,7 +273,7 @@ Do not convert these into pass claims:
   operation on the user's active session.
 - Windows 10, multiple monitors, 125%/150%/200% DPI, high contrast, and a clean
   external tester machine were not available.
-- The Task Manager MyCodex row and notification-area popup icon were not
+- The Task Manager MyCO row and notification-area popup icon were not
   directly captured; their shared published-EXE/tray ICO resources were
   validated instead.
 - The local ZIP is unsigned; SmartScreen and public installation trust remain
@@ -264,23 +307,24 @@ feature work before the Blockers are dispositioned.
 ## 8. Required commands
 
 ```powershell
-Push-Location .\src\MyCodex.Runtime
+Push-Location .\src\MyCO.Runtime
 npm ci
 npm run check
 Pop-Location
 
-dotnet build .\MyCodex.sln -c Release
-dotnet test .\MyCodex.sln -c Release --no-build
+dotnet build .\MyCO.sln -c Release
+dotnet test .\MyCO.sln -c Release --no-build
 
 .\scripts\build-release.ps1
 ```
 
-On this machine the repository-local .NET 8 SDK may need to be placed first on
+This validation found no installed .NET SDK. It used an official .NET 8.0.423
+SDK extracted temporarily under `%TEMP%\MyCO-dotnet8-sdk` and placed first on
 `PATH`:
 
 ```powershell
-$env:PATH =
-  "C:\Users\crikok\AppData\Local\MyCodexDev\dotnet8;" + $env:PATH
+$sdkRoot = Join-Path $env:TEMP "MyCO-dotnet8-sdk"
+$env:PATH = "$sdkRoot;" + $env:PATH
 ```
 
 `-UseChinaMirrors` is permitted only as a local build option when normal package
@@ -293,5 +337,5 @@ routes are slow; never commit regional package-source configuration.
 - Never weaken PID/path/start-time/tree ownership checks.
 - Never inspect or copy a real profile, chat, DOM snapshot, cookie, credential,
   or account data.
-- Never hand-edit `src/MyCodex.Runtime/dist/mycodex.runtime.js`.
+- Never hand-edit `src/MyCO.Runtime/dist/MyCO.runtime.js`.
 - Do not commit, push, create a PR, or publish without an explicit request.

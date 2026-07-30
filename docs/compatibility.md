@@ -24,7 +24,7 @@ Adapters do not contain DOM selectors.
 `IInjectionBackend` separates renderer access from the skin engine. Version
 `0.3.0-beta.1` uses `CdpInjectionBackend` over a transport-neutral connection.
 Private pipe is preferred, while loopback TCP requires explicit consent. If a future official application
-removes the remote-debugging capability, MyCodex reports injection unavailable;
+removes the remote-debugging capability, MyCO reports injection unavailable;
 it does not modify `app.asar` or patch binaries.
 
 Any future backend must preserve the same local-only security boundary and
@@ -120,7 +120,7 @@ Unknown nodes are never modified.
 
 ## Safe mode
 
-Safe mode is a successful protective outcome, not permission to guess. MyCodex
+Safe mode is a successful protective outcome, not permission to guess. MyCO
 retains settings and prior signatures, reports diagnostics, and permits
 calibration, but skips skin mutation on unknown structures.
 
@@ -131,7 +131,7 @@ instead of treating a nested text/span target as the whole turn. Semantic turn
 containers are preferred; a bounded structural heuristic may climb only to a
 legal message wrapper inside a confirmed conversation root. Composer, editor,
 navigation, dialog, code, Diff, tool, status, toolbar, control, and
-MyCodex-created surfaces are rejected.
+MyCO-created surfaces are rejected.
 
 Each role collects three different message roots. Their stable majority
 features form a consensus signature with no coordinates, text, generated
@@ -150,15 +150,15 @@ other preferences. No `textContent` is serialized, logged, or fingerprinted.
 4. If confidence is high, enable skin automatically.
 5. If confidence drops, preserve settings/profile and recommend calibration.
 6. If the structure is unknown, remain in safe mode.
-7. If the injection boundary changes, publish a backend-compatible MyCodex
+7. If the injection boundary changes, publish a backend-compatible MyCO
    release.
 
 Expected recovery:
 
 - small class/wrapper update: automatic matching;
 - attribute/context/depth changes: user recalibration;
-- medium DOM redesign: MyCodex DOM matcher/profile update;
-- large renderer or CDP change: MyCodex backend release.
+- medium DOM redesign: MyCO DOM matcher/profile update;
+- large renderer or CDP change: MyCO backend release.
 
 Permanent compatibility with every future Desktop update is not promised.
 

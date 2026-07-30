@@ -11,19 +11,19 @@ Last updated: 2026-07-29
 
 Projects:
 
-- `src/MyCodex.Manager`: WPF UI and application lifecycle
-- `src/MyCodex.Core`: discovery, restart, CDP, injection, configuration, logging
-- `tests/MyCodex.Tests`: xUnit regression tests
-- `tools/MyCodex.CdpProbe`: development CDP compatibility probe
-- `tools/MyCodex.VisualAcceptance`: isolated official-Desktop acceptance host
+- `src/MyCO.Manager`: WPF UI and application lifecycle
+- `src/MyCO.Core`: discovery, restart, CDP, injection, configuration, logging
+- `tests/MyCO.Tests`: xUnit regression tests
+- `tools/MyCO.CdpProbe`: development CDP compatibility probe
+- `tools/MyCO.VisualAcceptance`: isolated official-Desktop acceptance host
 
 ## Renderer Runtime
 
 - TypeScript strict mode
 - esbuild-generated IIFE bundle
 - Node test runner plus jsdom fixtures
-- Source: `src/MyCodex.Runtime/src`
-- Generated embedded bundle: `src/MyCodex.Runtime/dist/mycodex.runtime.js`
+- Source: `src/MyCO.Runtime/src`
+- Generated embedded bundle: `src/MyCO.Runtime/dist/MyCO.runtime.js`
 
 The generated bundle is never edited by hand. Run `npm run check` after Runtime
 source changes.
@@ -31,13 +31,13 @@ source changes.
 ## Build and validation
 
 ```powershell
-Push-Location .\src\MyCodex.Runtime
+Push-Location .\src\MyCO.Runtime
 npm ci
 npm run check
 Pop-Location
 
-dotnet build .\MyCodex.sln -c Release
-dotnet test .\MyCodex.sln -c Release --no-build
+dotnet build .\MyCO.sln -c Release
+dotnet test .\MyCO.sln -c Release --no-build
 ```
 
 Release:
@@ -54,5 +54,5 @@ commit regional registry or NuGet source settings.
 - Self-contained `win-x64` publish
 - ZIP distribution with required documents
 - Multi-frame Windows ICO and WPF PNG generated from
-  `assets/mycodex-source.ico`
+  `assets/MyCO-source.ico`
 - SHA-256 emitted by the release script

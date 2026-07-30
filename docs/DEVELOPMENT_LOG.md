@@ -1,5 +1,174 @@
 # Development Log
 
+## 2026-07-29 — MyCO engineering-name normalization
+
+Date:
+
+2026-07-29
+
+Change:
+
+- Case-normalized the solution, projects, source/test/tool directories,
+  namespaces, repository-owned brand assets, embedded Runtime bundle filename,
+  CI, build scripts, and current engineering documentation from `Myco` to
+  `MyCO`.
+- Used two-step Git moves for Windows-safe case-only path changes.
+- Retained `%APPDATA%\Myco`, transitional startup/config values, lowercase
+  protocol/package identifiers, and legacy `MyCodex` compatibility inputs.
+
+Reason:
+
+Align repository-owned engineering names with the final MyCO brand while
+preserving upgrade and cross-version behavior.
+
+Impact:
+
+Current build commands and references now use `MyCO.sln` and `MyCO.*` project
+paths. Stable data, migration, serialization, IPC, and protocol identifiers are
+unchanged.
+
+Modified Files:
+
+- `MyCO.sln`, `eng/MyCO.Version.props`
+- `src/MyCO.*`, `tests/MyCO.Tests`, `tools/MyCO.*`
+- `assets/MyCO*`
+- CI/build scripts, README files, and current project documentation
+
+Testing:
+
+- Runtime strict checks and 42/42 tests passed; the renamed
+  `dist/MyCO.runtime.js` bundle was regenerated.
+- `dotnet build .\MyCO.sln -c Release` passed with zero warnings/errors.
+- `dotnet test .\MyCO.sln -c Release --no-build` passed 102/102.
+- `scripts\build-release.ps1` passed and produced `MyCO.exe` plus
+  `MyCO-win-x64.zip`.
+- Case-sensitive path scanning found no remaining repository filenames using
+  `Myco`, `MyCodex`, or `Mycodex`.
+- Remaining mixed/legacy content was classified as compatibility identifiers,
+  migration tests, retained data paths, or historical records.
+
+## 2026-07-29 — Repository identity normalization
+
+Date:
+
+2026-07-29
+
+Change:
+
+- Renamed the GitHub repository from `crikok0721/MyCodex` to
+  `crikok0721/MyCO`.
+- Updated the local `origin` URL.
+- The local checkout directory rename from `MyCodex` to `MyCO` is pending
+  because the active VS Code/Codex workspace still owns the directory.
+
+Reason:
+
+Complete the final external and local repository branding after the application
+display name was standardized as MyCO.
+
+Impact:
+
+Branch, HEAD, Git history, working-tree changes, remote contents, and upgrade
+compatibility identifiers remain unchanged. Existing GitHub redirects preserve
+old repository URLs.
+
+Modified Files:
+
+- Git remote configuration and current project handoff/development records.
+
+Testing:
+
+- Verified the renamed GitHub repository, `origin`, branch, HEAD, and preserved
+  dirty worktree.
+- Verified that the first local directory rename was rejected by Windows while
+  the active workspace owns the old path; no partial move occurred.
+
+## 2026-07-29 — MyCO display-brand normalization
+
+Date:
+
+2026-07-29
+
+Change:
+
+- Standardized all current user-visible product names and executable metadata
+  from Myco to MyCO without renaming stable engineering identifiers.
+- Added the exact slogan `It's MyCO!!!!!` to the existing About and README
+  brand areas.
+- Changed release output to `MyCO.exe` and `MyCO-win-x64.zip`.
+- Made the login-startup display value `MyCO` and added safe recognition of
+  both `Myco` and `MyCodex`, including Windows Registry case-only migration.
+
+Reason:
+
+Apply the final brand capitalization while preserving configuration paths,
+namespaces, Runtime protocol names, IPC, and upgrade compatibility.
+
+Impact:
+
+The product now displays MyCO throughout the Manager and package metadata.
+`%APPDATA%\Myco`, project/namespace names, and lowercase Runtime identifiers
+remain stable. Existing `Myco` login-startup values are normalized without
+creating duplicates.
+
+Modified Files:
+
+- Manager resources/views, shared build metadata, startup registration,
+  release/CI scripts, current documentation, and related tests.
+
+Testing:
+
+- Runtime lint/build and 42/42 tests passed.
+- Release build passed with zero warnings/errors; 102/102 .NET tests passed.
+- The standard release script produced `MyCO.exe` and
+  `MyCO-win-x64.zip`.
+- The final Manager was observed directly: title/header, actions, close dialog,
+  About branding, and `It's MyCO!!!!!` were correct; application Exit closed
+  only the tested Manager.
+- The real case-only Run-value migration produced one exact `MyCO` value
+  pointing to the current executable, with no `Myco` or `MyCodex` duplicate.
+
+## 2026-07-29 — MyCodex to Myco engineering migration
+
+Date:
+
+2026-07-29
+
+Change:
+
+- Renamed the then-current user-visible branding, projects, namespaces, assets,
+  Runtime bundle, executable, build paths, and release artifacts to MyCO.
+- Added copy-only legacy user-data migration, startup-value migration,
+  pre-rename Runtime cleanup, and cross-version single-instance compatibility.
+- Advanced Config schema from 3 to 4 for the renamed startup field.
+- Preserved the pre-existing removal of the title-bar version badge.
+
+Reason:
+
+Complete the formal product rename without losing settings, creating duplicate
+login launches, or allowing old and new managers to run concurrently.
+
+Impact:
+
+New builds use `MyCO.exe`, `%APPDATA%\Myco`, and `Myco-win-x64.zip`. Legacy
+data remains untouched after a successful copy. Historical records below keep
+their original names and paths.
+
+Modified Files:
+
+- Current solution, project, source, test, tool, asset, build, CI, and
+  documentation paths.
+
+Testing:
+
+- Runtime lint/build and 42/42 tests passed.
+- Release solution build passed with zero warnings/errors; 100/100 .NET tests
+  passed.
+- The standard release script produced `MyCO.exe` and
+  `Myco-win-x64.zip`; SHA-256 is recorded in `docs/HANDOFF.md`.
+- Release startup, legacy data preservation/copy, and non-duplicated startup
+  registration were verified. Current-brand visual acceptance remains pending.
+
 ## 2026-07-29 — Message recognition and calibration stabilization
 
 Date:

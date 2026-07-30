@@ -11,7 +11,7 @@ below.
 ## Blocker — public Beta 前必须解决
 
 - [ ] In a disposable Windows account/session or VM, run the real signed-in
-  end-to-end matrix: Codex stopped/running/minimized/background, MyCodex
+  end-to-end matrix: Codex stopped/running/minimized/background, MyCO
   enabled/disabled, and at least three one-click production restarts.
 - [ ] In that same disposable environment, visually inspect real Codex
   conversations after calibration: different User/Assistant locations, long
@@ -47,6 +47,8 @@ below.
 
 ## Completed in the current repair
 
+- [x] Rename the product, projects, namespaces, Runtime bundle, executable, and
+  release archive to MyCO with legacy data/startup/runtime compatibility.
 - [x] One-transaction restart with automatic verified force fallback,
   quiescence, bounded readiness retry, and failure-state recovery.
 - [x] Simplified accessible close dialog.

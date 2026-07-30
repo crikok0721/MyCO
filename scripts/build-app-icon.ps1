@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param(
-    [string]$Source = (Join-Path $PSScriptRoot "..\assets\mycodex-source.ico"),
-    [string]$Output = (Join-Path $PSScriptRoot "..\assets\mycodex.ico"),
-    [string]$PngOutput = (Join-Path $PSScriptRoot "..\assets\mycodex-logo.png")
+    [string]$Source = (Join-Path $PSScriptRoot "..\assets\MyCO-source.ico"),
+    [string]$Output = (Join-Path $PSScriptRoot "..\assets\MyCO.ico"),
+    [string]$PngOutput = (Join-Path $PSScriptRoot "..\assets\MyCO-logo.png")
 )
 
 # Generates the packaged UI PNG and multi-resolution Windows ICO from the
@@ -18,7 +18,7 @@ function Remove-IconRenderDirectory {
     }
     $resolvedRender = [System.IO.Path]::GetFullPath($Directory)
     $resolvedRoot = [System.IO.Path]::GetFullPath(
-        (Join-Path ([System.IO.Path]::GetTempPath()) "MyCodexIcon"))
+        (Join-Path ([System.IO.Path]::GetTempPath()) "MyCOIcon"))
     if ($resolvedRender.StartsWith(
             $resolvedRoot + [System.IO.Path]::DirectorySeparatorChar,
             [System.StringComparison]::OrdinalIgnoreCase) -and
@@ -116,7 +116,7 @@ if ([System.IO.Path]::GetExtension($sourcePath).Equals(
         throw "Microsoft Edge is required to render the SVG icon source."
     }
 
-    $renderRoot = Join-Path ([System.IO.Path]::GetTempPath()) "MyCodexIcon"
+    $renderRoot = Join-Path ([System.IO.Path]::GetTempPath()) "MyCOIcon"
     $renderDirectory = Join-Path $renderRoot ([Guid]::NewGuid().ToString("N"))
     [void][System.IO.Directory]::CreateDirectory($renderDirectory)
     $rasterSourcePath = Join-Path $renderDirectory "source-1024.png"

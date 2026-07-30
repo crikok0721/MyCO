@@ -5,12 +5,30 @@ Last updated: 2026-07-29
 This file records current decisions. Historical detail remains in
 `docs/development-notes.md` and `docs/CODEX_HANDOFF.md`.
 
+## D-000 — Rename the product without breaking upgrades
+
+Decision: use MyCO for current user-visible names, executable metadata, release
+artifacts, repository/solution/project names, namespaces, and repository-owned
+brand asset filenames. Keep `%APPDATA%\Myco`, lowercase Runtime protocol/package
+identifiers, transitional `Myco` migration inputs, and legacy `MyCodex`
+compatibility identifiers stable. Copy the legacy user-data tree only when the
+`%APPDATA%\Myco` tree does not exist; migrate the known `MyCodex` and `Myco`
+per-user Run values to the visible `MyCO` value; destroy the pre-rename injected
+Runtime during hot upgrade; retain the legacy single-instance kernel names.
+
+Reason: repository and engineering names can be case-normalized with explicit
+two-step Git renames and synchronized references. Configuration paths,
+serialization keys, IPC/protocol names, migration inputs, and single-instance
+names must remain stable to preserve upgrades and prevent old and new launchers
+from running concurrently. These retained values are compatibility identifiers,
+not the displayed product brand.
+
 ## D-001 — Preserve official Desktop boundaries
 
 Decision: use CDP and a project-scoped reversible Runtime. Do not patch
 `app.asar`, official binaries, profiles, credentials, cookies, or traffic.
 
-Reason: keeps MyCodex detectable, reversible, and compatible with the security
+Reason: keeps MyCO detectable, reversible, and compatible with the security
 model.
 
 ## D-002 — Private pipe first
@@ -78,7 +96,7 @@ bubbles, while DOM restructuring risks breaking native interaction.
 ## D-008 — One canonical official icon source
 
 Decision: preserve the uploaded official icon byte-for-byte as
-`assets/mycodex-source.ico`, then generate the UI PNG and multi-frame packaged
+`assets/MyCO-source.ico`, then generate the UI PNG and multi-frame packaged
 ICO from that source. Use the PNG for WPF content images and the generated ICO
 for executable, window, taskbar, and tray surfaces.
 

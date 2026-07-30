@@ -1,6 +1,8 @@
-# MyCodex
+# MyCO
 
-MyCodex `0.3.0-beta.1` 是一个本地 Windows 管理器，为官方 Codex /
+> It's MyCO!!!!!
+
+MyCO `0.3.0-beta.1` 是一个本地 Windows 管理器，为官方 Codex /
 ChatGPT Desktop 对话界面增加可自定义的 Assistant/User 头像和昵称，并仅为
 Assistant 正文增加紧凑气泡；User 继续使用官方原生气泡。
 
@@ -11,7 +13,7 @@ Overlay、OCR 重绘、DLL 注入、浏览器扩展、API 客户端，也不会�
 
 ## 概览
 
-MyCodex 只调整对话消息区域。Assistant 左对齐，User 右对齐；Assistant 的普通
+MyCO 只调整对话消息区域。Assistant 左对齐，User 右对齐；Assistant 的普通
 prose/Markdown 文本进入气泡，代码块、Diff、Tool Card、处理状态、操作按钮和
 输入框继续使用官方原生 UI。User 气泡的背景、圆角、内边距、宽度和位置完全保留。
 
@@ -30,10 +32,10 @@ prose/Markdown 文本进入气泡，代码块、Diff、Tool Card、处理状态�
 - Manager 可强制深色、浅色或实时跟随 Windows
 - 最小化到托盘、托盘恢复与隐藏实例再次启动激活
 - 正式多尺寸应用图标统一用于窗口、任务栏、Alt+Tab、托盘和发行 EXE
-- 关闭窗口时可选择退出 MyCodex、最小化到托盘或取消；退出不会关闭 Codex
+- 关闭窗口时可选择退出 MyCO、最小化到托盘或取消；退出不会关闭 Codex
 - 一键安全重启会等待旧进程树稳定退出、等待新 Renderer 就绪并自动应用 Runtime
 - Assistant 气泡可选“自动切割气泡”或“整段完整气泡”，设置持久化并即时应用
-- 可选登录 Windows 后后台启动 MyCodex，以及启动 MyCodex 后安全启动 Codex
+- 可选登录 Windows 后后台启动 MyCO，以及启动 MyCO 后安全启动 Codex
 - User 原生气泡不改色、不改尺寸、不改 padding、不改位置
 - 基于结构签名和置信度的 User/Assistant Turn 识别
 - 过滤随机/压缩 class，适应轻中度 DOM 更新
@@ -47,7 +49,7 @@ prose/Markdown 文本进入气泡，代码块、Diff、Tool Card、处理状态�
 
 ```mermaid
 flowchart LR
-  M["MyCodex WPF 管理器"] -->|"默认：私有 CDP Pipe"| D["官方 Desktop"]
+  M["MyCO WPF 管理器"] -->|"默认：私有 CDP Pipe"| D["官方 Desktop"]
   M -. "用户明确同意后：随机 127.0.0.1 TCP" .-> D
   M -->|"传输无关的 CDP 会话"| R["Chromium Renderer"]
   R --> I["幂等 Skin Runtime"]
@@ -69,20 +71,25 @@ flowchart LR
 - Windows 10/11 x64
 - 已安装官方 Codex / ChatGPT Desktop
 
-从 GitHub Releases 下载 `MyCodex-win-x64.zip`，解压到可写目录，运行
-`MyCodex.exe`。发行包为 self-contained，无需另装 .NET Runtime、Node、npm
+从 GitHub Releases 下载 `MyCO-win-x64.zip`，解压到可写目录，运行
+`MyCO.exe`。发行包为 self-contained，无需另装 .NET Runtime、Node、npm
 或 Visual Studio。
 
 Alpha 版本暂未签名，Windows 可能显示信誉提示；请先核对发布源码与校验值。
 
+从旧品牌版本升级时，MyCO 首次启动会在 `%APPDATA%\Myco` 尚不存在的前提下，
+将 `%APPDATA%\MyCodex` 安全复制到新目录；旧目录不会被删除，已有 MyCO 数据也
+不会被覆盖。原有 `MyCodex` 或 `Myco` 登录启动项会在设置同步时迁移为
+`MyCO`。
+
 ## 首次设置
 
-1. 启动 MyCodex，完成仅本地的首次说明。
+1. 启动 MyCO，完成仅本地的首次说明。
 2. 确认检测到的官方 Desktop。
-3. 点击 **Start Codex with MyCodex**。
-4. 若官方应用已经运行，同意先正常重启。若窗口关闭后应用仍驻留托盘，MyCodex 会继续
+3. 点击 **Start Codex with MyCO**。
+4. 若官方应用已经运行，同意先正常重启。若窗口关闭后应用仍驻留托盘，MyCO 会继续
    跟踪关闭前记录的精确 PID、路径和启动时间，并二次确认是否强制结束该进程树；
-   多个根进程或身份不确定时会拒绝操作。旧进程树稳定释放后，MyCodex 会自动启动、
+   多个根进程或身份不确定时会拒绝操作。旧进程树稳定释放后，MyCO 会自动启动、
    等待 Renderer 就绪并应用功能，不需要第二次点击。
 5. 打开一个对话；若自动识别置信度不足，完成 Assistant 与 User 两步校准。
 
@@ -105,10 +112,10 @@ Dark/Light 两套气泡、文字、昵称和头像颜色。气泡主题只跟随
 会调用 Runtime 清理并恢复官方界面，不关闭 Desktop。
 
 设置页可选择 Manager 的深色、浅色或跟随 Windows，并分别开启“登录 Windows
-时启动 MyCodex”和“MyCodex 启动后启动 Codex”。登录启动使用当前用户的
+时启动 MyCO”和“MyCO 启动后启动 Codex”。登录启动使用当前用户的
 `HKCU\...\Run`，以 `--background` 进入托盘，不需要管理员权限；移动发行目录后
-会纠正路径漂移。MyCodex 不修改官方快捷方式、协议关联或官方安装目录。点击关闭
-按钮可选择退出 MyCodex、最小化到托盘或取消；退出只释放 MyCodex 资源，Codex
+会纠正路径漂移。MyCO 不修改官方快捷方式、协议关联或官方安装目录。点击关闭
+按钮可选择退出 MyCO、最小化到托盘或取消；退出只释放 MyCO 资源，Codex
 继续运行。详见[设置说明](docs/settings.md)。
 
 ## 校准
@@ -142,7 +149,7 @@ Backend、DOM Matcher 与 Skin Engine 彼此独立。
    优先识别当前稳定语义/结构 Turn，旧校准签名只作为后备。连接期间会持续检查
    Runtime、样式与 Observer 健康状态。
 2. **重新校准**：修复 wrapper、属性、布局或随机 class 变化，不清空外观设置和旧配置。
-3. **发布新版 MyCodex**：若注入边界改变或 Renderer 大规模重构，需要更新 Backend
+3. **发布新版 MyCO**：若注入边界改变或 Renderer 大规模重构，需要更新 Backend
    或 DOM Adapter。
 
 项目不会宣称永久兼容未来所有 Codex / ChatGPT Desktop 版本。
@@ -153,13 +160,13 @@ Diagnostics 页面只输出 Manager/Runtime 协议版本、候选应用元数据
 数量、兼容状态、匹配数量、平均置信度、Observer 状态和错误代码。它不会输出消息
 正文、Prompt、代码、Token、Cookie、Authorization、账户资料或不必要路径。
 
-日志位于 `%APPDATA%\MyCodex\logs`。提交 Issue 前请自行检查要附加的诊断内容。
+日志位于 `%APPDATA%\Myco\logs`。提交 Issue 前请自行检查要附加的诊断内容。
 
 ## 隐私
 
-MyCodex 完全本地运行，不要求 OpenAI 凭据，不上传对话，不读取认证 Cookie，不
+MyCO 完全本地运行，不要求 OpenAI 凭据，不上传对话，不读取认证 Cookie，不
 拦截网络请求，也没有 Analytics、Sentry 或任何遥测。配置保存在
-`%APPDATA%\MyCodex`。
+`%APPDATA%\Myco`。
 
 请阅读 [PRIVACY.md](PRIVACY.md) 与 [SECURITY.md](SECURITY.md)。
 
@@ -167,7 +174,7 @@ MyCodex 完全本地运行，不要求 OpenAI 凭据，不上传对话，不读�
 
 - 当前为未签名的 Windows x64 Beta 版本。
 - 官方应用若未以 CDP 参数启动，需要正常重启一次。
-- DOM 更新可能要求重新校准；大改版可能要求新的 MyCodex 版本。
+- DOM 更新可能要求重新校准；大改版可能要求新的 MyCO 版本。
 - 校准属于本地配置，当前针对可见 Renderer。
 - Windows ARM64、Windows 10 22H2、全部 DPI/语言及高对比度组合尚未在本轮
   开发机上逐项实机验证，详见[兼容性矩阵](docs/compatibility.md)。
@@ -175,15 +182,15 @@ MyCodex 完全本地运行，不要求 OpenAI 凭据，不上传对话，不读�
 
 ## 仓库架构
 
-MyCodex 由原生管理器和一个小型浏览器 Runtime 组成。管理器负责配置、进程与
+MyCO 由原生管理器和一个小型浏览器 Runtime 组成。管理器负责配置、进程与
 会话生命周期；Runtime 只负责在选中的 Renderer 内进行可撤销的 DOM 装饰。
 
 ```mermaid
 flowchart LR
-    UI["MyCodex.Manager<br/>WPF 界面与 MVVM"] --> Core["MyCodex.Core<br/>发现、配置、兼容性"]
+    UI["MyCO.Manager<br/>WPF 界面与 MVVM"] --> Core["MyCO.Core<br/>发现、配置、兼容性"]
     Core --> Desktop["ChatGPT / Codex Desktop"]
     Core --> CDP["本机 CDP<br/>私有 Pipe 优先 / 回环 TCP 备用"]
-    CDP --> Runtime["MyCodex.Runtime<br/>注入的 TypeScript Bundle"]
+    CDP --> Runtime["MyCO.Runtime<br/>注入的 TypeScript Bundle"]
     Runtime --> DOM["Renderer DOM<br/>身份与助手正文样式"]
     Runtime -->|"白名单事件"| Core
 ```
@@ -191,14 +198,14 @@ flowchart LR
 ```text
 .
 ├─ src/
-│  ├─ MyCodex.Manager/       WPF 应用、本地化、页面与 ViewModel
-│  ├─ MyCodex.Core/          应用发现、配置、CDP、注入与安全边界
-│  └─ MyCodex.Runtime/
+│  ├─ MyCO.Manager/       WPF 应用、本地化、页面与 ViewModel
+│  ├─ MyCO.Core/          应用发现、配置、CDP、注入与安全边界
+│  └─ MyCO.Runtime/
 │     ├─ src/                手写 TypeScript Runtime
 │     ├─ tests/              jsdom 行为与兼容性测试
 │     └─ dist/               生成后嵌入 WPF 程序的 Bundle
-├─ tests/MyCodex.Tests/      Core 与本地化的 xUnit 测试
-├─ tools/MyCodex.CdpProbe/   隔离的 CDP/Runtime 端到端可行性门禁
+├─ tests/MyCO.Tests/      Core 与本地化的 xUnit 测试
+├─ tools/MyCO.CdpProbe/   隔离的 CDP/Runtime 端到端可行性门禁
 ├─ scripts/                  可复现的发行构建脚本
 ├─ docs/                     详细架构与兼容性说明
 ├─ assets/                   项目自有视觉资源
@@ -207,8 +214,8 @@ flowchart LR
 
 主要执行流程：
 
-1. `MyCodex.Manager` 读取 `%APPDATA%\MyCodex\config.json`，并通过
-   `MyCodex.Core` 查找支持的 Desktop 安装。
+1. `MyCO.Manager` 读取 `%APPDATA%\Myco\config.json`，并通过
+   `MyCO.Core` 查找支持的 Desktop 安装。
 2. 优先使用私有 CDP Pipe 启动所选 Desktop；只有用户确认后才使用回环 TCP 备用。
 3. Core 对 Renderer 进行评分，注入生成后的 Runtime Bundle，并验证协议握手。
 4. Runtime 识别消息、装饰安全的正文与身份区域、监听 DOM 更新，只上报白名单
@@ -228,17 +235,17 @@ flowchart LR
 
 修改代码前必须了解：
 
-- 除非命令明确进入 `src/MyCodex.Runtime`，否则均从仓库根目录执行。
-- 只编辑 `src/MyCodex.Runtime/src`，不要直接修改压缩后的
-  `dist/mycodex.runtime.js`。Runtime 变更后运行 `npm run build`，并一同提交
+- 除非命令明确进入 `src/MyCO.Runtime`，否则均从仓库根目录执行。
+- 只编辑 `src/MyCO.Runtime/src`，不要直接修改压缩后的
+  `dist/MyCO.runtime.js`。Runtime 变更后运行 `npm run build`，并一同提交
   更新后的 Bundle。
 - 先构建 Runtime，再构建 WPF。WPF 项目会嵌入当前的
-  `dist/mycodex.runtime.js`，MSBuild 不会自动生成它。
-- 修改 Host/Runtime 通信时，只在 `eng/MyCodex.Version.props` 更新版本和 Schema；
+  `dist/MyCO.runtime.js`，MSBuild 不会自动生成它。
+- 修改 Host/Runtime 通信时，只在 `eng/MyCO.Version.props` 更新版本和 Schema；
   C#、TypeScript Bundle、界面与发行包均从该文件生成或读取。
 - `Strings.en-US.xaml`、`Strings.zh-CN.xaml` 和 `Strings.zh-TW.xaml` 的全部
   `x:Key` 必须保持一致。
-- 用户配置、头像、日志、校准数据与备份只能放在 `%APPDATA%\MyCodex`，不得放入
+- 用户配置、头像、日志、校准数据与备份只能放在 `%APPDATA%\Myco`，不得放入
   仓库。
 - 禁止提交 OpenAI 官方二进制、Bundle、真实 DOM Snapshot、图标、源码、凭据或
   用户聊天数据；兼容性 Fixture 必须人工合成。
@@ -254,20 +261,20 @@ flowchart LR
 2. Runtime 有变更时，先运行 `npm run check`，再构建 .NET。
 3. 运行 xUnit，验证 Core 与 Manager 行为。
 4. 修改应用发现、注入、Renderer 恢复或 DOM 兼容性时，运行
-   `MyCodex.CdpProbe`。
+   `MyCO.CdpProbe`。
 5. 发布用户版本前运行发行构建脚本。
 
 ## 构建
 
 ```powershell
-cd src\MyCodex.Runtime
+cd src\MyCO.Runtime
 npm ci
 npm run check
 cd ..\..
-dotnet restore MyCodex.sln
-dotnet build MyCodex.sln -c Release --no-restore
-dotnet test MyCodex.sln -c Release --no-build
-dotnet publish src\MyCodex.Manager\MyCodex.Manager.csproj `
+dotnet restore MyCO.sln
+dotnet build MyCO.sln -c Release --no-restore
+dotnet test MyCO.sln -c Release --no-build
+dotnet publish src\MyCO.Manager\MyCO.Manager.csproj `
   -c Release -r win-x64 --self-contained true
 ```
 
@@ -293,9 +300,9 @@ dotnet publish src\MyCodex.Manager\MyCodex.Manager.csproj `
 
 ## 许可证
 
-[MIT](LICENSE)，Copyright © 2026 MyCodex Contributors。
+[MIT](LICENSE)，Copyright © 2026 MyCO Contributors。
 
 ## 免责声明
 
-MyCodex 是独立开源项目，与 OpenAI 无隶属、认可或赞助关系。项目要求用户自行安装
+MyCO 是独立开源项目，与 OpenAI 无隶属、认可或赞助关系。项目要求用户自行安装
 官方 Codex / ChatGPT Desktop，且不分发该应用的任何组成部分。

@@ -8,7 +8,7 @@ content for an actual Computer Use inspection.
 It never reads or copies the normal Codex profile. Each run uses:
 
 ```text
-%TEMP%\MyCodex\VisualAcceptance\<run-id>\profile
+%TEMP%\MyCO\VisualAcceptance\<run-id>\profile
 ```
 
 The controller uses private CDP pipes. A target can be closed only after its
@@ -27,17 +27,17 @@ shutdown fallback.
 ## Build, start, inspect, restart, destroy, and stop
 
 ```powershell
-Push-Location .\src\MyCodex.Runtime
+Push-Location .\src\MyCO.Runtime
 npm ci
 npm run check
 Pop-Location
 
-dotnet build .\MyCodex.sln -c Release
-dotnet test .\MyCodex.sln -c Release --no-build
+dotnet build .\MyCO.sln -c Release
+dotnet test .\MyCO.sln -c Release --no-build
 
-$va = ".\tools\MyCodex.VisualAcceptance\bin\Release\net8.0-windows\MyCodex.VisualAcceptance.dll"
+$va = ".\tools\MyCO.VisualAcceptance\bin\Release\net8.0-windows\MyCO.VisualAcceptance.dll"
 $start = (& dotnet $va start `
-  --runtime ".\src\MyCodex.Runtime\dist\mycodex.runtime.js") |
+  --runtime ".\src\MyCO.Runtime\dist\MyCO.runtime.js") |
   Out-String |
   ConvertFrom-Json
 if (-not $start.passed) {
@@ -51,7 +51,7 @@ dotnet $va status --run-id $run
 # inspection, select only the window whose HWND belongs to start.state.targetPid.
 # If policy forbids it, record the check as blocked; never substitute DOM checks.
 
-# Start is dark. Switch the same renderer without restarting MyCodex or Codex B.
+# Start is dark. Switch the same renderer without restarting MyCO or Codex B.
 dotnet $va theme --run-id $run --mode light
 dotnet $va status --run-id $run
 # Inspect/capture light, then prove the transition is reversible.
@@ -92,7 +92,7 @@ synthetic renderer's visible theme, waits for the debounced detector, and adds
 automated theme-marker/singleton/readability checks. It is not a visual pass.
 
 Manager/tray/startup screenshots are a separate real-Windows pass against the
-self-contained `MyCodex.exe`. Store evidence under:
+self-contained `MyCO.exe`. Store evidence under:
 
 ```text
 artifacts\visual-acceptance\<run-id>\
@@ -123,14 +123,14 @@ Codex B from Codex A.
 While a run is active:
 
 ```text
-%TEMP%\MyCodex\VisualAcceptance\<run-id>\state.json
+%TEMP%\MyCO\VisualAcceptance\<run-id>\state.json
 ```
 
 After a successful default `stop`, the run directory and isolated profile are
 removed. A small final state remains at:
 
 ```text
-%TEMP%\MyCodex\VisualAcceptance\<run-id>.final.json
+%TEMP%\MyCO\VisualAcceptance\<run-id>.final.json
 ```
 
 It records the run phase, exact target identity, Runtime/protocol versions,
