@@ -11,7 +11,7 @@ param(
 
     [string]$ExpectedSubject = "CN=Crikok",
 
-    [string]$TimestampUrl = "http://timestamp.acs.microsoft.com",
+    [string]$TimestampUrl = "",
 
     [int]$SignToolTimeoutSeconds = 90
 )
@@ -122,21 +122,33 @@ try {
     }
 
     foreach ($file in $ownedFiles) {
+        $signArguments = @(
+            "sign",
+            "/sha1", $certificate.Thumbprint,
+            "/s", "My",
+            "/fd", "SHA256",
+            "/d", "MyCO")
+        if (-not [string]::IsNullOrWhiteSpace($TimestampUrl)) {
+            $signArguments += @(
+                "/tr", $TimestampUrl,
+                "/td", "SHA256")
+        }
+        $signArguments += $file.FullName
+
+        Write-Host "Signing '$($file.FullName)' without public timestamp dependency."
         Invoke-SignTool `
             -Operation "Signing '$($file.FullName)'" `
-            -Arguments @(
-                "sign",
-                "/sha1", $certificate.Thumbprint,
-                "/s", "My",
-                "/fd", "SHA256",
-                "/tr", $TimestampUrl,
-                "/td", "SHA256",
-                "/d", "MyCO",
-                $file.FullName)
+            -Arguments $signArguments
 
+        $verifyArguments = @("verify", "/pa", "/all")
+        if (-not [string]::IsNullOrWhiteSpace($TimestampUrl)) {
+            $verifyArguments += "/tw"
+        }
+        $verifyArguments += $file.FullName
+        Write-Host "Verifying '$($file.FullName)'."
         Invoke-SignTool `
             -Operation "Verifying '$($file.FullName)'" `
-            -Arguments @("verify", "/pa", "/tw", "/all", $file.FullName)
+            -Arguments $verifyArguments
 
         $signature = Get-AuthenticodeSignature -LiteralPath $file.FullName
         if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
@@ -150,7 +162,12 @@ try {
     [pscustomobject]@{
         Subject = $certificate.Subject
         Thumbprint = $certificate.Thumbprint
-        TimestampUrl = $TimestampUrl
+        TimestampUrl = if ([string]::IsNullOrWhiteSpace($TimestampUrl)) {
+            "none"
+        }
+        else {
+            $TimestampUrl
+        }
         SignedFiles = $ownedFiles.Count
         Trust = "Verified only after temporary local trust of the self-signed certificate"
     }

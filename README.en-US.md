@@ -80,9 +80,11 @@ folder, and run `MyCO.exe`. The release is self-contained; .NET, Node.js,
 npm, and Visual Studio are not required.
 
 MyCO-owned binaries in release `0.99.0` carry Authenticode SHA-256 signatures
-and timestamps under the self-signed `CN=Crikok` certificate. This certificate
-is not rooted in the Windows public trust store, so Windows may still show an
-unknown-publisher or reputation warning. Verify the release SHA-256, public
+under the self-signed `CN=Crikok` certificate. The autonomous workflow has no
+public timestamp dependency, so signature validity is not extended beyond the
+certificate lifetime. This certificate is not rooted in the Windows public
+trust store, so Windows may still show an unknown-publisher or reputation
+warning. Verify the release SHA-256, public
 certificate, SBOM, and GitHub provenance attestation as described in the
 [code signing policy](security/CODE_SIGNING.md).
 
