@@ -79,8 +79,12 @@ Download `MyCO-win-x64.zip` from GitHub Releases, extract it to a writable
 folder, and run `MyCO.exe`. The release is self-contained; .NET, Node.js,
 npm, and Visual Studio are not required.
 
-Windows may show a reputation warning for an unsigned alpha build. Review the
-release source and checksum before choosing to run it.
+MyCO-owned binaries in release `0.99.0` carry Authenticode SHA-256 signatures
+and timestamps under the self-signed `CN=Crikok` certificate. This certificate
+is not rooted in the Windows public trust store, so Windows may still show an
+unknown-publisher or reputation warning. Verify the release SHA-256, public
+certificate, SBOM, and GitHub provenance attestation as described in the
+[code signing policy](security/CODE_SIGNING.md).
 
 When upgrading from the pre-rename build, MyCO copies `%APPDATA%\MyCodex` to
 `%APPDATA%\Myco` only when the new directory does not exist. It never deletes
@@ -202,7 +206,8 @@ Read [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md).
 
 ## Known limitations
 
-- This is an unsigned beta Windows x64 release.
+- The Windows x64 package uses a separate self-signed certificate for each
+  release; it has no public-CA trust or cross-version publisher reputation.
 - An official Desktop restart is required when it was started without CDP.
 - DOM updates can require recalibration; a major update can require a new
   MyCO release.
@@ -343,7 +348,7 @@ synthetic and tests must never include real Desktop DOM snapshots or chat data.
 
 ## License
 
-[MIT](LICENSE), copyright © 2026 MyCO Contributors.
+[MIT](LICENSE), copyright © 2026 Crikok.
 
 ## Disclaimer
 

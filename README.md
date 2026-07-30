@@ -32,6 +32,12 @@ MyCO 支持与 Codex 关联启动。完成首次配置后，每次启动 Codex �
 `MyCO.exe`。发行包为 self-contained，无需另装 .NET Runtime、Node、npm
 或 Visual Studio。
 
+`0.99.0` 发行包中的 MyCO 自有二进制使用 `CN=Crikok` 自签名证书进行
+Authenticode SHA-256 签名并附带时间戳。该证书不属于 Windows 公共信任链，
+SmartScreen 仍可能显示未知发布者或信誉警告。请同时核对 Release 中的 SHA-256、
+公开证书、SBOM 和 GitHub 制品证明，详见
+[代码签名政策](security/CODE_SIGNING.md)。
+
 从旧品牌版本升级时，MyCO 首次启动会在 `%APPDATA%\Myco` 尚不存在的前提下，
 将 `%APPDATA%\MyCodex` 安全复制到新目录；旧目录不会被删除，已有 MyCO 数据也
 不会被覆盖。原有 `MyCodex` 或 `Myco` 登录启动项会在设置同步时迁移为
@@ -158,7 +164,8 @@ MyCO 完全本地运行，不要求 OpenAI 凭据，不上传对话，不读取�
 
 ## 已知限制
 
-- 当前为未签名的 Windows x64 Beta 版本。
+- 当前 Windows x64 发行包使用每次发行独立生成的自签名证书，不具备 Windows
+  公共 CA 信任或跨版本发布者信誉。
 - 官方应用若未以 CDP 参数启动，需要正常重启一次。
 - DOM 更新可能要求重新校准；大改版可能要求新的 MyCO 版本。
 - 校准属于本地配置，当前针对可见 Renderer。
@@ -286,7 +293,7 @@ dotnet publish src\MyCO.Manager\MyCO.Manager.csproj `
 
 ## 许可证
 
-[MIT](LICENSE)，Copyright © 2026 MyCO Contributors。
+[MIT](LICENSE)，Copyright © 2026 Crikok。
 
 ## 免责声明
 

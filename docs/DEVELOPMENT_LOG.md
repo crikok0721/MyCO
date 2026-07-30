@@ -519,3 +519,60 @@ Testing:
   visible keyboard focus, maximize/restore, and the themed close dialog.
 - No lifecycle action targeting Codex was invoked during Manager visual
   verification. The isolated Manager process exited normally after acceptance.
+
+## 2026-07-30 — Version 0.99.0 autonomous release engineering
+
+Date:
+
+2026-07-30
+
+Change:
+
+- Advanced the single product/runtime/package version source to `0.99.0`.
+- Standardized author, assembly, copyright, SBOM supplier, and signing identity
+  metadata on `Crikok`.
+- Added per-release ephemeral self-signed Authenticode generation, SHA-256 and
+  RFC 3161 signing, temporary local-chain verification, and private-key cleanup.
+- Added a tag-gated GitHub Release workflow, SPDX SBOM, archive and file hash
+  manifests, GitHub build provenance, CodeQL, and Dependabot.
+- Added release, signing-policy, integrity-verification, and trust-limitation
+  documentation in Chinese and English.
+
+Reason:
+
+Prepare an independently executable open-source release process without
+requiring commercial certificate purchase, external identity validation, or
+human signing approval, while remaining explicit that self-signing does not
+provide Windows public CA trust or guaranteed SmartScreen reputation.
+
+Impact:
+
+- `v0.99.0` tags can produce and publish a self-contained signed Windows x64
+  package with checksums, SBOM, and provenance.
+- Every release has a different signing certificate and no cross-version
+  publisher reputation.
+- Runtime protocol and configuration/calibration schemas remain unchanged.
+
+Modified Files:
+
+- `eng/MyCO.Version.props`
+- `Directory.Build.props`
+- `src/MyCO.Runtime/package*.json`
+- `scripts/*.ps1`
+- `.github/workflows/*.yml`
+- `.github/dependabot.yml`
+- `security/CODE_SIGNING.md`
+- `docs/release-process.md`
+- `docs/releases/v0.99.0.md`
+- release and project memory documentation
+
+Testing:
+
+- Runtime lint, 42 tests, and bundled Runtime generation passed at `0.99.0`.
+- npm dependency audit reported zero vulnerabilities.
+- Release solution build passed with zero warnings and zero errors.
+- 105 .NET tests passed.
+- The unsigned local release path produced a self-contained ZIP, SPDX 2.2
+  SBOM, per-file SHA-256 manifest, and archive SHA-256 file.
+- Authenticode signing remains to be verified on the isolated GitHub-hosted
+  Windows release runner because the local execution policy blocks PFX handling.

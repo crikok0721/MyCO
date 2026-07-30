@@ -16,7 +16,7 @@ Runtime for the official Codex/ChatGPT Desktop renderer. It is local, reversible
 privacy-safe, and fail-closed.
 
 - Phase: Phase 3 — Beta testing and pre-release stability remediation
-- Version: `0.3.0-beta.1`
+- Version: `0.99.0`
 - Branch: `beta2`
 - Base HEAD: `59c46670a938a91e36dbc5314ab33e55318405c7` (`beta2`)
 - Working tree: intentionally modified by the MyCodex → MyCO engineering
@@ -54,7 +54,7 @@ Alpha evidence, but this file describes the current working tree.
   package contains `MyCO.exe` and is archived as `MyCO-win-x64.zip`.
 - Added the exact slogan `It's MyCO!!!!!` to the existing About page and both
   README brand areas without changing layout.
-- Preserved version `0.3.0-beta.1`; Config schema advanced to 4 only for the
+- Advanced the product version to `0.99.0`; Config schema remains 4 for the
   renamed persisted startup field.
 - Added copy-only migration from legacy `%APPDATA%\MyCodex` when the retained
   compatibility directory `%APPDATA%\Myco` does not exist, including safe
@@ -211,7 +211,7 @@ From the final source state:
 - The release script emitted the final ZIP SHA-256; record it with the
   distributed artifact rather than embedding a self-referential hash here.
 - Published EXE metadata reports Product/File Description `MyCO`, Company
-  `MyCO Contributors`, and original filename `MyCO.dll`; the ZIP has no
+  `Crikok`, and original filename `MyCO.dll`; the ZIP has no
   old-brand entry names.
 - The Release Manager started successfully. First-run upgrade copied the
   existing legacy user-data directory while preserving it, and startup
@@ -276,8 +276,10 @@ Do not convert these into pass claims:
 - The Task Manager MyCO row and notification-area popup icon were not
   directly captured; their shared published-EXE/tray ICO resources were
   validated instead.
-- The local ZIP is unsigned; SmartScreen and public installation trust remain
-  unresolved.
+- The release route signs project-owned binaries with a per-release
+  self-signed `CN=Crikok` certificate and publishes checksums, SBOM, and
+  provenance. Windows public trust and SmartScreen reputation remain explicitly
+  unavailable.
 
 ## 6. Public Beta gap
 
@@ -288,7 +290,8 @@ Blockers are maintained in `docs/TASK_LIST.md`:
 1. Disposable real signed-in production restart matrix.
 2. Real conversation calibration/bubble visual matrix.
 3. Fresh-machine install/config/recovery/removal validation.
-4. Signed distribution or an explicitly approved SmartScreen warning plan.
+4. Verify the self-signed release warning and integrity guidance on a fresh
+   Windows environment.
 
 High and Medium follow-ups are also recorded there. Do not begin unrelated
 feature work before the Blockers are dispositioned.
@@ -301,7 +304,7 @@ feature work before the Blockers are dispositioned.
    not publish it yet.
 3. Execute the Blocker restart and real-conversation visual matrix.
 4. Verify fresh configuration, disable/recovery, and removal.
-5. Decide the signing/SmartScreen route with the user.
+5. Verify the tag-driven signing and GitHub provenance route.
 6. Only after those checks, create small scoped commits if explicitly requested.
 
 ## 8. Required commands

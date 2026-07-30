@@ -1,0 +1,133 @@
+name: release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  signed-release:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/MyCO.Runtime/package-lock.json
+
+      - name: Validate release tag
+        id: version
+        shell: pwsh
+        run: |
+          [xml]$versionFile = Get-Content eng/MyCO.Version.props
+          $version = $versionFile.Project.PropertyGroup.MyCOVersion
+          if (
+            "${{ github.ref_type }}" -eq "tag" -and
+            "v$version" -ne "${{ github.ref_name }}"
+          ) {
+            throw "Tag '${{ github.ref_name }}' does not match version '$version'."
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Create ephemeral release certificate
+        shell: pwsh
+        run: |
+          $certificatePath = Join-Path $env:RUNNER_TEMP "MyCO-release-signing.pfx"
+          $publicPath = Join-Path $env:RUNNER_TEMP "MyCO-release-signing.cer"
+          $randomBytes = New-Object byte[] 48
+          $randomGenerator = [Security.Cryptography.RandomNumberGenerator]::Create()
+          $randomGenerator.GetBytes($randomBytes)
+          $randomGenerator.Dispose()
+          $plainPassword = [Convert]::ToBase64String($randomBytes)
+          Write-Output "::add-mask::$plainPassword"
+          $password = ConvertTo-SecureString $plainPassword -AsPlainText -Force
+          ./scripts/New-SelfSignedReleaseCertificate.ps1 `
+            -PfxPath $certificatePath `
+            -PublicCertificatePath $publicPath `
+            -Password $password
+          "MYCO_SIGNING_PFX_PATH=$certificatePath" >> $env:GITHUB_ENV
+          "MYCO_SIGNING_PUBLIC_PATH=$publicPath" >> $env:GITHUB_ENV
+          "MYCO_SIGNING_PASSWORD=$plainPassword" >> $env:GITHUB_ENV
+
+      - name: Build, test, sign, and package
+        shell: pwsh
+        run: |
+          $password = ConvertTo-SecureString `
+            $env:MYCO_SIGNING_PASSWORD -AsPlainText -Force
+          ./scripts/build-release.ps1 `
+            -GenerateSbom `
+            -SigningCertificatePath $env:MYCO_SIGNING_PFX_PATH `
+            -SigningCertificatePassword $password `
+            -PublicSigningCertificatePath $env:MYCO_SIGNING_PUBLIC_PATH
+
+      - name: Verify packaged version and signature
+        shell: pwsh
+        run: |
+          $exe = "artifacts/MyCO-win-x64/MyCO.exe"
+          $actualVersion = (Get-Item $exe).VersionInfo.ProductVersion
+          $expectedVersion = "${{ steps.version.outputs.version }}"
+          if (
+            $actualVersion -ne $expectedVersion -and
+            -not $actualVersion.StartsWith("$expectedVersion+")
+          ) {
+            throw "Packaged version '$actualVersion' is unexpected."
+          }
+          $signature = Get-AuthenticodeSignature $exe
+          if ($null -eq $signature.SignerCertificate) {
+            throw "MyCO.exe does not contain an Authenticode signature."
+          }
+          if ($signature.SignerCertificate.Subject -ne "CN=Crikok") {
+            throw "Unexpected signer '$($signature.SignerCertificate.Subject)'."
+          }
+          Remove-Item -LiteralPath $env:MYCO_SIGNING_PFX_PATH -Force
+
+      - name: Upload signed release evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyCO-${{ steps.version.outputs.version }}-signed
+          path: |
+            artifacts/MyCO-win-x64.zip
+            artifacts/MyCO-win-x64.zip.sha256
+            artifacts/MyCO-win-x64/_manifest/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Attest release archive
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            artifacts/MyCO-win-x64.zip
+            artifacts/MyCO-win-x64.zip.sha256
+
+      - name: Publish GitHub Release
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" `
+            "artifacts/MyCO-win-x64.zip" `
+            "artifacts/MyCO-win-x64.zip.sha256" `
+            "artifacts/MyCO-win-x64/_manifest/spdx_2.2/manifest.spdx.json#MyCO-${{ steps.version.outputs.version }}-SBOM.spdx.json" `
+            "artifacts/MyCO-win-x64/MyCO-self-signed-code-signing.cer" `
+            --verify-tag `
+            --title "MyCO ${{ steps.version.outputs.version }}" `
+            --notes-file "docs/releases/v0.99.0.md" `
+            --latest

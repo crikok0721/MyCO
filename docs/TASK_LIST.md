@@ -4,9 +4,10 @@ Last updated: 2026-07-30
 
 ## Current release gate
 
-Status: `0.3.0-beta.1` is a local unsigned candidate. The systemic Beta 1 repair
-is implemented and regressed, but public testing remains blocked by the items
-below.
+Status: `0.99.0` has an automated signed-release route using a per-release
+self-signed certificate, checksums, SBOM, and provenance attestation. The
+systemic Beta repair is implemented and regressed, but unconditional public
+readiness remains blocked by the environment-dependent items below.
 
 ## Blocker — public Beta 前必须解决
 
@@ -20,8 +21,9 @@ below.
 - [ ] Verify a fresh-machine self-contained ZIP flow: first launch, dependency
   independence, configuration creation/migration, disable/recovery, removal,
   and no orphaned process/profile state.
-- [ ] Establish a signed distribution route or an explicit approved plan for
-  Windows SmartScreen/security warnings before inviting external testers.
+- [x] Establish an autonomous signed distribution route with explicit
+  self-signed trust and SmartScreen limitations, SHA-256 checksums, SPDX SBOM,
+  and GitHub build provenance.
 
 ## High — Beta 初期优先
 

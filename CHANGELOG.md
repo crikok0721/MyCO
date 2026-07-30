@@ -4,12 +4,24 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+## [0.99.0] - 2026-07-30
+
+### Release
+
+- Promote the unified MyCO codebase to version `0.99.0`.
+- Add a tag-gated workflow that builds, tests, signs, verifies, attests, and
+  publishes the Windows x64 package.
+- Add per-release ephemeral Authenticode signing as `CN=Crikok`, SHA-256
+  checksums, an SPDX 2.2 SBOM, and GitHub build-provenance attestations.
+- Add CodeQL and Dependabot coverage for Actions, npm, and NuGet.
+- Synchronize the Simplified Chinese and English project documentation,
+  screenshots, disclaimer, and release-integrity guidance.
+
 ### Changed
 
 - Rename the current product, solution, projects, namespaces, Runtime bundle,
   executable, assets, documentation, build paths, and release archive from
-  MyCodex to MyCO without changing version
-  `0.3.0-beta.1`.
+  MyCodex to MyCO.
 - Normalize the final user-visible brand, executable metadata, startup display
   name, executable, and release archive to MyCO; add the slogan "It's MyCO!!!!!"
   to the existing About and README brand areas.

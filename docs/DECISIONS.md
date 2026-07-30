@@ -175,3 +175,24 @@ Reason: role-first information architecture matches MyCO's appearance-companion
 positioning. Native DWM corners and the existing command surface provide the
 requested desktop polish without a new UI dependency, software-rendered
 transparent windows, or lifecycle risk.
+
+## D-013 — Use autonomous per-release self-signed Authenticode
+
+Decision: version `0.99.0` uses a tag-gated GitHub Actions release workflow.
+Each isolated Windows runner creates an ephemeral RSA 3072-bit code-signing
+certificate with subject `CN=Crikok`, signs project-owned PE files with
+Authenticode SHA-256 and an RFC 3161 timestamp, verifies them under temporary
+runner-local trust, packages the public certificate, and destroys the private
+key. Releases also publish archive/file SHA-256 values, an SPDX SBOM, and a
+GitHub build-provenance attestation.
+
+The certificate is explicitly documented as self-signed and not publicly
+trusted by Windows. It is not described as a SmartScreen bypass or a stable
+publisher identity. Users should verify the public certificate shipped with
+the same release, the checksum, source tag, and GitHub attestation.
+
+Reason: the release must be executable without certificate purchase, identity
+validation, human approval, or long-lived private-key custody. An ephemeral
+self-signed key provides Authenticode integrity inside one release but cannot
+provide public CA trust or cross-release reputation; provenance and checksums
+cover the reproducible source-to-artifact relationship.

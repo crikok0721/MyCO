@@ -104,7 +104,7 @@
     <sys:String x:Key="CompatibilityTitle">相容性</sys:String>
     <sys:String x:Key="CompatibilityParagraph">自動能力偵測可處理小幅變更，重新校準可處理結構變更。轉譯器或 CDP 大幅變動可能需要新版 MyCO。不保證相容未來的每一次更新。</sys:String>
     <sys:String x:Key="LicenseDisclaimer">授權條款與免責聲明</sys:String>
-    <sys:String x:Key="LicenseCopyright">MIT License · Copyright © 2026 MyCO Contributors</sys:String>
+    <sys:String x:Key="LicenseCopyright">MIT License · Copyright © 2026 Crikok</sys:String>
     <sys:String x:Key="DisclaimerParagraph">MyCO 是獨立開源專案，與 OpenAI 無隸屬、認可或贊助關係。使用時必須安裝官方 Codex / ChatGPT Desktop。</sys:String>
 
     <sys:String x:Key="OnboardingWindowTitle">歡迎使用 MyCO</sys:String>

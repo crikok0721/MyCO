@@ -1,12 +1,12 @@
 <Project>
   <Import Project="eng\MyCO.Version.props" />
   <PropertyGroup>
-    <Authors>MyCO Contributors</Authors>
-    <Company>MyCO Contributors</Company>
+    <Authors>Crikok</Authors>
+    <Company>Crikok</Company>
     <Product>MyCO</Product>
     <Title>MyCO</Title>
     <Description>MyCO</Description>
-    <Copyright>Copyright © 2026 MyCO Contributors</Copyright>
+    <Copyright>Copyright © 2026 Crikok</Copyright>
     <RepositoryType>git</RepositoryType>
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
