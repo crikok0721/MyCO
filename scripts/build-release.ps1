@@ -1,8 +1,12 @@
 [CmdletBinding()]
 param(
     [switch]$UseChinaMirrors,
+    [switch]$GenerateSbom,
     [string]$Configuration = "Release",
-    [string]$RuntimeIdentifier = "win-x64"
+    [string]$RuntimeIdentifier = "win-x64",
+    [string]$SigningCertificatePath,
+    [securestring]$SigningCertificatePassword,
+    [string]$PublicSigningCertificatePath
 )
 
 # Reproduces CI locally: runtime checks, .NET build/test, self-contained publish, and zip.
@@ -15,6 +19,7 @@ $artifactsRoot = Join-Path $repoRoot "artifacts"
 $artifactName = "MyCO-$RuntimeIdentifier"
 $publishRoot = Join-Path $artifactsRoot $artifactName
 $archivePath = Join-Path $artifactsRoot "$artifactName.zip"
+$archiveHashPath = "$archivePath.sha256"
 
 $dotnet = (Get-Command dotnet -ErrorAction Stop).Source
 $npmCommand = Get-Command npm.cmd -ErrorAction SilentlyContinue
@@ -40,6 +45,10 @@ try {
     & $npm run check
     if ($LASTEXITCODE -ne 0) {
         throw "Runtime validation failed with exit code $LASTEXITCODE."
+    }
+    & $npm audit --audit-level=high
+    if ($LASTEXITCODE -ne 0) {
+        throw "Runtime dependency audit failed with exit code $LASTEXITCODE."
     }
 }
 finally {
@@ -95,6 +104,17 @@ if ($LASTEXITCODE -ne 0) {
     throw "Publish failed with exit code $LASTEXITCODE."
 }
 
+if (-not [string]::IsNullOrWhiteSpace($SigningCertificatePath)) {
+    if ($null -eq $SigningCertificatePassword) {
+        throw "SigningCertificatePassword is required when SigningCertificatePath is supplied."
+    }
+
+    & (Join-Path $PSScriptRoot "Sign-Release.ps1") `
+        -PublishDirectory $publishRoot `
+        -CertificatePath $SigningCertificatePath `
+        -CertificatePassword $SigningCertificatePassword
+}
+
 Copy-Item -LiteralPath (Join-Path $repoRoot "README.md") -Destination $publishRoot
 Copy-Item -LiteralPath (Join-Path $repoRoot "README.en-US.md") -Destination $publishRoot
 Copy-Item -LiteralPath (Join-Path $repoRoot "PRIVACY.md") -Destination $publishRoot
@@ -105,6 +125,53 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination $publishRoot
 # Ship architecture, compatibility, privacy, and contribution guidance with the app.
 Copy-Item -LiteralPath (Join-Path $repoRoot "docs") -Destination $publishRoot -Recurse
 
+if (-not [string]::IsNullOrWhiteSpace($PublicSigningCertificatePath)) {
+    Copy-Item -LiteralPath $PublicSigningCertificatePath `
+        -Destination (Join-Path $publishRoot "MyCO-self-signed-code-signing.cer")
+}
+
+if ($GenerateSbom) {
+    $sbomToolRoot = Join-Path ([System.IO.Path]::GetTempPath()) `
+        "MyCO\sbom-tool\4.1.5"
+    if (-not (Test-Path -LiteralPath (Join-Path $sbomToolRoot "sbom-tool.exe"))) {
+        & $dotnet tool install `
+            --tool-path $sbomToolRoot `
+            Microsoft.Sbom.DotNetTool `
+            --version 4.1.5
+        if ($LASTEXITCODE -ne 0) {
+            throw "SBOM tool installation failed with exit code $LASTEXITCODE."
+        }
+    }
+
+    & (Join-Path $sbomToolRoot "sbom-tool.exe") generate `
+        -b $publishRoot `
+        -bc $repoRoot `
+        -pn "MyCO" `
+        -pv "0.99.0" `
+        -ps "Crikok" `
+        -nsb "https://github.com/crikok0721/MyCO"
+    if ($LASTEXITCODE -ne 0) {
+        throw "SBOM generation failed with exit code $LASTEXITCODE."
+    }
+}
+
+$fileHashManifest = Join-Path $publishRoot "SHA256SUMS.txt"
+$hashLines = Get-ChildItem -LiteralPath $publishRoot -Recurse -File |
+    Where-Object { $_.FullName -ne $fileHashManifest } |
+    Sort-Object FullName |
+    ForEach-Object {
+        $relative = $_.FullName.Substring($publishRoot.Length).
+            TrimStart([System.IO.Path]::DirectorySeparatorChar).
+            Replace("\", "/")
+        $fileHashResult = Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256
+        $fileHash = $fileHashResult.Hash.ToLowerInvariant()
+        "$fileHash  $relative"
+    }
+[System.IO.File]::WriteAllLines(
+    $fileHashManifest,
+    $hashLines,
+    [System.Text.UTF8Encoding]::new($false))
+
 if (Test-Path -LiteralPath $archivePath) {
     Remove-Item -LiteralPath $archivePath -Force
 }
@@ -112,8 +179,13 @@ Compress-Archive -Path (Join-Path $publishRoot "*") -DestinationPath $archivePat
     -CompressionLevel Optimal
 
 $hash = Get-FileHash -LiteralPath $archivePath -Algorithm SHA256
+[System.IO.File]::WriteAllText(
+    $archiveHashPath,
+    "$($hash.Hash.ToLowerInvariant())  $([System.IO.Path]::GetFileName($archivePath))`n",
+    [System.Text.UTF8Encoding]::new($false))
 [pscustomobject]@{
     Executable = Join-Path $publishRoot "MyCO.exe"
     Archive = $archivePath
     Sha256 = $hash.Hash.ToLowerInvariant()
+    Sha256File = $archiveHashPath
 } | Format-List

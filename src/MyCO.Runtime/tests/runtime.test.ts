@@ -411,7 +411,7 @@ test("bootstrap destroys the pre-rename runtime before installing MyCO", () => {
   const dom = fixture();
   let legacyDestroyed = false;
   const legacy = {
-    getVersion: () => ({ version: "0.3.0-beta.1", protocolVersion: 1 }),
+    getVersion: () => ({ version: "0.99.0", protocolVersion: 1 }),
     destroy: () => {
       legacyDestroyed = true;
     }

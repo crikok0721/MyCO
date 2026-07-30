@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "npm"
+    directory: "/src/MyCO.Runtime"
+    schedule:
+      interval: "weekly"
+    groups:
+      runtime-development:
+        dependency-type: "development"
+
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      dotnet-development:
+        dependency-type: "development"

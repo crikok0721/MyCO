@@ -2,12 +2,11 @@
 
 ## Supported versions
 
-MyCO is currently an alpha project. Security fixes target the latest
-published version only.
+Security fixes target the latest published version only.
 
 | Version | Supported |
 | --- | --- |
-| 0.2.x alpha | Yes |
+| 0.99.x | Yes |
 | Older versions | No |
 
 ## Reporting a vulnerability
@@ -46,3 +45,9 @@ Release archives should be produced by the checked-in GitHub Actions workflow
 or from a clean checkout using `scripts/build-release.ps1`. Lockfiles are
 committed. China mirror support changes download endpoints for a single local
 build only; package names and locked versions remain unchanged.
+
+Official release workflows also publish SHA-256 checksums, an SPDX SBOM, a
+GitHub build-provenance attestation, and the per-release self-signed
+Authenticode public certificate. The certificate is an integrity signal, not a
+Windows public-trust credential. See
+[`security/CODE_SIGNING.md`](security/CODE_SIGNING.md).
