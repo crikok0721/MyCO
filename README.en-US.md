@@ -2,7 +2,7 @@
 
 ![MyCO home-page cover](./assets/MyCO首页宣传图.jpg)
 
-[Simplified Chinese](README.md)
+[简体中文](README.md) | [日本語](README.ja-JP.md)
 
 ## Overview
 
@@ -33,7 +33,7 @@ feel.
 
 - Assistant/User avatars and nicknames
 - Center-cropped circular avatars by default
-- Instant, persistent English, Simplified Chinese, and Traditional Chinese UI
+- Instant, persistent English, Simplified Chinese, Traditional Chinese, and Japanese UI
   switching
 - Assistant bubbles automatically follow Codex's light/dark theme and retain
   independent two-palette settings
@@ -113,7 +113,7 @@ before using a new `127.0.0.1`-only TCP port for that session.
 
 ## Customization
 
-Choose **English**, **简体中文**, or **繁體中文** from the sidebar language
+Choose **English**, **简体中文**, **繁體中文**, or **日本語** from the sidebar language
 selector. The change is immediate and saved independently, so unsaved appearance
 edits are not affected. The same selector is available during first-run setup.
 
@@ -139,6 +139,12 @@ administrator rights, and corrects path drift after moving a release. MyCO
 does not modify official shortcuts, protocol associations, or installation
 files. Close offers Exit MyCO, Minimize to tray, or Cancel. Exit releases
 only MyCO resources and leaves Codex running. See [Settings](docs/settings.md).
+
+The red **Restore defaults** action at the bottom of Settings confirms its
+scope, safely detaches the Runtime and removes MyCO login-startup entries, then
+resets only MyCO-managed settings, calibration, avatars, logs, and backups under
+`%APPDATA%\Myco`. It does not remove the MyCO installation, the legacy migration
+source, Codex, user profiles, chats, or credentials.
 
 ## Calibration
 
@@ -291,7 +297,7 @@ Important rules before changing code:
 - Change release/protocol/schema values only in `eng/MyCO.Version.props`;
   C#, the TypeScript bundle, UI, and release artifacts consume that source.
 - Keep every localization `x:Key` identical in `Strings.en-US.xaml`,
-  `Strings.zh-CN.xaml`, and `Strings.zh-TW.xaml`.
+  `Strings.zh-CN.xaml`, `Strings.zh-TW.xaml`, and `Strings.ja-JP.xaml`.
 - User config, avatars, logs, calibration data, and backups belong under
   `%APPDATA%\Myco`, never in the repository.
 - Do not commit official OpenAI binaries, bundles, DOM snapshots, icons,
@@ -407,3 +413,5 @@ screenshots all grew from that same spontaneous idea.
 MyCO is still an immature project with plenty to improve. Contributions, issue
 reports, and maintenance help are sincerely welcome. Thank you for using and
 contributing to MyCO!
+
+I believe love can transcend algorithms.

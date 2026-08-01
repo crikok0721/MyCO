@@ -1,7 +1,7 @@
 # It's MyCO!!!!!
 ![MyCO首页宣传图](./assets/MyCO首页宣传图.jpg)
 
-[English](README.en-US.md)
+[English](README.en-US.md) | [日本語](README.ja-JP.md)
 
 ## 概览
 
@@ -60,7 +60,7 @@ SmartScreen 仍可能显示未知发布者或信誉警告。请同时核对 Rele
 
 - 助手/用户 头像与昵称
 - 头像默认使用居中裁剪的圆形显示
-- English、简体中文、繁體中文界面即时切换并持久化
+- English、简体中文、繁體中文、日本語界面即时切换并持久化
 - 助手气泡自动跟随当前 Codex 深浅主题，独立保存双调色板
 - 助手气泡可选“自动切割气泡”或“整段完整气泡”，设置持久化并即时应用
 - 支持Codex自带的用户原生气泡
@@ -92,7 +92,7 @@ flowchart LR
 
 ## 自定义
 
-可在侧边栏的“界面语言”中选择 **English**、**简体中文** 或 **繁體中文**。
+可在侧边栏的“界面语言”中选择 **English**、**简体中文**、**繁體中文** 或 **日本語**。
 切换立即生效并独立保存，不会覆盖尚未保存的外观编辑；首次启动引导中也提供同一选项。
 
 Appearance 页面支持“自动切割气泡”和“整段完整气泡”、昵称、头像、头像尺寸、
@@ -112,6 +112,10 @@ Dark/Light 两套气泡、文字、昵称和头像颜色。气泡主题只跟随
 会纠正路径漂移。MyCO 不修改官方快捷方式、协议关联或官方安装目录。点击关闭
 按钮可选择退出 MyCO、最小化到托盘或取消；退出只释放 MyCO 资源，Codex
 继续运行。详见[设置说明](docs/settings.md)。
+
+设置页底部的红色“恢复到默认设置”会先确认范围，再安全移除 Runtime 和登录启动项，
+只重置 `%APPDATA%\Myco` 中由 MyCO 管理的设置、校准、头像、日志与备份。它不会删除
+MyCO 安装文件、旧版迁移源目录，也不会接触 Codex 程序、用户资料、聊天或凭据。
 
 ## 校准
 
@@ -239,7 +243,8 @@ flowchart LR
   `dist/MyCO.runtime.js`，MSBuild 不会自动生成它。
 - 修改 Host/Runtime 通信时，只在 `eng/MyCO.Version.props` 更新版本和 Schema；
   C#、TypeScript Bundle、界面与发行包均从该文件生成或读取。
-- `Strings.en-US.xaml`、`Strings.zh-CN.xaml` 和 `Strings.zh-TW.xaml` 的全部
+- `Strings.en-US.xaml`、`Strings.zh-CN.xaml`、`Strings.zh-TW.xaml` 和
+  `Strings.ja-JP.xaml` 的全部
   `x:Key` 必须保持一致。
 - 用户配置、头像、日志、校准数据与备份只能放在 `%APPDATA%\Myco`，不得放入
   仓库。
