@@ -877,4 +877,18 @@ Testing:
 - .NET Release build and tests passed with 131/131 tests and 0 warnings/errors.
 - Local `scripts\build-release.ps1 -GenerateSbom` passed and produced a
   0.99.1 self-contained ZIP, per-file SHA-256 manifest, archive hash, and SPDX
-  SBOM. GitHub Actions publication remains the next verification gate.
+  SBOM.
+- GitHub Actions run `30728714890` passed all release steps and published
+  `https://github.com/crikok0721/MyCO/releases/tag/v0.99.1` as the latest
+  release. The downloaded archive SHA-256 is
+  `90904290e879943cf35a52891ba358c7de4dcdee49e506b961e3d560c4179720`, and
+  `gh attestation verify` passed for the ZIP against `v0.99.1` and commit
+  `a638a25b8b101297396c7ba832e9a036148cd9f6`.
+
+Release verification:
+
+- The packaged executable reports FileVersion `0.99.1.0` and ProductVersion
+  `0.99.1+a638a25b8b101297396c7ba832e9a036148cd9f6`.
+- The embedded Authenticode signer is `CN=Crikok`; Windows reports
+  `UnknownError` for the self-signed certificate, which is expected because it
+  is not in the public Windows trust chain.

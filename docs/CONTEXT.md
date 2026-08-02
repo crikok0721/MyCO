@@ -68,7 +68,10 @@ Full task list: `docs/TASK_LIST.md`.
   manifest, and archive hash. Archive SHA-256:
   `2ad6b4a144dfdb40a912c1ab8eedc4bb80d72926328daf47d8a281ad36dffa09`.
 - The local validation package is unsigned; the tag-gated GitHub workflow
-  creates the signed public package, attestation, and Release.
+  created the signed public package, attestation, and Release for `v0.99.1`.
+- Published archive SHA-256:
+  `90904290e879943cf35a52891ba358c7de4dcdee49e506b961e3d560c4179720`.
+- Release URL: https://github.com/crikok0721/MyCO/releases/tag/v0.99.1
 - Real Manager/Codex visual acceptance for the August 1 UI changes remains a
   disposable-session/VM gate; automated XAML/DOM tests are supporting evidence only.
 
@@ -76,4 +79,5 @@ Full task list: `docs/TASK_LIST.md`.
 
 1. Move ZIP to a disposable Windows session/VM; execute the restart and visual matrix.
 2. Verify fresh config, disable/recovery, removal.
-3. Verify the `v0.99.1` tag-driven signing, GitHub provenance, and published assets.
+3. Recheck the published `v0.99.1` package in a disposable Windows session/VM;
+   signing, provenance, and asset checks already passed in CI.

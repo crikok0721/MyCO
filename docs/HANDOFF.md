@@ -24,8 +24,9 @@ privacy-safe, and fail-closed.
   changes are intentionally included in the `v0.99.1` release commit.
 - Git actions: this release task creates and pushes the scoped commit and tag;
   no pull request is required for the direct `main` release route.
-- Release conclusion: local unsigned validation is complete; the tag workflow
-  supplies signing, provenance, and public distribution verification.
+- Release conclusion: local unsigned validation and the tag workflow's signing,
+  provenance, checksum, SBOM, and public distribution verification are complete
+  for `v0.99.1`.
 
 The active controlling Codex session was never restarted or closed. Production
 restart behavior was exercised only against an exact-owned isolated official
