@@ -26,7 +26,8 @@
     <SolidColorBrush x:Key="Mint700Brush" Color="{StaticResource Mint700Color}" />
 
     <!-- Typography -->
-    <FontFamily x:Key="UiFontFamily">Segoe UI Variable Text, Segoe UI, Yu Gothic UI, Meiryo UI, Microsoft YaHei UI, Microsoft JhengHei UI</FontFamily>
+    <!-- English bootstrap; LocalizationService replaces this with the current locale stack. -->
+    <FontFamily x:Key="UiFontFamily">Segoe UI Variable, Segoe UI, Arial, sans-serif</FontFamily>
     <FontFamily x:Key="CodeFontFamily">Cascadia Mono, Consolas</FontFamily>
     <sys:Double x:Key="FontSizeCaption">11</sys:Double>
     <sys:Double x:Key="FontSizeLabel">12</sys:Double>

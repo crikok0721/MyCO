@@ -1839,10 +1839,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         try
         {
+            AppConfig config;
             await _configSaveGate.WaitAsync().ConfigureAwait(true);
             try
             {
-                var config = _persistedConfig with
+                config = _persistedConfig with
                 {
                     Language = LanguageCodes.Normalize(language)
                 };
@@ -1852,6 +1853,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             finally
             {
                 _configSaveGate.Release();
+            }
+            if (_controller.State.IsConnected)
+            {
+                await _controller.ApplyConfigAsync(config).ConfigureAwait(true);
             }
             SetStatus("StatusLanguageSaved");
         }

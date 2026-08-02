@@ -135,7 +135,7 @@ internal static class AcceptanceFixture
                   margin: 0;
                   background: #0f1012;
                   color: #ececf1;
-                  font-family: system-ui, "Segoe UI", sans-serif;
+                  font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
                 }
                 #myco-visual-acceptance {
                   min-height: 100vh;
@@ -156,7 +156,7 @@ internal static class AcceptanceFixture
                   background: rgba(15,16,18,.96);
                   backdrop-filter: blur(10px);
                 }
-                .acceptance-title { font-size: 16px; font-weight: 700; }
+                .acceptance-title { font-size: 16px; font-weight: 600; }
                 #acceptance-run-id {
                   border: 1px solid #7c6df2;
                   border-radius: 999px;

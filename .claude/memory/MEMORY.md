@@ -1,0 +1,2 @@
+- [Project state](project_state.md) — phase, version, blockers, current status
+- [User profile](user_role.md) — developer role, preferences, workflow

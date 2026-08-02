@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Drawing = System.Drawing;
+using DrawingText = System.Drawing.Text;
 using Forms = System.Windows.Forms;
 using MyCO.Manager.Localization;
 using MyCO.Manager.ViewModels;
@@ -21,6 +22,7 @@ internal sealed class TrayService : IDisposable
     private readonly Forms.ToolStripMenuItem _skinItem;
     private readonly Forms.ToolStripMenuItem _settingsItem;
     private readonly Forms.ToolStripMenuItem _exitItem;
+    private Drawing.Font? _menuFont;
     private bool _disposed;
 
     public TrayService(
@@ -77,6 +79,7 @@ internal sealed class TrayService : IDisposable
         LocalizationService.LanguageChanged += HandleLanguageChanged;
         _themeService.ThemeChanged += HandleThemeChanged;
         RefreshText();
+        ApplyFont();
         ApplyTheme();
     }
 
@@ -103,6 +106,8 @@ internal sealed class TrayService : IDisposable
         _themeService.ThemeChanged -= HandleThemeChanged;
         _icon.DoubleClick -= HandleDoubleClick;
         _icon.Visible = false;
+        _menuFont?.Dispose();
+        _menuFont = null;
         _menu.Dispose();
         _icon.Icon?.Dispose();
         _icon.Dispose();
@@ -133,7 +138,11 @@ internal sealed class TrayService : IDisposable
     }
 
     private void HandleLanguageChanged(object? sender, EventArgs eventArgs) =>
-        _window.Dispatcher.Invoke(RefreshText);
+        _window.Dispatcher.Invoke(() =>
+        {
+            RefreshText();
+            ApplyFont();
+        });
 
     private void HandleCommandCanExecuteChanged(object? sender, EventArgs eventArgs) =>
         _window.Dispatcher.Invoke(RefreshText);
@@ -164,6 +173,47 @@ internal sealed class TrayService : IDisposable
         _menu.BackColor = Drawing.ColorTranslator.FromHtml(dark ? "#1B1D21" : "#FFFFFF");
         _menu.ForeColor = Drawing.ColorTranslator.FromHtml(dark ? "#F3F4F6" : "#202124");
         _menu.RenderMode = Forms.ToolStripRenderMode.System;
+    }
+
+    private void ApplyFont()
+    {
+        var profile = LocaleFontCatalog.For(LocalizationService.CurrentLocale);
+        var systemFont = Drawing.SystemFonts.MessageBoxFont!;
+        var familyName = FindInstalledFamily(profile.PreferredTrayFamilies)
+                         ?? systemFont.FontFamily.Name;
+        Drawing.Font next;
+        try
+        {
+            next = new Drawing.Font(
+                familyName,
+                systemFont.Size,
+                systemFont.Style,
+                systemFont.Unit,
+                systemFont.GdiCharSet,
+                systemFont.GdiVerticalFont);
+        }
+        catch (ArgumentException)
+        {
+            next = (Drawing.Font)systemFont.Clone();
+        }
+
+        var previous = _menuFont;
+        _menuFont = next;
+        _menu.Font = next;
+        previous?.Dispose();
+    }
+
+    private static string? FindInstalledFamily(
+        IReadOnlyList<string> preferredFamilies)
+    {
+        using var installed = new DrawingText.InstalledFontCollection();
+        var families = installed.Families;
+        return preferredFamilies.FirstOrDefault(preferred =>
+            families.Any(installedFamily =>
+                string.Equals(
+                    installedFamily.Name,
+                    preferred,
+                    StringComparison.OrdinalIgnoreCase)));
     }
 }
 

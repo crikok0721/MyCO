@@ -118,6 +118,78 @@ test("theme changes update palette variables without duplicating decorations", a
   assert.equal(root.style.getPropertyValue("--mc-assistant-bubble"), "");
 });
 
+test("locale changes use isolated CJK font stacks and restore html language", () => {
+  const cases = [
+    {
+      language: "zh-CN",
+      required: "Microsoft YaHei UI",
+      forbidden: ["Yu Gothic", "Microsoft JhengHei", "Noto Sans CJK JP"],
+      sample:
+        "恢复到默认设置 设置 语言 消息 窗口 字体 骨 门 直 置 关 开 图 语 MyCO 0.99.1"
+    },
+    {
+      language: "zh-TW",
+      required: "Microsoft JhengHei UI",
+      forbidden: ["Microsoft YaHei", "Yu Gothic", "Noto Sans CJK SC"],
+      sample:
+        "恢復預設設定 設定 語言 訊息 視窗 字體 骨 門 直 置 關 開 圖 語 MyCO 0.99.1"
+    },
+    {
+      language: "ja-JP",
+      required: "Yu Gothic UI",
+      forbidden: ["Microsoft YaHei", "Microsoft JhengHei", "Noto Sans CJK TC"],
+      sample:
+        "デフォルト設定に戻す 設定 言語 メッセージ ウィンドウ フォント 骨 門 直 置 関 開 図 語 MyCO 0.99.1"
+    },
+    {
+      language: "en-US",
+      required: "Segoe UI Variable",
+      forbidden: ["Microsoft YaHei", "Microsoft JhengHei", "Yu Gothic"],
+      sample: "Restore default settings Settings Language Messages Window Font MyCO 0.99.1"
+    }
+  ] as const;
+
+  for (const testCase of cases) {
+    const dom = new JSDOM(
+      "<!doctype html><html lang=\"host-language\"><head></head><body><main>" +
+        "<article data-message-author-role=\"assistant\"><p>" +
+        testCase.sample +
+        "</p></article>" +
+        "</main></body></html>",
+      { url: "app://-/index.html", pretendToBeVisual: true }
+    );
+    const runtime = new MyCORuntime(dom.window.document);
+    const config = {
+      ...defaultConfig(),
+      language: testCase.language
+    };
+
+    runtime.applyConfig(config);
+
+    const root = dom.window.document.documentElement;
+    const stack = root.style.getPropertyValue("--mc-font-family");
+    const css = dom.window.document.querySelector<HTMLStyleElement>(
+      "#myco-runtime-style"
+    )!.textContent!;
+    assert.equal(root.lang, testCase.language);
+    assert.equal(
+      dom.window.document.querySelector("article p")?.textContent,
+      testCase.sample
+    );
+    assert.match(stack, new RegExp(testCase.required));
+    for (const forbidden of testCase.forbidden) {
+      assert.doesNotMatch(stack, new RegExp(forbidden));
+    }
+    assert.match(css, /var\(--mc-font-family\)/);
+    assert.doesNotMatch(css, /system-ui/);
+
+    runtime.destroy();
+
+    assert.equal(root.lang, "host-language");
+    assert.equal(root.style.getPropertyValue("--mc-font-family"), "");
+  }
+});
+
 test("runtime rejects an unreadable bubble palette", () => {
   const dom = fixture();
   const runtime = new MyCORuntime(dom.window.document);

@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.RegularExpressions;
 
 // Keeps all language dictionaries structurally identical and free of stale alpha labels.
@@ -38,7 +39,7 @@ public sealed partial class LocalizationResourceTests
     }
 
     [Fact]
-    public void JapaneseIsExposedGloballyWithSystemFontFallbacks()
+    public void JapaneseHasItsOwnLocaleFontProfile()
     {
         var root = FindRepositoryRoot();
         var manager = Path.Combine(root, "src", "MyCO.Manager");
@@ -46,15 +47,65 @@ public sealed partial class LocalizationResourceTests
             manager,
             "Localization",
             "LocalizationService.cs"));
-        var tokens = File.ReadAllText(Path.Combine(
+        var catalogPath = Path.Combine(
             manager,
-            "Themes",
-            "DesignTokens.xaml"));
+            "Localization",
+            "LocaleFontCatalog.cs");
+        Assert.True(File.Exists(catalogPath));
+        var catalog = File.ReadAllText(catalogPath);
 
         Assert.Contains("LanguageCodes.Japanese", localization);
         Assert.Contains("日本語", localization);
-        Assert.Contains("Yu Gothic UI", tokens);
-        Assert.Contains("Meiryo UI", tokens);
+        Assert.Contains("Yu Gothic UI", catalog);
+        Assert.Contains("Meiryo", catalog);
+    }
+
+    [Theory]
+    [InlineData(
+        "Strings.zh-CN.xaml",
+        "恢复到默认设置",
+        "设置",
+        "语言",
+        "消息",
+        "窗口")]
+    [InlineData(
+        "Strings.zh-TW.xaml",
+        "恢復預設設定",
+        "設定",
+        "語言",
+        "訊息",
+        "視窗")]
+    [InlineData(
+        "Strings.ja-JP.xaml",
+        "既定の設定に戻す",
+        "設定",
+        "言語",
+        "メッセージ",
+        "ウィンドウ")]
+    [InlineData(
+        "Strings.en-US.xaml",
+        "Restore default settings",
+        "Settings",
+        "Language",
+        "Message",
+        "Window")]
+    public void CjkRegressionPhrasesRemainUtf8AndLocalized(
+        string fileName,
+        string restoreText,
+        string settingsText,
+        string languageText,
+        string messagesText,
+        string windowText)
+    {
+        var root = FindRepositoryRoot();
+        var path = Path.Combine(root, "src", "MyCO.Manager", "Resources", fileName);
+        var content = File.ReadAllText(path, Encoding.UTF8);
+
+        Assert.Contains(restoreText, content);
+        Assert.Contains(settingsText, content);
+        Assert.Contains(languageText, content);
+        Assert.Contains(messagesText, content);
+        Assert.Contains(windowText, content);
     }
 
     [Fact]

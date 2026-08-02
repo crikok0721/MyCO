@@ -61,7 +61,8 @@ export class MyCORuntime implements MyCORuntimeApi {
       this.styles.install(
         this.document,
         this.config.appearance,
-        this.hostTheme
+        this.hostTheme,
+        this.config.language
       );
       this.root = findConversationRoot(this.document);
       this.installed = true;
@@ -91,7 +92,8 @@ export class MyCORuntime implements MyCORuntimeApi {
       this.styles.install(
         this.document,
         this.config.appearance,
-        this.hostTheme
+        this.hostTheme,
+        this.config.language
       );
       repaired = true;
     }
@@ -120,7 +122,8 @@ export class MyCORuntime implements MyCORuntimeApi {
         this.styles.install(
           this.document,
           this.config.appearance,
-          this.hostTheme
+          this.hostTheme,
+          this.config.language
         );
       }
       // Every refresh rebuilds the active set, then removes decorations from stale matches.
@@ -210,7 +213,8 @@ export class MyCORuntime implements MyCORuntimeApi {
     this.styles.install(
       this.document,
       this.config.appearance,
-      this.hostTheme
+      this.hostTheme,
+      this.config.language
     );
     for (const turn of Array.from(
       this.document.querySelectorAll("[data-myco-turn=true]")
@@ -291,6 +295,14 @@ function validateConfig(config: RuntimeConfig): void {
     config.calibration.schemaVersion !== CALIBRATION_SCHEMA_VERSION
   ) {
     throw new TypeError("Unsupported MyCO runtime configuration schema.");
+  }
+  if (
+    config.language !== "en-US" &&
+    config.language !== "zh-CN" &&
+    config.language !== "zh-TW" &&
+    config.language !== "ja-JP"
+  ) {
+    throw new TypeError("Unsupported MyCO locale.");
   }
   if (!config.user.name.trim() || !config.assistant.name.trim()) {
     throw new TypeError("Nicknames must not be empty.");

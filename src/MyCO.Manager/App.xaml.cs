@@ -39,6 +39,7 @@ public partial class App : System.Windows.Application
         ThemeService = new ThemeService();
         ThemeService.ApplyMode(ManagerThemeMode.System);
         // Apply language before any window is created so startup dialogs are localized too.
+        LocalizationService.ApplyLanguage(LanguageCodes.English);
         TryApplyStoredLanguage();
         _singleInstance = new Mutex(
             initiallyOwned: true,

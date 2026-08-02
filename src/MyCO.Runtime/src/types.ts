@@ -16,6 +16,7 @@ export const LEGACY_RUNTIME_SYMBOL = Symbol.for("mycodex.runtime.protocol.1");
 export type MessageRole = "user" | "assistant";
 export type MatchRole = MessageRole | "unknown";
 export type CompatibilityState = "compatible" | "degraded" | "safeMode";
+export type LanguageCode = "en-US" | "zh-CN" | "zh-TW" | "ja-JP";
 
 export interface PersonConfig {
   name: string;
@@ -85,6 +86,7 @@ export interface CalibrationConfig {
 export interface RuntimeConfig {
   schemaVersion: number;
   protocolVersion: number;
+  language: LanguageCode;
   assistant: PersonConfig;
   user: PersonConfig;
   appearance: AppearanceConfig;
@@ -146,6 +148,7 @@ export function defaultConfig(): RuntimeConfig {
   return {
     schemaVersion: CONFIG_SCHEMA_VERSION,
     protocolVersion: PROTOCOL_VERSION,
+    language: "en-US",
     assistant: { name: "Codex", avatar: "" },
     user: { name: "You", avatar: "" },
     appearance: {

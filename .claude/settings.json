@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash: npm ci",
+      "Bash: npm run check",
+      "Bash: dotnet build",
+      "Bash: dotnet test",
+      "Bash: Push-Location",
+      "Bash: Pop-Location",
+      "Bash: scripts/build-release.ps1",
+      "Bash: git status",
+      "Bash: git diff",
+      "Bash: git log",
+      "Bash: git add",
+      "Bash: git commit",
+      "Bash: git push",
+      "Bash: mkdir",
+      "Bash: mv",
+      "Bash: ls"
+    ]
+  }
+}

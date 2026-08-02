@@ -337,6 +337,7 @@ public sealed class ConfigurationTests
         paths.EnsureDirectories();
         var config = AppConfig.Default with
         {
+            Language = LanguageCodes.TraditionalChinese,
             Appearance = AppConfig.Default.Appearance with
             {
                 DarkBubblePalette = new BubblePalette
@@ -361,6 +362,9 @@ public sealed class ConfigurationTests
         var root = document.RootElement;
 
         Assert.Equal(4, root.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(
+            LanguageCodes.TraditionalChinese,
+            root.GetProperty("language").GetString());
         Assert.Equal(
             "Whole",
             root.GetProperty("appearance")

@@ -45,6 +45,7 @@ public static class RuntimeConfigSerializer
         {
             schemaVersion = BuildInfo.ConfigSchemaVersion,
             protocolVersion = BuildInfo.ProtocolVersion,
+            language = LanguageCodes.Normalize(config.Language),
             assistant = new
             {
                 name = config.Assistant.Name,

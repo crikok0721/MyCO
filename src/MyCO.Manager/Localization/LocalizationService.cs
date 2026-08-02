@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Windows;
+using System.Windows.Markup;
 using MyCO.Configuration;
 
 // Swaps WPF resource dictionaries at runtime and exposes localized string helpers.
@@ -19,18 +20,28 @@ public static class LocalizationService
         new(LanguageCodes.Japanese, "日本語")
     ];
 
-    public static string CurrentLanguage { get; private set; } =
+    public static string CurrentLocale { get; private set; } =
         LanguageCodes.English;
+
+    // Compatibility name retained for existing callers; it is always canonical.
+    public static string CurrentLanguage => CurrentLocale;
 
     public static event EventHandler? LanguageChanged;
 
     public static void ApplyLanguage(string language)
     {
         var normalized = LanguageCodes.Normalize(language);
+        var profile = LocaleFontCatalog.For(normalized);
+        var culture = CultureInfo.GetCultureInfo(normalized);
+        CurrentLocale = normalized;
+        CultureInfo.CurrentCulture = culture;
+        CultureInfo.CurrentUICulture = culture;
+        CultureInfo.DefaultThreadCurrentCulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
+
         var resources = System.Windows.Application.Current?.Resources;
         if (resources is null)
         {
-            CurrentLanguage = normalized;
             return;
         }
 
@@ -55,9 +66,9 @@ public static class LocalizationService
             dictionaries[dictionaries.IndexOf(current)] = replacement;
         }
 
-        CurrentLanguage = normalized;
-        var culture = CultureInfo.GetCultureInfo(normalized);
-        CultureInfo.CurrentUICulture = culture;
+        resources["UiFontFamily"] =
+            new System.Windows.Media.FontFamily(profile.WpfFontStack);
+        resources["UiLanguage"] = XmlLanguage.GetLanguage(normalized);
         LanguageChanged?.Invoke(null, EventArgs.Empty);
     }
 

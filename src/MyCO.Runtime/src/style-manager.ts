@@ -1,21 +1,35 @@
 import type {
   AppearanceConfig,
   BubblePalette,
-  HostTheme
+  HostTheme,
+  LanguageCode
 } from "./types.js";
 
 // Owns one style element and the CSS variables used by all runtime decorations.
 const STYLE_ID = "myco-runtime-style";
+const FONT_STACKS: Record<LanguageCode, string> = {
+  "en-US": '"Segoe UI Variable", "Segoe UI", Arial, sans-serif',
+  "zh-CN":
+    '"Segoe UI Variable", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", sans-serif',
+  "zh-TW":
+    '"Segoe UI Variable", "Microsoft JhengHei UI", "Microsoft JhengHei", "Noto Sans CJK TC", "Noto Sans TC", sans-serif',
+  "ja-JP":
+    '"Segoe UI Variable", "Yu Gothic UI", "Yu Gothic", Meiryo, "Noto Sans CJK JP", "Noto Sans JP", sans-serif'
+};
 
 export class StyleManager {
   private styleElement: HTMLStyleElement | null = null;
+  private documentLanguageCaptured = false;
+  private originalDocumentLanguage: string | null = null;
 
   install(
     document: Document,
     appearance: AppearanceConfig,
-    theme: Exclude<HostTheme, "unknown"> = "dark"
+    theme: Exclude<HostTheme, "unknown"> = "dark",
+    language: LanguageCode = "en-US"
   ): void {
     // Installation is idempotent because health checks may call it after navigation.
+    this.captureDocumentLanguage(document);
     this.styleElement = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
     if (!this.styleElement) {
       this.styleElement = document.createElement("style");
@@ -24,13 +38,14 @@ export class StyleManager {
       (document.head ?? document.documentElement).append(this.styleElement);
     }
     this.styleElement.textContent = runtimeCss();
-    this.applyVariables(document, appearance, theme);
+    this.applyVariables(document, appearance, theme, language);
   }
 
   applyVariables(
     document: Document,
     appearance: AppearanceConfig,
-    theme: Exclude<HostTheme, "unknown">
+    theme: Exclude<HostTheme, "unknown">,
+    language: LanguageCode
   ): void {
     const root = document.documentElement.style;
     const palette =
@@ -47,12 +62,14 @@ export class StyleManager {
       "--mc-message-gap": `${appearance.messageGap}px`,
       "--mc-bubble-padding-x": `${appearance.bubblePaddingX}px`,
       "--mc-bubble-padding-y": `${appearance.bubblePaddingY}px`,
-      "--mc-nickname-display": appearance.nicknameVisible ? "block" : "none"
+      "--mc-nickname-display": appearance.nicknameVisible ? "block" : "none",
+      "--mc-font-family": FONT_STACKS[language]
     };
     for (const [property, value] of Object.entries(values)) {
       root.setProperty(property, value);
     }
     document.documentElement.setAttribute("data-myco-host-theme", theme);
+    document.documentElement.setAttribute("lang", language);
   }
 
   applyTheme(
@@ -96,11 +113,31 @@ export class StyleManager {
       "--mc-message-gap",
       "--mc-bubble-padding-x",
       "--mc-bubble-padding-y",
-      "--mc-nickname-display"
+      "--mc-nickname-display",
+      "--mc-font-family"
     ]) {
       document.documentElement.style.removeProperty(property);
     }
     document.documentElement.removeAttribute("data-myco-host-theme");
+    if (this.documentLanguageCaptured) {
+      if (this.originalDocumentLanguage === null) {
+        document.documentElement.removeAttribute("lang");
+      } else {
+        document.documentElement.setAttribute(
+          "lang",
+          this.originalDocumentLanguage
+        );
+      }
+    }
+    this.documentLanguageCaptured = false;
+    this.originalDocumentLanguage = null;
+  }
+
+  private captureDocumentLanguage(document: Document): void {
+    if (this.documentLanguageCaptured) return;
+    this.originalDocumentLanguage =
+      document.documentElement.getAttribute("lang");
+    this.documentLanguageCaptured = true;
   }
 }
 
@@ -122,6 +159,7 @@ function runtimeCss(): string {
   --mc-bubble-padding-x: 14px;
   --mc-bubble-padding-y: 10px;
   --mc-nickname-display: block;
+  --mc-font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
 }
 [data-myco-turn="true"] {
   position: relative !important;
@@ -162,7 +200,7 @@ function runtimeCss(): string {
   position: absolute !important;
   top: 0 !important;
   color: var(--mc-nickname-color) !important;
-  font: 400 13.5px/18px system-ui, "Segoe UI", sans-serif !important;
+  font: 400 13.5px/18px var(--mc-font-family) !important;
   letter-spacing: 0 !important;
   pointer-events: none !important;
   user-select: none !important;

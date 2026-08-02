@@ -1,5 +1,68 @@
 # Development Log
 
+## 2026-08-02 — Locale-aware CJK typography and rendering repair
+
+Date:
+
+2026-08-02
+
+Change:
+
+- Replaced the unconditional mixed CJK WPF stack with a canonical
+  `LocaleFontCatalog` for `en-US`, `zh-CN`, `zh-TW`, and `ja-JP`.
+- Made WPF controls, windows, tooltips, and the WinForms tray menu resolve the
+  active locale's font stack dynamically; windows also receive the matching
+  `XmlLanguage` and pixel-rounding settings.
+- Synchronized `CurrentCulture`, `CurrentUICulture`, default thread cultures,
+  localized resources, and the Runtime `language`/`html.lang`/CSS font stack;
+  a connected Runtime is refreshed immediately after a language selection.
+- Replaced Runtime `system-ui` nickname rendering with the locale-aware stack,
+  restoring the host document language during `destroy()`.
+- Added CJK regression samples covering the known `恢复到默认设置`/`置`
+  case and corresponding Traditional Chinese, Japanese, and English text.
+
+Reason:
+
+- `DesignTokens.xaml` placed `Yu Gothic UI` and `Meiryo UI` before the Chinese
+  families, while every shared WPF style used a `StaticResource`; this caused
+  Simplified Chinese windows to inherit a JP-prioritized fallback and remain
+  stale after language changes. Runtime nicknames independently used
+  `system-ui` without a locale contract.
+
+Impact:
+
+- Typography, locale, and rendering synchronization only. Existing layouts,
+  colors, component geometry, privacy boundaries, Runtime decoration scope,
+  and process lifecycle are unchanged. No CJK font files were bundled.
+
+Modified Files:
+
+- `src/MyCO.Manager/Localization/LocaleFontCatalog.cs`,
+  `LocalizationService.cs`, `App.xaml.cs`, `Themes/DesignTokens.xaml`,
+  `Themes/SharedStyles.xaml`, `Services/TrayService.cs`, and
+  `ViewModels/MainWindowViewModel.cs`
+- `src/MyCO.Core/Injection/RuntimeConfigSerializer.cs`
+- `src/MyCO.Runtime/src/types.ts`, `runtime.ts`, `style-manager.ts`, and the
+  generated `dist/MyCO.runtime.js`
+- `tests/MyCO.Tests/LocaleFontCatalogTests.cs`, localization/configuration
+  tests, and `MyCO.Tests.csproj`; Runtime tests; visual acceptance fixture
+- `docs/superpowers/specs/2026-08-02-locale-aware-cjk-fonts-design.md` and
+  `docs/superpowers/plans/2026-08-02-locale-aware-cjk-fonts.md`
+
+Testing:
+
+- `npm run check`: passed; 43 Runtime tests, lint, and bundle build passed.
+- Isolated Release solution build with the bundled .NET 8.0.423 SDK: passed
+  with 0 warnings and 0 errors.
+- Full .NET Release tests: 143/143 passed; the test assembly was run with the
+  installed .NET 8.0.6 WindowsDesktop host because the temporary SDK runtime
+  lacked `PresentationFramework.dll`.
+- Real WPF smoke run from the isolated build: verified `zh-CN → ja-JP →
+  zh-CN → zh-TW → en-US`, settings-page and close-dialog text, then restarted
+  and verified `zh-CN` persisted. The test process was closed normally.
+- UTF-8 resource scan, font/transform/weight scan, and `git diff --check`
+  completed without product encoding or static text-transform findings.
+
 ## 2026-08-01 — Avatar crop dialog initialization repair
 
 Date:
