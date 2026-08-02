@@ -20,9 +20,7 @@
                 </DockPanel>
 
                 <Border Margin="0,24,0,0"
-                        Background="{DynamicResource PanelBrush}"
-                        BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="12" Padding="22">
+                        Style="{StaticResource CardBorder}">
                     <StackPanel>
                         <TextBlock Text="{DynamicResource ManagerThemeTitle}"
                                    FontSize="17" FontWeight="SemiBold" />
@@ -44,9 +42,7 @@
                 </Border>
 
                 <Border Margin="0,16,0,0"
-                        Background="{DynamicResource PanelBrush}"
-                        BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1" CornerRadius="12" Padding="22">
+                        Style="{StaticResource CardBorder}">
                     <StackPanel>
                         <TextBlock Text="{DynamicResource StartupTitle}"
                                    FontSize="17" FontWeight="SemiBold"
@@ -74,11 +70,8 @@
                 </Border>
 
                 <Border Margin="0,20,0,0"
-                        Background="{DynamicResource ErrorPanelBrush}"
-                        BorderBrush="{DynamicResource ErrorBorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="12"
-                        Padding="22">
+                        Style="{StaticResource CardBorder}"
+                        Background="{DynamicResource ErrorPanelBrush}">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />

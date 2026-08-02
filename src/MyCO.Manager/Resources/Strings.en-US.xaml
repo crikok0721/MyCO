@@ -239,7 +239,7 @@
     <sys:String x:Key="StatusAutoStartFailedFormat">Automatic Codex startup failed safely: {0}</sys:String>
     <sys:String x:Key="ErrorSaveSettings">Unable to save settings</sys:String>
     <sys:String x:Key="FactoryResetTitle">Restore default settings</sys:String>
-    <sys:String x:Key="FactoryResetDescription">Return MyCO to its unused first-launch state.</sys:String>
+    <sys:String x:Key="FactoryResetDescription">Restore MyCO to its default first-launch state.</sys:String>
     <sys:String x:Key="FactoryResetButton">Restore defaults</sys:String>
     <sys:String x:Key="FactoryResetConfirmTitle">Restore MyCO defaults?</sys:String>
     <sys:String x:Key="FactoryResetConfirmDescription">MyCO will safely detach its Runtime from Codex, then reset only MyCO-owned local data.</sys:String>

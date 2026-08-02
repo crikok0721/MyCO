@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <MyCOVersion>0.99.1</MyCOVersion>
+    <MyCOVersion>0.99.2</MyCOVersion>
     <MyCOProtocolVersion>1</MyCOProtocolVersion>
     <MyCOConfigSchemaVersion>4</MyCOConfigSchemaVersion>
     <MyCOCalibrationSchemaVersion>1</MyCOCalibrationSchemaVersion>

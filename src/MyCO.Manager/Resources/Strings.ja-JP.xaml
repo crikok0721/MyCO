@@ -239,7 +239,7 @@
     <sys:String x:Key="StatusAutoStartFailedFormat">Codex の自動起動に安全に失敗しました: {0}</sys:String>
     <sys:String x:Key="ErrorSaveSettings">設定を保存できません</sys:String>
     <sys:String x:Key="FactoryResetTitle">既定の設定に戻す</sys:String>
-    <sys:String x:Key="FactoryResetDescription">MyCO を未使用の初回起動状態に戻します。</sys:String>
+    <sys:String x:Key="FactoryResetDescription">MyCO を初回起動時の既定状態に戻します。</sys:String>
     <sys:String x:Key="FactoryResetButton">既定に戻す</sys:String>
     <sys:String x:Key="FactoryResetConfirmTitle">MyCO を既定の設定に戻しますか？</sys:String>
     <sys:String x:Key="FactoryResetConfirmDescription">MyCO は Codex から Runtime を安全に切り離した後、MyCO が所有するローカルデータだけをリセットします。</sys:String>

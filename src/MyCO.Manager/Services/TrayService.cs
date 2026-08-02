@@ -13,6 +13,7 @@ internal sealed class TrayService : IDisposable
 {
     private readonly Forms.NotifyIcon _icon;
     private readonly Forms.ContextMenuStrip _menu;
+    private readonly TrayMenuRenderer _menuRenderer;
     private readonly MainWindow _window;
     private readonly MainWindowViewModel _viewModel;
     private readonly ThemeService _themeService;
@@ -33,7 +34,8 @@ internal sealed class TrayService : IDisposable
         _window = window;
         _viewModel = viewModel;
         _themeService = themeService;
-        _menu = new Forms.ContextMenuStrip();
+        _menuRenderer = new TrayMenuRenderer();
+        _menu = new TrayContextMenuStrip(_menuRenderer);
         _openItem = new Forms.ToolStripMenuItem();
         _startItem = new Forms.ToolStripMenuItem();
         _restartItem = new Forms.ToolStripMenuItem();
@@ -64,6 +66,7 @@ internal sealed class TrayService : IDisposable
             new Forms.ToolStripSeparator(),
             _exitItem
         ]);
+        _menu.Opening += (_, _) => _menuRenderer.ApplyLayout(_menu);
 
         _icon = new Forms.NotifyIcon
         {
@@ -170,9 +173,8 @@ internal sealed class TrayService : IDisposable
     private void ApplyTheme()
     {
         var dark = _themeService.EffectiveTheme == EffectiveManagerTheme.Dark;
-        _menu.BackColor = Drawing.ColorTranslator.FromHtml(dark ? "#1B1D21" : "#FFFFFF");
-        _menu.ForeColor = Drawing.ColorTranslator.FromHtml(dark ? "#F3F4F6" : "#202124");
-        _menu.RenderMode = Forms.ToolStripRenderMode.System;
+        _menuRenderer.ApplyTheme(_menu, dark);
+        _menuRenderer.ApplyLayout(_menu);
     }
 
     private void ApplyFont()

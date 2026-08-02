@@ -26,10 +26,8 @@
         </StackPanel>
 
         <Border Grid.Row="1"
+                Style="{StaticResource CardBorder}"
                 Background="{DynamicResource ErrorPanelBrush}"
-                BorderBrush="{DynamicResource ErrorBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="{StaticResource RadiusControl}"
                 Padding="16"
                 Margin="0,20,0,0">
             <StackPanel>
@@ -42,10 +40,8 @@
         </Border>
 
         <Border Grid.Row="2"
+                Style="{StaticResource CardBorder}"
                 Background="{DynamicResource PanelSubtleBrush}"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1"
-                CornerRadius="{StaticResource RadiusControl}"
                 Padding="16"
                 Margin="0,12,0,0">
             <StackPanel>

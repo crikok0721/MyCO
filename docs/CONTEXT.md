@@ -1,6 +1,6 @@
 # Project Context
 
-Last updated: 2026-08-01
+Last updated: 2026-08-02
 
 ## Project goal
 
@@ -22,9 +22,9 @@ Core constraints:
 ## Current status
 
 - **Phase:** Phase 3 — Beta testing and pre-release stability remediation
-- **Version:** `0.99.1`
+- **Version:** `0.99.2` (local UI repair; not released)
 - **Branch:** `main`
-- **Base HEAD:** `d347c7e0ea4a47ec82bb0125e41f234d9b01d8c3`
+- **Base HEAD:** `3b93ab9` (existing local commit preserved)
 - **GitHub:** https://github.com/crikok0721/MyCO
 
 The active controlling Codex session was never restarted or closed. Production
@@ -41,6 +41,12 @@ restart was exercised only against isolated official Desktop process trees.
   and first-run `菲叶子`/packaged-logo defaults.
 - Transactional factory reset that preserves the data root and legacy source,
   safely removes Runtime/startup registration, and reopens onboarding.
+- Shared Home/Appearance preview bubbles now use one solid user-bubble surface
+  while retaining each role's avatar, name, message, and alignment.
+- Manager content cards use the shared borderless card surface; reset surfaces
+  retain semantic danger colors without decorative outlines.
+- Tray menu now has a local rounded WinForms renderer with theme-aware colors,
+  inset separators, disabled text, and DPI-scaled spacing.
 - Exact-identity restart, process-tree quiescence, force fallback, readiness detection.
 - Dev tools: CdpProbe, isolated VisualAcceptance host.
 - Self-contained win-x64 ZIP build, per-release self-signed Authenticode signing.
@@ -74,6 +80,19 @@ Full task list: `docs/TASK_LIST.md`.
 - Release URL: https://github.com/crikok0721/MyCO/releases/tag/v0.99.1
 - Real Manager/Codex visual acceptance for the August 1 UI changes remains a
   disposable-session/VM gate; automated XAML/DOM tests are supporting evidence only.
+
+## Validation for the local 0.99.2 UI repair
+
+- `dotnet build .\MyCO.sln -c Release`: passed with 0 warnings and 0 errors.
+- `dotnet test .\MyCO.sln -c Release --no-build`: 150/150 passed.
+- `git diff --check`: passed.
+- Local Manager visual check: zh-CN light and dark themes showed the unified
+  preview bubbles, borderless cards, exact reset copy, and the retained two
+  appearance edit entries. The notification-area tray menu could not be
+  opened through the available desktop observation surface, so its visual
+  acceptance remains outstanding.
+- No Runtime, CDP, restart, reset-service, protocol, or schema files were
+  changed; no release, tag, push, or PR was created.
 
 ## Next recommended steps
 

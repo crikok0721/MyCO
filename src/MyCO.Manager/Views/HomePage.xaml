@@ -23,11 +23,6 @@
                                Style="{StaticResource MutedBodyText}"
                                Margin="0,4,0,0" />
                 </StackPanel>
-                <Button DockPanel.Dock="Right"
-                        Content="{DynamicResource HomeCustomize}"
-                        Command="{Binding SelectAppearanceCommand}"
-                        Style="{StaticResource GhostButton}"
-                        HorizontalAlignment="Right" />
             </DockPanel>
 
             <!-- One primary role surface replaces the former connection dashboard card. -->

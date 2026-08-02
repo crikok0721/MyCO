@@ -1,5 +1,63 @@
 # Development Log
 
+## 2026-08-02 — MyCO 0.99.2 Manager UI repair
+
+Date:
+
+2026-08-02
+
+Change:
+
+- Unified the shared Home/Appearance chat preview so Assistant and User
+  messages use the same solid user-bubble surface, text color, padding, and
+  rounded geometry while preserving their original alignment and identity
+  content.
+- Replaced the Settings, About, Diagnostics, onboarding steps, and reset
+  confirmation content-card outlines with the shared borderless card style.
+  The reset card keeps the semantic light-danger surface and solid danger
+  button; the reset command and confirmation flow are unchanged.
+- Removed only the Home page-header appearance button; the overview-card and
+  chat-preview-header edit entries remain.
+- Added a local DPI-scaled rounded WinForms tray renderer with solid light/
+  dark surfaces, inset separators, hover feedback, and disabled-state text.
+  NotifyIcon ownership, item order, commands, language refresh, theme refresh,
+  and double-click behavior remain in `TrayService`.
+- Updated all four `FactoryResetDescription` resources and advanced only
+  `MyCOVersion` to `0.99.2`; protocol and schema versions are unchanged.
+
+Reason:
+
+- Remove inconsistent preview and content-card surfaces without changing the
+  existing Manager layout or Runtime behavior, and provide a stable local
+  renderer for the tray menu instead of the system menu renderer.
+
+Impact:
+
+- Manager-only visual behavior and localized copy. No Runtime, CDP, process,
+  reset-service, protocol, or calibration-schema changes.
+
+Modified Files:
+
+- `src/MyCO.Manager/Controls/ChatPreviewControl.xaml`
+- `src/MyCO.Manager/Services/TrayMenuRenderer.cs`
+- `src/MyCO.Manager/Services/TrayService.cs`
+- `src/MyCO.Manager/Views/{HomePage,SettingsPage,AboutPage,DiagnosticsPage,OnboardingWindow,ResetConfirmationWindow}.xaml`
+- `src/MyCO.Manager/Resources/Strings.{en-US,zh-CN,zh-TW,ja-JP}.xaml`
+- `tests/MyCO.Tests/ManagerUiRegressionTests.cs`
+- `tests/MyCO.Tests/ManagerThemeAndTrayTests.cs`
+- `tests/MyCO.Tests/SecurityBoundaryTests.cs`
+- `eng/MyCO.Version.props`
+
+Testing:
+
+- Release build passed with 0 warnings and 0 errors.
+- Release .NET tests passed: 150/150.
+- `git diff --check` passed.
+- Manager light/dark visual checks passed for the visible Home preview and
+  Settings cards. Tray-menu visual inspection remains incomplete because the
+  current desktop observation surface did not expose the notification area.
+- No commit, push, tag, PR, or release was created.
+
 ## 2026-08-02 — Locale-aware CJK typography and rendering repair
 
 Date:

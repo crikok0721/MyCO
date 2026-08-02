@@ -1,13 +1,12 @@
 # Task List
 
-Last updated: 2026-08-01
+Last updated: 2026-08-02
 
 ## Current release gate
 
-Status: `0.99.1` has an automated signed-release route using a per-release
-self-signed certificate, checksums, SBOM, and provenance attestation. The
-systemic Beta repair is implemented and regressed, but unconditional public
-readiness remains blocked by the environment-dependent items below.
+Status: `0.99.2` Manager UI repair is implemented locally and is not released.
+The existing `0.99.1` signed-release route remains documented below; public
+readiness is still blocked by the environment-dependent items below.
 
 ## Blocker — public Beta 前必须解决
 
@@ -49,6 +48,9 @@ readiness remains blocked by the environment-dependent items below.
 
 ## Completed in the current repair
 
+- [x] 0.99.2 Manager UI repair: shared user-style preview bubbles, exact
+  four-language factory-reset copy, borderless semantic content cards, the
+  requested Home edit-entry removal, and a local rounded tray renderer.
 - [x] Phase 3 Manager visual system: native rounded shell, deterministic rounded
   icon derivatives, solid surface hierarchy, reduced pill geometry, role-first
   home page, and compact sidebar connection dock.

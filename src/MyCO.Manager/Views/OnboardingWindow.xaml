@@ -95,10 +95,8 @@
 
                 <Border Grid.Row="1"
                         x:Name="OnboardingSteps"
-                        Background="{DynamicResource PanelBrush}"
-                        BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="{StaticResource RadiusCard}"
+                        Style="{StaticResource CardBorder}"
+                        Padding="0"
                         Margin="0,24,0,0">
                     <Grid>
                         <Grid.RowDefinitions>

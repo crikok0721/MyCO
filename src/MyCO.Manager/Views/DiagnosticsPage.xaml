@@ -27,9 +27,8 @@
                 <ColumnDefinition Width="12" />
                 <ColumnDefinition />
             </Grid.ColumnDefinitions>
-            <Border Background="{DynamicResource PanelBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                    CornerRadius="10" Padding="16">
+            <Border Style="{StaticResource CardBorder}"
+                    Padding="16">
                 <StackPanel>
                     <TextBlock Text="{DynamicResource ConnectionLabel}" FontSize="10"
                                Foreground="{DynamicResource MutedTextBrush}" />
@@ -37,9 +36,9 @@
                                Margin="0,7,0,0" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
             </Border>
-            <Border Grid.Column="2" Background="{DynamicResource PanelBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                    CornerRadius="10" Padding="16">
+            <Border Grid.Column="2"
+                    Style="{StaticResource CardBorder}"
+                    Padding="16">
                 <StackPanel>
                     <TextBlock Text="{DynamicResource SkinLabel}" FontSize="10"
                                Foreground="{DynamicResource MutedTextBrush}" />
@@ -47,9 +46,9 @@
                                Margin="0,7,0,0" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
             </Border>
-            <Border Grid.Column="4" Background="{DynamicResource PanelBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
-                    CornerRadius="10" Padding="16">
+            <Border Grid.Column="4"
+                    Style="{StaticResource CardBorder}"
+                    Padding="16">
                 <StackPanel>
                     <TextBlock Text="{DynamicResource CalibrationLabel}" FontSize="10"
                                Foreground="{DynamicResource MutedTextBrush}" />

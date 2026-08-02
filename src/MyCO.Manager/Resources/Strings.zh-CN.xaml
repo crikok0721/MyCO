@@ -239,7 +239,7 @@
     <sys:String x:Key="StatusAutoStartFailedFormat">自动启动 Codex 已安全失败：{0}</sys:String>
     <sys:String x:Key="ErrorSaveSettings">无法保存设置</sys:String>
     <sys:String x:Key="FactoryResetTitle">恢复到默认设置</sys:String>
-    <sys:String x:Key="FactoryResetDescription">将 MyCO 恢复到从未使用过的首次启动状态。</sys:String>
+    <sys:String x:Key="FactoryResetDescription">将 MyCO 恢复到首次启动的默认状态。</sys:String>
     <sys:String x:Key="FactoryResetButton">恢复默认设置</sys:String>
     <sys:String x:Key="FactoryResetConfirmTitle">恢复 MyCO 默认设置？</sys:String>
     <sys:String x:Key="FactoryResetConfirmDescription">MyCO 将先从 Codex 安全移除 Runtime，再仅重置 MyCO 自己的本地数据。</sys:String>
