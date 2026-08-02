@@ -9,7 +9,11 @@ public enum ApplicationCloseStatus
 {
     Closed,
     StillRunning,
-    IdentityUncertain
+    IdentityUncertain,
+    // The verified root exited on its own, but at least one unverified process
+    // with the same executable path is still alive. This is the normal "child
+    // outlived the parent" teardown case and is not a shutdown failure.
+    StoppedButRemaining
 }
 
 public sealed record ApplicationProcessIdentity(
@@ -21,9 +25,12 @@ public sealed record ApplicationCloseAttempt(
     ApplicationCloseStatus Status,
     IReadOnlyList<ApplicationProcessIdentity> Targets)
 {
-    public bool IsClosed => Status == ApplicationCloseStatus.Closed;
+    public bool IsClosed =>
+        Status is ApplicationCloseStatus.Closed or
+            ApplicationCloseStatus.StoppedButRemaining;
     public bool CanForceClose =>
-        Status == ApplicationCloseStatus.StillRunning && Targets.Count > 0;
+        Status is ApplicationCloseStatus.StillRunning or
+            ApplicationCloseStatus.StoppedButRemaining;
 }
 
 public enum ApplicationRestartStage
@@ -53,9 +60,18 @@ public sealed record ApplicationRestartCloseResult(
 
 public sealed class ApplicationRestartService
 {
+    // Bounded tolerance for a same-name process that becomes temporarily
+    // unreadable while it is tearing down. The root must still be verified by
+    // the residual-count loop, so a recycled PID still fails closed.
+    private const int MaxTransientSnapshotFailures = 8;
+    private const int EntrySnapshotRetries = 5;
+
     private readonly IApplicationProcessBackend _backend;
     private readonly TimeSpan _trayDetectionGrace;
     private readonly TimeSpan _pollInterval;
+    // Used only to avoid turning a transient read failure of a dying process
+    // into a fabricated "the whole tree exited" signal.
+    private IReadOnlyList<ApplicationProcessSnapshot> _lastGoodSnapshot = [];
 
     public ApplicationRestartService()
         : this(
@@ -101,35 +117,56 @@ public sealed class ApplicationRestartService
                 exception);
         }
 
-        var usedForce = false;
-        if (!attempt.IsClosed)
+        if (attempt.Status == ApplicationCloseStatus.Closed)
         {
-            if (!attempt.CanForceClose)
-            {
-                throw new ApplicationRestartException(
-                    ApplicationRestartStage.IdentityValidation,
-                    new InvalidOperationException(
-                        "The Desktop restart target is not safe to terminate."));
-            }
-            try
-            {
-                await ForceCloseAsync(
-                    candidate,
-                    attempt,
-                    forceTimeout,
-                    cancellationToken).ConfigureAwait(false);
-                usedForce = true;
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception exception)
-            {
-                throw new ApplicationRestartException(
-                    ApplicationRestartStage.VerifiedForceClose,
-                    exception);
-            }
+            // Nothing was running; no force and no quiescence wait.
+            return new ApplicationRestartCloseResult(
+                false,
+                attempt.Targets);
+        }
+
+        if (attempt.Status == ApplicationCloseStatus.StoppedButRemaining)
+        {
+            // The verified root exited on its own. Clean any verified residual
+            // descendants so a stale singleton cannot block the new instance.
+            // Only verified headless descendants are touched, never a windowed
+            // or unattributed process.
+            await ForceCloseAsync(
+                candidate,
+                attempt,
+                forceTimeout,
+                cancellationToken).ConfigureAwait(false);
+            return new ApplicationRestartCloseResult(
+                true,
+                attempt.Targets);
+        }
+
+        var usedForce = false;
+        if (!attempt.CanForceClose)
+        {
+            throw new ApplicationRestartException(
+                ApplicationRestartStage.IdentityValidation,
+                new InvalidOperationException(
+                    "The Desktop restart target is not safe to terminate."));
+        }
+        try
+        {
+            await ForceCloseAsync(
+                candidate,
+                attempt,
+                forceTimeout,
+                cancellationToken).ConfigureAwait(false);
+            usedForce = true;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            throw new ApplicationRestartException(
+                ApplicationRestartStage.VerifiedForceClose,
+                exception);
         }
 
         try
@@ -160,7 +197,7 @@ public sealed class ApplicationRestartService
         TimeSpan timeout,
         CancellationToken cancellationToken = default)
     {
-        var matching = MatchingProcesses(candidate);
+        var matching = SnapshotWithEntryRetry(candidate);
         if (matching.Count == 0)
         {
             return new ApplicationCloseAttempt(
@@ -178,68 +215,32 @@ public sealed class ApplicationRestartService
         }
 
         var target = roots[0].Identity;
-        if (roots[0].HasMainWindow)
-        {
-            if (!_backend.RequestClose(target))
-            {
-                return new ApplicationCloseAttempt(
-                    ApplicationCloseStatus.StillRunning,
-                    [target]);
-            }
-        }
-        else
-        {
-            // A pre-existing tray-only root cannot receive WM_CLOSE; offer the
-            // verified force-restart path immediately instead of reporting success.
-            return new ApplicationCloseAttempt(
-                ApplicationCloseStatus.StillRunning,
-                [target]);
-        }
-
-        var deadline = DateTimeOffset.UtcNow + timeout;
-        DateTimeOffset? windowlessSince = null;
-        while (DateTimeOffset.UtcNow < deadline)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var current = MatchingProcesses(candidate);
-            if (current.Count == 0)
-            {
-                return new ApplicationCloseAttempt(
-                    ApplicationCloseStatus.Closed,
-                    [target]);
-            }
-
-            var identityState = IdentityState(target, current);
-            if (identityState == ApplicationProcessState.Uncertain)
-            {
-                return new ApplicationCloseAttempt(
-                    ApplicationCloseStatus.IdentityUncertain,
-                    [target]);
-            }
-
-            var targetSnapshot = current.FirstOrDefault(
-                process => process.ProcessId == target.ProcessId);
-            if (targetSnapshot is not null && !targetSnapshot.HasMainWindow)
-            {
-                windowlessSince ??= DateTimeOffset.UtcNow;
-                if (DateTimeOffset.UtcNow - windowlessSince >= _trayDetectionGrace)
-                {
-                    return new ApplicationCloseAttempt(
-                        ApplicationCloseStatus.StillRunning,
-                        [target]);
-                }
-            }
-            else
-            {
-                windowlessSince = null;
-            }
-
-            await Task.Delay(_pollInterval, cancellationToken).ConfigureAwait(false);
-        }
-
-        return new ApplicationCloseAttempt(
+        var closeAttempt = new ApplicationCloseAttempt(
             ApplicationCloseStatus.StillRunning,
             [target]);
+        if (roots[0].HasMainWindow)
+        {
+            if (_backend.RequestClose(target))
+            {
+                // Graceful close has begun; the tree may exit over many seconds.
+                return await WaitForShutdownOrShrinkAsync(
+                    candidate,
+                    target,
+                    timeout,
+                    cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        // No WM_CLOSE was sent (tray-only root, or the window refused the close).
+        return closeAttempt;
+    }
+
+    // True when at least one verified root of the installation is still running.
+    // Used as a final pre-launch guard after a close stage that was tolerated.
+    public bool IsRootRunning(ApplicationCandidate candidate)
+    {
+        var matching = MatchingProcesses(candidate);
+        return SelectRoots(matching).Count > 0;
     }
 
     public async Task ForceCloseAsync(
@@ -256,54 +257,44 @@ public sealed class ApplicationRestartService
         }
 
         var current = MatchingProcesses(candidate);
-        var runningTargets = new List<ApplicationProcessIdentity>();
-        foreach (var target in attempt.Targets)
+        var tracked = AttemptedCloseTargets(attempt, current);
+
+        // Close any residual path-matching process that is not an attempted
+        // target only when it is a verified descendant of a tracked member.
+        // An untracked process with a main window is treated as another root
+        // and fails closed instead of being terminated.
+        foreach (var identity in CloseableResiduals(attempt, current))
         {
-            switch (IdentityState(target, current))
-            {
-                case ApplicationProcessState.Running:
-                    runningTargets.Add(target);
-                    break;
-                case ApplicationProcessState.Uncertain:
-                    throw new InvalidOperationException(
-                        "The Desktop restart target identity changed before termination.");
-            }
+            TryKill(candidate, identity);
         }
 
-        // Validate every target before terminating any of them.
-        foreach (var target in runningTargets)
+        foreach (var target in tracked)
         {
-            try
-            {
-                _backend.KillTree(target);
-            }
-            catch (InvalidOperationException)
-            {
-                // A normally exiting process can disappear between validation
-                // and Kill. Accept only a confirmed exit; PID reuse still fails closed.
-                current = MatchingProcesses(candidate);
-                if (IdentityState(target, current) != ApplicationProcessState.Exited)
-                {
-                    throw;
-                }
-            }
+            TryKill(candidate, target);
         }
 
         var deadline = DateTimeOffset.UtcNow + timeout;
+        var transientFailures = 0;
         while (DateTimeOffset.UtcNow < deadline)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            current = MatchingProcesses(candidate);
-            if (current.Count == 0)
+            current = SnapshotForPoll(candidate, ref transientFailures);
+            if (ResidualCount(candidate, attempt, current) == 0)
             {
                 return;
             }
+            // Fail closed on a recycled PID or an identity change of any target.
             foreach (var target in attempt.Targets)
             {
-                if (IdentityState(target, current) == ApplicationProcessState.Uncertain)
+                switch (IdentityState(target, current))
                 {
-                    throw new InvalidOperationException(
-                        "The Desktop restart target identity changed during termination.");
+                    case ApplicationProcessState.Running:
+                        // An explicit Kill is retried for a stubborn verified target.
+                        TryKill(candidate, target);
+                        break;
+                    case ApplicationProcessState.Uncertain:
+                        throw new InvalidOperationException(
+                            "The Desktop restart target identity changed during termination.");
                 }
             }
             await Task.Delay(_pollInterval, cancellationToken).ConfigureAwait(false);
@@ -348,6 +339,227 @@ public sealed class ApplicationRestartService
 
         throw new TimeoutException(
             "The selected Desktop installation did not reach a stable stopped state.");
+    }
+
+    // Waits for the verified tree to exit on its own after a successful WM_CLOSE.
+    // A windowless root is not a failure: a closing Chromium tree can stay
+    // windowless for seconds while its browser process is the last to exit.
+    // Only the graceful timeout decides that the tree truly refuses to exit.
+    private async Task<ApplicationCloseAttempt> WaitForShutdownOrShrinkAsync(
+        ApplicationCandidate candidate,
+        ApplicationProcessIdentity target,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
+    {
+        var tracked = new Dictionary<int, ApplicationProcessIdentity>
+        {
+            [target.ProcessId] = target
+        };
+        var deadline = DateTimeOffset.UtcNow + timeout;
+        var transientFailures = 0;
+        _lastGoodSnapshot = SnapshotWithEntryRetry(candidate);
+
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var current = SnapshotForPoll(candidate, ref transientFailures);
+            var trackedNow = current
+                .Where(process => tracked.ContainsKey(process.ProcessId))
+                .ToArray();
+
+            // The window closed and the tracked tree exited. Remaining same-name
+            // processes are unverified teardown stragglers, not a shutdown failure.
+            // Targets carry the original verified root so the caller can clean
+            // only its verified descendants without touching any windowed process.
+            if (trackedNow.Length == 0)
+            {
+                return new ApplicationCloseAttempt(
+                    ApplicationCloseStatus.StoppedButRemaining,
+                    [target]);
+            }
+
+            // A tracked process lost its identity, or a new untracked process
+            // with a main window appeared. Both fail closed.
+            foreach (var process in trackedNow)
+            {
+                if (IdentityState(tracked[process.ProcessId], current) ==
+                    ApplicationProcessState.Uncertain)
+                {
+                    return new ApplicationCloseAttempt(
+                        ApplicationCloseStatus.IdentityUncertain,
+                        [target]);
+                }
+            }
+
+            // Always grow the tracked set with same-path, main-window-less
+            // processes; a verified close target can re-spawn children while it exits.
+            GrowTracked(candidate, current, tracked);
+
+            await Task.Delay(_pollInterval, cancellationToken).ConfigureAwait(false);
+        }
+
+        // The verified tree is still alive after the graceful window.
+        return new ApplicationCloseAttempt(
+            ApplicationCloseStatus.StillRunning,
+            tracked.Values.ToArray());
+    }
+
+    // A snapshot taken during close can transiently fail to read a dying process.
+    // Absorb a bounded number of failures and keep polling with the last good
+    // snapshot; a persistent failure still propagates so the caller can fail closed.
+    private IReadOnlyList<ApplicationProcessSnapshot> SnapshotForPoll(
+        ApplicationCandidate candidate,
+        ref int transientFailures)
+    {
+        try
+        {
+            _lastGoodSnapshot = MatchingProcesses(candidate);
+            transientFailures = 0;
+            return _lastGoodSnapshot;
+        }
+        catch (InvalidOperationException) when (transientFailures < MaxTransientSnapshotFailures)
+        {
+            transientFailures++;
+            return _lastGoodSnapshot;
+        }
+    }
+
+    private IReadOnlyList<ApplicationProcessSnapshot> SnapshotWithEntryRetry(
+        ApplicationCandidate candidate)
+    {
+        for (var attempt = 0; attempt < EntrySnapshotRetries; attempt++)
+        {
+            try
+            {
+                return MatchingProcesses(candidate);
+            }
+            catch (InvalidOperationException) when (attempt < EntrySnapshotRetries - 1)
+            {
+                // A partially closed tree can be unreadable for a few hundred
+                // milliseconds; retry before classifying this as unsafe.
+                Thread.Sleep(50);
+            }
+        }
+        return MatchingProcesses(candidate);
+    }
+
+    private void GrowTracked(
+        ApplicationCandidate candidate,
+        IReadOnlyList<ApplicationProcessSnapshot> current,
+        Dictionary<int, ApplicationProcessIdentity> tracked)
+    {
+        foreach (var process in current)
+        {
+            if (tracked.ContainsKey(process.ProcessId) || process.HasMainWindow)
+            {
+                continue;
+            }
+            if (IsVerifiedDescendant(process, tracked.Keys))
+            {
+                tracked[process.ProcessId] = process.Identity;
+            }
+        }
+    }
+
+    private IReadOnlyList<ApplicationProcessIdentity> AttemptedCloseTargets(
+        ApplicationCloseAttempt attempt,
+        IReadOnlyList<ApplicationProcessSnapshot> current)
+    {
+        return attempt.Targets
+            .Where(target => IdentityState(target, current) ==
+                             ApplicationProcessState.Running)
+            .ToArray();
+    }
+
+    // Residuals are forced only when they are verified descendants of a tracked
+    // target. A windowed process that was never part of the verified tree is a
+    // separate root and must fail closed instead of being terminated.
+    private IReadOnlyList<ApplicationProcessIdentity> CloseableResiduals(
+        ApplicationCloseAttempt attempt,
+        IReadOnlyList<ApplicationProcessSnapshot> current)
+    {
+        var trackedIds = attempt.Targets.Select(target => target.ProcessId).ToHashSet();
+        return current
+            .Where(process =>
+                !trackedIds.Contains(process.ProcessId) &&
+                !process.HasMainWindow &&
+                IsVerifiedDescendant(process, trackedIds))
+            .Select(process => process.Identity)
+            .ToArray();
+    }
+
+    private bool IsVerifiedDescendant(
+        ApplicationProcessSnapshot process,
+        IEnumerable<int> trackedIds) =>
+        IsVerifiedDescendant(_backend, process, trackedIds);
+
+    private static bool IsVerifiedDescendant(
+        IApplicationProcessBackend backend,
+        ApplicationProcessSnapshot process,
+        IEnumerable<int> trackedIds)
+    {
+        var visited = new HashSet<int> { process.ProcessId };
+        var parentId = process.ParentProcessId;
+        while (parentId > 0)
+        {
+            if (trackedIds.Contains(parentId))
+            {
+                return true;
+            }
+            if (!visited.Add(parentId))
+            {
+                return false;
+            }
+            parentId = backend.ParentProcessId(parentId);
+        }
+        return false;
+    }
+
+    private int ResidualCount(
+        ApplicationCandidate candidate,
+        ApplicationCloseAttempt attempt,
+        IReadOnlyList<ApplicationProcessSnapshot> current)
+    {
+        var trackedIds = attempt.Targets.Select(target => target.ProcessId).ToHashSet();
+        var count = 0;
+        foreach (var process in current)
+        {
+            if (trackedIds.Contains(process.ProcessId))
+            {
+                count++;
+                continue;
+            }
+            if (process.HasMainWindow ||
+                !IsVerifiedDescendant(process, trackedIds))
+            {
+                continue;
+            }
+            count++;
+        }
+        return count;
+    }
+
+    // A kill can race a normally exiting process. Both the invalid-op case (the
+    // process no longer matches its captured identity) and the Win32 case (the
+    // process exited between identity validation and Kill) are absorbed here;
+    // the residual-count loop remains the authoritative verifier and a recycled
+    // PID still fails closed through IdentityState.
+    private void TryKill(ApplicationCandidate candidate, ApplicationProcessIdentity identity)
+    {
+        try
+        {
+            _backend.KillTree(identity);
+        }
+        catch (InvalidOperationException)
+        {
+            // The target no longer matches its captured identity; refusing to
+            // kill is the safe action. The poll loop decides whether it exited.
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // The process exited between the identity check and Kill. That is
+            // the successful outcome of the shutdown, not a shutdown failure.
+        }
     }
 
     internal static IReadOnlyList<ApplicationProcessSnapshot> SelectRoots(
@@ -423,10 +635,14 @@ internal interface IApplicationProcessBackend
     IReadOnlyList<ApplicationProcessSnapshot> Snapshot(string processName);
     bool RequestClose(ApplicationProcessIdentity identity);
     void KillTree(ApplicationProcessIdentity identity);
+    int ParentProcessId(int processId);
 }
 
 internal sealed class WindowsApplicationProcessBackend : IApplicationProcessBackend
 {
+    private static readonly Dictionary<int, int> EmptyParents =
+        [];
+
     public IReadOnlyList<ApplicationProcessSnapshot> Snapshot(string processName)
     {
         var parentIds = ParentProcessIds();
@@ -480,6 +696,12 @@ internal sealed class WindowsApplicationProcessBackend : IApplicationProcessBack
         process.Kill(entireProcessTree: true);
     }
 
+    public int ParentProcessId(int processId)
+    {
+        var parentIds = ParentProcessIds();
+        return parentIds.GetValueOrDefault(processId);
+    }
+
     private static Process? OpenVerified(ApplicationProcessIdentity identity)
     {
         Process process;
@@ -522,7 +744,7 @@ internal sealed class WindowsApplicationProcessBackend : IApplicationProcessBack
         var snapshot = CreateToolhelp32Snapshot(SnapshotProcesses, 0);
         if (snapshot == InvalidHandleValue)
         {
-            return result;
+            return EmptyParents;
         }
 
         try
@@ -533,7 +755,7 @@ internal sealed class WindowsApplicationProcessBackend : IApplicationProcessBack
             };
             if (!Process32First(snapshot, ref entry))
             {
-                return result;
+                return EmptyParents;
             }
             do
             {

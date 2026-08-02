@@ -12,6 +12,11 @@ param(
 # Reproduces CI locally: runtime checks, .NET build/test, self-contained publish, and zip.
 $ErrorActionPreference = "Stop"
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+[xml]$versionFile = Get-Content -LiteralPath (Join-Path $repoRoot "eng\MyCO.Version.props") -Encoding UTF8
+$version = [string]$versionFile.Project.PropertyGroup.MyCOVersion
+if ([string]::IsNullOrWhiteSpace($version)) {
+    throw "Canonical MyCO version is missing from eng\MyCO.Version.props."
+}
 $runtimeRoot = Join-Path $repoRoot "src\MyCO.Runtime"
 $managerProject = Join-Path $repoRoot "src\MyCO.Manager\MyCO.Manager.csproj"
 $solution = Join-Path $repoRoot "MyCO.sln"
@@ -117,6 +122,7 @@ if (-not [string]::IsNullOrWhiteSpace($SigningCertificatePath)) {
 
 Copy-Item -LiteralPath (Join-Path $repoRoot "README.md") -Destination $publishRoot
 Copy-Item -LiteralPath (Join-Path $repoRoot "README.en-US.md") -Destination $publishRoot
+Copy-Item -LiteralPath (Join-Path $repoRoot "README.ja-JP.md") -Destination $publishRoot
 Copy-Item -LiteralPath (Join-Path $repoRoot "PRIVACY.md") -Destination $publishRoot
 Copy-Item -LiteralPath (Join-Path $repoRoot "SECURITY.md") -Destination $publishRoot
 Copy-Item -LiteralPath (Join-Path $repoRoot "CHANGELOG.md") -Destination $publishRoot
@@ -147,7 +153,7 @@ if ($GenerateSbom) {
         -b $publishRoot `
         -bc $repoRoot `
         -pn "MyCO" `
-        -pv "0.99.0" `
+        -pv $version `
         -ps "Crikok" `
         -nsb "https://github.com/crikok0721/MyCO"
     if ($LASTEXITCODE -ne 0) {

@@ -4,6 +4,27 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+## [0.99.1] - 2026-08-02
+
+### Added
+
+- Add Japanese (`ja-JP`) Manager strings and project README support.
+- Add a localized factory-reset flow that restores the first-launch state.
+
+### Changed
+
+- Unify light/dark preview bubble geometry and startup option spacing.
+- Assign a stable identity to every legal Assistant progress and final message
+  unit, including pre-output work updates.
+- Refresh calibration and onboarding surfaces with the shared minimal desktop
+  design language.
+
+### Fixed
+
+- Preserve per-message avatar and nickname ownership across Runtime updates.
+- Keep release metadata, Runtime package metadata, SBOM metadata, and localized
+  documentation on the same canonical product version.
+
 ## [0.99.0] - 2026-07-30
 
 ### Release

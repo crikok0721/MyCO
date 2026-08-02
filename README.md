@@ -32,7 +32,7 @@ MyCO 支持与 Codex 关联启动。完成首次配置后，每次启动 Codex �
 `MyCO.exe`。发行包为 self-contained，无需另装 .NET Runtime、Node、npm
 或 Visual Studio。
 
-`0.99.0` 发行包中的 MyCO 自有二进制使用 `CN=Crikok` 自签名证书进行
+`0.99.1` 发行包中的 MyCO 自有二进制使用 `CN=Crikok` 自签名证书进行
 Authenticode SHA-256 签名。该证书不属于 Windows 公共信任链，且签名不依赖
 公共时间戳服务；证书过期后不提供时间戳延续保证。
 SmartScreen 仍可能显示未知发布者或信誉警告。请同时核对 Release 中的 SHA-256、

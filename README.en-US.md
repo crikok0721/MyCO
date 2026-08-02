@@ -79,7 +79,7 @@ Download `MyCO-win-x64.zip` from GitHub Releases, extract it to a writable
 folder, and run `MyCO.exe`. The release is self-contained; .NET, Node.js,
 npm, and Visual Studio are not required.
 
-MyCO-owned binaries in release `0.99.0` carry Authenticode SHA-256 signatures
+MyCO-owned binaries in release `0.99.1` carry Authenticode SHA-256 signatures
 under the self-signed `CN=Crikok` certificate. The autonomous workflow has no
 public timestamp dependency, so signature validity is not extended beyond the
 certificate lifetime. This certificate is not rooted in the Windows public

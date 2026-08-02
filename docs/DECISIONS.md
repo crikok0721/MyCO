@@ -70,18 +70,24 @@ preserves native maximize/restore, drag, resize, and hit testing.
 Reason: a WPF `WindowState.Minimized` event does not identify whether the user
 wants a tray transition.
 
-## D-006 — Calibrate semantic units, then assign one logical owner
+## D-006 — Calibrate semantic units, then assign one owner per legal unit
 
 Decision: broadcast calibration to positive-evidence renderers, validate the
 requested role, reject protected surfaces, store text-free structure evidence,
-and decorate one identity owner per role per logical turn.
+and decorate exactly one identity owner per distinct legal message unit. When
+Codex places multiple independent Assistant progress or final units under one
+logical turn, each unit receives its own avatar and nickname. Markdown
+paragraphs, list items, and segmented prose inside a unit share that unit's
+single identity.
 
 Rejected:
 
 - Click coordinates, dynamic indices, or generated class names: unstable under
   scrolling, virtualization, streaming, and Desktop updates.
-- An identity per renderer content unit: duplicates avatars when one reply is
-  split into several units.
+- One identity per logical turn: hides identity from later independent progress
+  and final units rendered under that turn.
+- An identity per Markdown child or bubble segment: duplicates avatars inside
+  one semantic message.
 
 ## D-007 — Bubble existing content surfaces
 
@@ -164,7 +170,9 @@ controller path is introduced.
 Use solid semantic surfaces and whitespace for hierarchy. Default cards have
 no decorative outline, only the primary role surface receives a restrained
 shadow, and status chips use a small rounded rectangle rather than a pill.
-Avatar circles and intrinsically pill-shaped switch/progress geometry remain.
+Avatar circles and progress geometry remain intrinsically circular/pill-shaped;
+the two Settings startup switches use the shared rounded-rectangle track and
+rounded-rectangle thumb requested by the current UI update.
 
 Request native Windows 11 corners through DWM and retain `WindowChrome` as the
 compatibility path. Maximized content is square and restored content regains
@@ -178,7 +186,7 @@ transparent windows, or lifecycle risk.
 
 ## D-013 — Use autonomous per-release self-signed Authenticode
 
-Decision: version `0.99.0` uses a tag-gated GitHub Actions release workflow.
+Decision: version `0.99.1` uses a tag-gated GitHub Actions release workflow.
 Each isolated Windows runner creates an ephemeral RSA 3072-bit code-signing
 certificate with subject `CN=Crikok`, signs project-owned PE files directly
 from the ephemeral PFX with SignTool and SHA-256, verifies the embedded signer
@@ -198,3 +206,26 @@ validation, human approval, or long-lived private-key custody. An ephemeral
 self-signed key provides Authenticode integrity inside one release but cannot
 provide public CA trust or cross-release reputation; provenance and checksums
 cover the reproducible source-to-artifact relationship.
+
+## D-014 — Align the default Manager and preview themes without merging controls
+
+Decision: initialize the session-local Codex preview from the Manager's
+effective theme after `ThemeService` resolves Windows `System` mode. While the
+preview is in its automatic state, Windows theme changes update both surfaces.
+An explicit preview selection opts out for the current session only; the
+preview remains non-persistent and does not alter Runtime palettes.
+
+Reason: the default experience must match the user's Windows theme while the
+existing independent preview control remains useful for deliberate comparison.
+
+## D-015 — Crop avatars before importing them into managed storage
+
+Decision: both avatar commands use one WPF crop dialog. The dialog returns a
+bounded square PNG only after confirmation; the bytes are validated and stored
+through `AvatarService`'s managed content-hash path. Cancel performs no config
+write and no avatar assignment. First-run Logo seeding uses the same managed
+import path and never persists a repository or pack URI.
+
+Reason: one validation/storage boundary prevents external paths and unbounded
+image data from entering configuration, while the crop math remains testable
+without depending on WPF window state.

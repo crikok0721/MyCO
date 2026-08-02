@@ -22,7 +22,7 @@ Adapters do not contain DOM selectors.
 ## Injection backend
 
 `IInjectionBackend` separates renderer access from the skin engine. Version
-`0.99.0` uses `CdpInjectionBackend` over a transport-neutral connection.
+`0.99.1` uses `CdpInjectionBackend` over a transport-neutral connection.
 Private pipe is preferred, while loopback TCP requires explicit consent. If a future official application
 removes the remote-debugging capability, MyCO reports injection unavailable;
 it does not modify `app.asar` or patch binaries.
@@ -89,7 +89,7 @@ claim.
 | Windows 11 x64 | Current supported Windows 11, standard user | Built/tested on Windows 11 Home x64 build 26200; self-contained `win-x64` output |
 | Windows 10 x64 | Windows 10 22H2, standard user | Targeted by .NET 8/WPF; not exercised on a Windows 10 host in this run |
 | DPI | 100%, 125%, 150%, 200% | WPF layout uses device-independent units; combinations not all visually exercised in this run |
-| Windows language/path | English/Chinese; spaces and Chinese characters | Three resource dictionaries tested for key parity; config and Run-command tests include Chinese/spaced paths |
+| Windows language/path | English/Chinese/Japanese; spaces and CJK characters | Four resource dictionaries are tested for key and format-placeholder parity; config and Run-command tests include Chinese/spaced paths |
 | Manager theme | Dark, Light, Windows System | Pure service/state tests cover all modes and Windows event changes; current-host visual observations are recorded separately |
 | Contrast/high-contrast themes | Preserve readable controls and safe fallback | Palette contrast validation is automated; Windows contrast themes were not visually exercised in this run |
 | Official Codex state | Installed/not running/running | Launch policy is automated; real-process states are acceptance checks, not inferred from tests |

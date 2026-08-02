@@ -1,5 +1,16 @@
 # Settings / 设置
 
+## Interface language / 界面语言
+
+The Manager and first-run window support English, Simplified Chinese,
+Traditional Chinese, and Japanese (`en-US`, `zh-CN`, `zh-TW`, `ja-JP`). The
+change is immediate and is persisted independently from unsaved appearance
+edits. All four resource dictionaries keep identical keys and format
+placeholders.
+
+Manager 与首次启动页支持 English、简体中文、繁體中文和日本語。切换立即生效，
+语言会独立持久化，不会顺带保存尚未提交的外观编辑。
+
 ## Manager theme / 启动器主题
 
 The Manager theme is independent from the injected bubble theme.
@@ -89,3 +100,19 @@ The `HKCU\...\Run` value uses the visible name `MyCO`. If a transitional
 `Myco` value or legacy `MyCodex` value is present, startup reconciliation reads
 it, writes and verifies the current value, then removes only those known prior
 values to avoid duplicate login launches.
+
+## Restore defaults / 恢复默认设置
+
+The red action at the bottom of Settings opens a localized confirmation with
+Cancel as the default. After confirmation MyCO destroys its Runtime without
+closing Codex, removes only the known `MyCO`, `Myco`, and `MyCodex` login-startup
+values, and transactionally stages `config.json`, `calibration.json`, managed
+avatars, privacy-safe logs, and backups. The `%APPDATA%\Myco` root remains in
+place so the preserved legacy source is not imported again. Reparse points and
+paths outside the data root are rejected. A failure restores staged data and
+the prior startup registration instead of reporting success.
+
+红色危险操作会先显示确认对话框，且默认焦点为“取消”。确认后只重置 MyCO 自己
+管理的设置、校准、头像、日志、备份和已知登录启动项；不会关闭 Codex，也不会删除
+MyCO 安装文件、旧版迁移源目录、Codex 用户资料、聊天或凭据。完成后会重新载入
+默认主题与打包 Logo，并再次显示欢迎页。

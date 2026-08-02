@@ -24,12 +24,60 @@ public sealed partial class LocalizationResourceTests
         var english = dictionaries["Strings.en-US.xaml"];
         Assert.True(english.SetEquals(dictionaries["Strings.zh-CN.xaml"]));
         Assert.True(english.SetEquals(dictionaries["Strings.zh-TW.xaml"]));
+        Assert.True(english.SetEquals(dictionaries["Strings.ja-JP.xaml"]));
         Assert.Contains(
             "界面语言",
             File.ReadAllText(Path.Combine(resources, "Strings.zh-CN.xaml")));
         Assert.Contains(
             "介面語言",
             File.ReadAllText(Path.Combine(resources, "Strings.zh-TW.xaml")));
+        var japanese = File.ReadAllText(Path.Combine(resources, "Strings.ja-JP.xaml"));
+        Assert.Contains("日本語", japanese);
+        Assert.Contains("MyCOへようこそ", japanese);
+        Assert.Contains("設定", japanese);
+    }
+
+    [Fact]
+    public void JapaneseIsExposedGloballyWithSystemFontFallbacks()
+    {
+        var root = FindRepositoryRoot();
+        var manager = Path.Combine(root, "src", "MyCO.Manager");
+        var localization = File.ReadAllText(Path.Combine(
+            manager,
+            "Localization",
+            "LocalizationService.cs"));
+        var tokens = File.ReadAllText(Path.Combine(
+            manager,
+            "Themes",
+            "DesignTokens.xaml"));
+
+        Assert.Contains("LanguageCodes.Japanese", localization);
+        Assert.Contains("日本語", localization);
+        Assert.Contains("Yu Gothic UI", tokens);
+        Assert.Contains("Meiryo UI", tokens);
+    }
+
+    [Fact]
+    public void EveryLocalizedFormatKeepsTheEnglishPlaceholders()
+    {
+        var root = FindRepositoryRoot();
+        var resources = Path.Combine(root, "src", "MyCO.Manager", "Resources");
+        var english = ReadEntries(Path.Combine(resources, "Strings.en-US.xaml"));
+
+        foreach (var path in Directory.GetFiles(resources, "Strings.*.xaml"))
+        {
+            var localized = ReadEntries(path);
+            foreach (var (key, englishValue) in english)
+            {
+                var expected = PlaceholderRegex().Matches(englishValue)
+                    .Select(match => match.Value)
+                    .ToArray();
+                var actual = PlaceholderRegex().Matches(localized[key])
+                    .Select(match => match.Value)
+                    .ToArray();
+                Assert.Equal(expected, actual);
+            }
+        }
     }
 
     [Fact]
@@ -77,7 +125,8 @@ public sealed partial class LocalizationResourceTests
                 values,
                 value => value
                     .Replace(@"%APPDATA%\Myco", string.Empty, StringComparison.Ordinal)
-                    .Contains("Myco", StringComparison.Ordinal));
+                    .Contains("Myco", StringComparison.Ordinal) &&
+                    !value.Contains("MyCodex", StringComparison.Ordinal));
         }
     }
 
@@ -88,6 +137,14 @@ public sealed partial class LocalizationResourceTests
             .Select(match => match.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
     }
+
+    private static Dictionary<string, string> ReadEntries(string path) =>
+        EntryRegex()
+            .Matches(File.ReadAllText(path))
+            .ToDictionary(
+                match => match.Groups[1].Value,
+                match => match.Groups[2].Value,
+                StringComparer.Ordinal);
 
     private static string FindRepositoryRoot()
     {
@@ -115,4 +172,12 @@ public sealed partial class LocalizationResourceTests
         "<sys:String\\s+x:Key=\"[^\"]+\">([^<]*)</sys:String>",
         RegexOptions.CultureInvariant)]
     private static partial Regex ValueRegex();
+
+    [GeneratedRegex(
+        "<sys:String\\s+x:Key=\"([^\"]+)\">([^<]*)</sys:String>",
+        RegexOptions.CultureInvariant)]
+    private static partial Regex EntryRegex();
+
+    [GeneratedRegex("\\{[0-9]+(?:[^}]*)\\}", RegexOptions.CultureInvariant)]
+    private static partial Regex PlaceholderRegex();
 }

@@ -38,6 +38,23 @@ public sealed class AvatarTests
     }
 
     [Fact]
+    public async Task AvatarImportAcceptsValidatedCroppedStream()
+    {
+        using var directory = new TempDirectory();
+        var service = new AvatarService(
+            System.IO.Path.Combine(directory.Path, "avatars"));
+        await using var stream = new MemoryStream(
+            Convert.FromBase64String(OnePixelPng),
+            writable: false);
+
+        var result = await service.ImportAsync(stream);
+
+        Assert.True(File.Exists(result.StoredPath));
+        Assert.Equal("image/png", result.MediaType);
+        Assert.Equal(68, result.Length);
+    }
+
+    [Fact]
     public async Task DataUrlRejectsFilesOutsideManagedDirectory()
     {
         using var directory = new TempDirectory();

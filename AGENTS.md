@@ -2,86 +2,73 @@
 
 ## Scope
 
-MyCO is a Windows 10/11 x64, .NET 8 WPF manager plus an embedded
-TypeScript runtime. Keep application discovery, CDP transport, runtime
-injection, DOM matching, and visual decoration separated.
+MyCO 是 Windows 10/11 x64 上的 .NET 8 WPF 启动器 + 嵌入式 TypeScript Runtime，
+用于美化官方 Codex/ChatGPT Desktop 渲染器。本地、可逆、隐私安全、失败安全。
 
-## Required validation
+**GitHub:** https://github.com/crikok0721/MyCO
+**当前版本:** `0.99.1`
+**阶段:** Phase 3 — Beta 测试与公开测试前稳定性整改
 
-From the repository root:
+## Source of truth（阅读顺序）
+
+1. `CLAUDE.md` — 主入口（Claude Code 使用）
+2. `docs/CONTEXT.md` — 当前状态、Blockers、验证结果
+3. `docs/architecture.md` — 架构与数据流
+4. `docs/DECISIONS.md` — 设计决策
+5. `docs/TASK_LIST.md` — 当前优先级
+6. `docs/TECH_STACK.md` — 技术栈细节
+
+历史文档：`docs/archive/CODEX_HANDOFF.md`、`docs/archive/development-notes.md`
+
+## Build & test
 
 ```powershell
-Push-Location .\src\MyCO.Runtime
-npm ci
-npm run check
-Pop-Location
-
+Push-Location .\src\MyCO.Runtime; npm ci; npm run check; Pop-Location
 dotnet build .\MyCO.sln -c Release
 dotnet test .\MyCO.sln -c Release --no-build
+.\scripts\build-release.ps1
 ```
 
-Use `scripts\build-release.ps1` for a self-contained release build. Add
-`-UseChinaMirrors` when the normal npm or NuGet route is too slow in mainland
-China. Mirror selection must remain local to the build; do not commit
-region-specific registry or package-source settings.
+大陆网络慢时可加 `-UseChinaMirrors`，但不要提交区域源设置。
 
-`src\MyCO.Runtime\dist\MyCO.runtime.js` is generated and embedded by the
-WPF project. Change TypeScript under `src\MyCO.Runtime\src`, then regenerate
-the bundle with `npm run check`; do not hand-edit the bundle.
+## Key rules（不可逾越的安全边界）
 
-When changing the shared version or protocol, keep
-`eng\MyCO.Version.props`, Runtime package metadata, the generated bundle,
-tests, compatibility documentation, and changelog consistent.
+- **优先私有 CDP 管道**；TCP 仅可在每次获得用户明确同意后回退，随机端口、127.0.0.1。
+- **不修改官方文件**：不碰 app.asar、官方二进制、配置文件、Cookie、凭据或网络流量。
+- **失败安全**：DOM 置信度 < 0.72 不装饰；PID/路径/启动时间不匹配不执行关闭操作。
+- **仅装饰 Assistant 正文**：保留原生 User 气泡、代码、Diff、工具、状态、按钮、编辑器和输入区。
+- **幂等安装、完整销毁**：install() 可重复运行；destroy() 移除所有 MyCO 状态。
+- **重启仅限精确验证的进程树**：不按进程名批量终止。
+- **配置原子写入**：版本化、向后兼容、损坏时备份并恢复默认值。
+- **不提交、推送、创建 PR 或发布**，除非用户明确要求。
+- **所有 UI 文本保持四种语言**：en-US、zh-CN、zh-TW、ja-JP。
 
-## Code and localization rules
+## Code rules
 
-- C#: nullable enabled, async cancellation for I/O, immutable records for data
-  contracts, and no swallowed unexpected exceptions.
-- TypeScript: strict mode, project-scoped `data-myco-*` hooks, no dependence
-  on generated/minified class names, and no page-global CSS outside the
-  MyCO scope.
-- Runtime installation must be idempotent. `destroy()` must remove every
-  MyCO observer, listener, attribute, element, style, and CSS variable.
-- Any user-facing Manager text must be added consistently to English,
-  Simplified Chinese, and Traditional Chinese resource dictionaries.
-- Configuration writes remain atomic and backward compatible with versioned
-  config/calibration schemas.
-- Logs and diagnostics use explicit allowlists and must not contain message
-  text, prompts, code, credentials, cookies, account details, or unnecessary
-  paths.
+- C#: nullable enabled, async cancellation for I/O, immutable records for contracts.
+- TypeScript: strict mode, `data-myco-*` hooks, 不依赖生成/压缩的 class 名。
+- Runtime: `src/MyCO.Runtime/dist/MyCO.runtime.js` 是生成的，不要手工编辑。
+- 配置写入保持原子性和向后兼容。
+- 日志使用白名单，不得包含消息正文、提示词、代码、凭据。
 
-## Non-negotiable security and compatibility boundaries
+## Key files
 
-- Prefer inherited private CDP pipes. TCP fallback requires explicit
-  per-attempt user consent, a random port, and `127.0.0.1` binding only.
-- Do not modify `app.asar`, official binaries, or official installation files;
-  do not inject native code, intercept traffic, or read credentials/cookies.
-- Keep the Runtime-to-Host binding random, event-only, and allowlisted. It must
-  not expose shell, filesystem, process, credential, or arbitrary network
-  capabilities.
-- DOM uncertainty fails closed. Decorate Assistant prose only; preserve the
-  official User bubble and native code, pre, Diff, tool, status, toolbar,
-  button, editor, and input surfaces.
-- Production restart may close only a target whose PID, executable path, start
-  time, and process-tree ownership were captured and revalidated. PID reuse,
-  unreadable identity, or multiple matching roots must fail closed. Never use
-  a process-name-wide termination fallback.
-- Development visual acceptance must use the isolated profile under
-  `%TEMP%\MyCO\VisualAcceptance\<run-id>`, close only the exact owned target
-  PID, and leave the controlling Codex and all user sessions alive.
-- Automated tests, DOM assertions, and logs do not prove visual correctness.
-  For a visual acceptance claim, use Computer Use to inspect the isolated
-  official Desktop window and record actual observations separately.
-- Never copy, read, delete, or commit a real Codex profile, chat, DOM snapshot,
-  Cookie, credential, personal path, or machine-specific acceptance artifact.
+| Area | Path |
+|------|------|
+| WPF UI | `src/MyCO.Manager/` |
+| Core services | `src/MyCO.Core/` |
+| TypeScript Runtime | `src/MyCO.Runtime/src/` |
+| 生成的 bundle | `src/MyCO.Runtime/dist/MyCO.runtime.js` |
+| 版本号 | `eng/MyCO.Version.props` |
+| .NET 测试 | `tests/MyCO.Tests/` |
+| Runtime 测试 | `src/MyCO.Runtime/tests/` |
+| 发布脚本 | `scripts/build-release.ps1` |
+| 图标源文件 | `assets/MyCO-source.ico` |
+| CI | `.github/workflows/build.yml` |
 
-## Git and release hygiene
+## Git hygiene
 
-- Preserve unrelated user changes in a dirty worktree.
-- Do not commit, push, create a pull request, or publish a release without an
-  explicit user request.
-- Keep generated build outputs and local acceptance artifacts out of Git.
-- Release archives should come from GitHub Actions or
-  `scripts\build-release.ps1`, include the required documents, and publish a
-  SHA-256 checksum. Public releases should be signed when signing
-  infrastructure is available.
+- 保留工作区中不相关的用户修改。
+- 不要提交生成物、本地验收工件、机器特定路径。
+- 发布包应来自 GitHub Actions 或 `scripts/build-release.ps1`。
+- 发布时包含 SHA-256 校验和。

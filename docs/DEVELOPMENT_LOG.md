@@ -1,5 +1,154 @@
 # Development Log
 
+## 2026-08-01 — Avatar crop dialog initialization repair
+
+Date:
+
+2026-08-01
+
+Change:
+
+- Moved the avatar zoom slider event subscription out of XAML and after
+  `InitializeComponent`, preventing initialization-time access to the later
+  `ZoomLabel` named control.
+- Added stage-specific avatar validation/decode errors and localized guidance
+  while preserving the existing format, 10 MiB, and 4096x4096 limits.
+- Added privacy-safe `validation`/`decode` stage diagnostics without image
+  paths, filenames, content, or exception messages.
+
+Reason:
+
+- Avatar import logs recorded `ArgumentException` followed by
+  `NullReferenceException`. The latter was caused by WPF raising
+  `Slider.ValueChanged` before the complete XAML name scope was initialized;
+  the earlier privacy-safe record could not distinguish validation from decode.
+
+Impact:
+
+- Manager avatar-import UI only. Avatar managed storage, configuration,
+  Runtime, process control, restart boundaries, and user data are unchanged.
+
+Modified Files:
+
+- `src/MyCO.Manager/Views/AvatarCropWindow.xaml(.cs)`
+- `src/MyCO.Manager/ViewModels/MainWindowViewModel.cs`
+- `src/MyCO.Manager/Resources/Strings.*.xaml`
+- `tests/MyCO.Tests/AvatarCropTests.cs`
+- `docs/DEVELOPMENT_LOG.md`, `docs/HANDOFF.md`
+
+Testing:
+
+- Release build: passed with 0 warnings and 0 errors.
+- Avatar/crop/configuration/localization regression subset: 40/40 passed.
+- Full Release tests: 121 passed; the same existing icon test failed because
+  this runner cannot load `System.Drawing.Common` (122 total).
+- Visual retry with the user's selected image: not tested; the original image
+  was not logged or copied by design.
+
+## 2026-08-01 — Windows theme defaults, avatar crop, and first-run identity
+
+Date:
+
+2026-08-01
+
+Change:
+
+- Initialized the session-local chat preview from the effective Manager theme;
+  System mode follows Windows until a manual preview selection is made.
+- Added the shared WPF avatar crop dialog with circular mask preview, bounded
+  pan/zoom, 512x512 PNG output, and cancel-without-save behavior.
+- Routed cropped bytes through the existing AvatarService validation and managed
+  content-hash storage path.
+- Made new configurations use Assistant nickname `菲叶子` and seed the packaged
+  `MyCO-logo.png` into the managed avatar directory without changing existing
+  or migrated users.
+- Changed the startup switch geometry to rounded rectangles and removed the
+  requested settings-card copy in all three languages.
+- Recorded and resolved handoff hazards (stale repository path, missing global
+  SDK, pre-existing dirty restart changes, and the running single-instance
+  Manager) with continuation commands in `docs/HANDOFF.md`.
+
+Reason:
+
+- Make the Manager and preview consistent with the user's Windows theme by
+  default, support non-square avatar uploads safely, and align the settings UI
+  with the requested product wording.
+
+Impact:
+
+- Manager/Core/configuration and tests only. Runtime source, generated bundle,
+  private-pipe lifecycle, restart safety, and compatibility identifiers are
+  unchanged.
+
+Modified Files:
+
+- `src/MyCO.Core/Avatars/AvatarService.cs`,
+  `src/MyCO.Core/Configuration/AppConfig.cs`
+- `src/MyCO.Manager/ViewModels/MainWindowViewModel.cs`,
+  `src/MyCO.Manager/Services/AvatarCropMath.cs`,
+  `src/MyCO.Manager/Views/AvatarCropWindow.xaml(.cs)`,
+  `src/MyCO.Manager/Views/SettingsPage.xaml`,
+  `src/MyCO.Manager/Themes/SharedStyles.xaml`, and the three string resources
+- `tests/MyCO.Tests/AvatarCropTests.cs`, `AvatarTests.cs`,
+  `ConfigurationTests.cs`, and `ManagerThemeAndTrayTests.cs`
+- `docs/DECISIONS.md`, `docs/architecture.md`, `docs/CONTEXT.md`,
+  `docs/PROJECT_CONTEXT.md`, and `docs/HANDOFF.md`
+
+Testing:
+
+- Release build with the temporary .NET 8.0.423 SDK: passed, 0 warnings and
+  0 errors.
+- Full Release tests: 120 passed; 1 pre-existing environment failure in
+  `ReleaseIconIsMultiResolutionAndUsedByEveryManagerEntryPoint` because the
+  runner cannot load `System.Drawing.Common`.
+- Targeted crop/avatar/configuration/localization/theme tests: 42 passed.
+- `git diff --check`: passed.
+- Visual acceptance was not run: the existing published `MyCO.exe` owns the
+  single-instance mutex and no disposable Windows session was available; the
+  active process was not closed or restarted.
+
+## 2026-08-01 — Reliable one-click Codex restart lifecycle
+
+Date:
+
+2026-08-01
+
+Change:
+
+- Fixed the "verified Codex process tree could not be closed safely"
+  (`MCX-UI-ERRORSTARTDE-0608DA`) false failure that aborted one-click restart
+  when Codex was still shutting down. The close stage now waits for the verified
+  tree to exit (bounded by the graceful timeout) instead of treating a windowless
+  root as immediate failure.
+- Added tolerant kill handling: a mid-exit `Win32Exception`/`InvalidOperationException`
+  race during `Process.Kill` is absorbed, and the residual-count loop remains the
+  authoritative exit verifier. PID reuse still fails closed.
+- Added bounded tolerance for transiently unreadable process snapshots during
+  teardown (`SnapshotForPoll`/`SnapshotWithEntryRetry`), so a dying process no
+  longer aborts the whole shutdown as an identity failure.
+- After a successful graceful close, remaining verified headless descendants are
+  force-cleaned without ever touching an unattributed or windowed process.
+- The Manager `StartAsync` is now a single non-aborting transaction: a tolerated
+  shutdown-stage timeout logs, re-verifies via `IsRootRunning`, and continues into
+  launch instead of requiring a second click. A `SemaphoreSlim` restart gate
+  serializes start/restart transactions.
+- Added `StatusRestartingDesktop` ("正在重启 Codex…" / "Restarting Codex…")
+  across en-US, zh-CN, zh-TW, and lifecycle diagnostics logs.
+
+Impact:
+
+- Runtime injection, calibration, bubble, avatar, config, and process-identity
+  verification logic are unchanged. Restart tests grew to 21/21 covering slow
+  teardown, root-exit-before-grace, orphan cleanup, kill races, PID reuse,
+  transient snapshot failures, and refusal to terminate unattributed processes.
+
+Validation:
+
+- `dotnet build .\MyCO.sln -c Release`: 0 warnings, 0 errors.
+- `dotnet test .\MyCO.sln -c Release`: 111 passed, 2 environment-dependent
+  failures unrelated to this change (missing `System.Drawing.Common` assembly
+  for the icon test; real HKCU registry access for the startup test).
+
 ## 2026-07-30 — Final Manager UI preview consolidation
 
 Date:
@@ -601,3 +750,131 @@ Testing:
   packaged version/signature verification, signed evidence upload, and build
   provenance attestation all passed. Release publication was correctly skipped
   because the validation run was dispatched from `main` rather than a tag.
+
+## 2026-08-01 — Unit identities, Japanese UI, compact setup, and factory reset
+
+Date:
+
+2026-08-01
+
+Change:
+
+- Unified Assistant/User preview bubble geometry with one shared style and
+  correct horizontal/vertical padding.
+- Changed Runtime identity ownership from one pair per logical turn to one pair
+  per distinct legal message unit, including multiple Assistant progress units.
+- Reworked startup spacing, calibration, and onboarding into compact solid-
+  surface Manager layouts.
+- Added complete `ja-JP` UI resources, language persistence, font fallbacks, and
+  Japanese project documentation.
+- Added a localized red factory-reset action backed by a contained same-root
+  staging transaction and rollback.
+
+Reason:
+
+The prior preview used two geometry algorithms; later Codex progress units lost
+their identity because ownership was anchored to the enclosing turn; setup
+pages used oversized, weakly related cards; Japanese was unavailable; and there
+was no safe way to restore the first-launch state.
+
+Impact:
+
+- Preview geometry is consistent without merging semantic role colors.
+- Each independent Assistant unit receives exactly one identity while native
+  User bubbles, code, Diff, tools, status, controls, and input stay unchanged.
+- Manager setup surfaces use the existing neutral/mint design system in both
+  themes, and all visible strings now have four-language parity.
+- Reset operates only on known immediate children of `%APPDATA%\Myco`, retains
+  the root and legacy migration source, refuses reparse points, restores state
+  on failure, and never closes Codex.
+
+Modified Files:
+
+- `src/MyCO.Runtime/src/runtime.ts` and Runtime tests/generated bundle
+- `src/MyCO.Manager/Controls/ChatPreviewControl.*`
+- `src/MyCO.Manager/Views/{SettingsPage,CalibrationPage,OnboardingWindow,ResetConfirmationWindow}*`
+- `src/MyCO.Manager/Themes/*` and `ViewModels/MainWindowViewModel.cs`
+- `src/MyCO.Core/Configuration/{LanguageCodes,FactoryResetService}.cs`
+- `src/MyCO.Manager/Resources/Strings.*.xaml`
+- `README*.md`, project memory, and corresponding xUnit tests
+
+Testing:
+
+- `npm.cmd ci` passed with 0 vulnerabilities; `npm.cmd run check` passed lint,
+  42/42 Runtime tests, and bundle generation.
+- Release solution build passed with 0 warnings and 0 errors.
+- Full Release .NET tests passed 130/131; the only failure was the previously
+  documented test-host `System.Drawing.Common` load failure in the existing
+  icon test. Excluding that environment-only test, 130/130 passed.
+- Factory-reset tests used temporary directories only; language tests verified
+  key parity, placeholder parity, Japanese normalization, and save/reload.
+- `git diff --check` passed.
+- Real desktop visual acceptance was not performed; it remains required in a
+  disposable session/VM and is not inferred from automated tests.
+
+## 2026-08-01 — Local unsigned release package for the UI/localization baseline
+
+Change:
+
+- Ran `scripts\build-release.ps1 -GenerateSbom` with the Release configuration
+  and `win-x64` self-contained publish target.
+- Added `README.ja-JP.md` to the release copy list so the package carries all
+  three project README languages.
+- Replaced the icon alpha regression test's machine-specific GDI decoder with
+  a pure .NET PNG decoder, making the full Release suite independent of the
+  local test-host runtime layout.
+
+Impact:
+
+- `artifacts\MyCO-win-x64.zip` is a reproducible local unsigned release
+  candidate containing the self-contained Manager, Japanese README, SPDX 2.2
+  SBOM, per-file SHA-256 manifest, and archive hash.
+- Archive SHA-256:
+  `9850a8edca40d8068347901302c264389a38c5ea5fe80e333073eafa93df102c`.
+
+Testing:
+
+- Runtime checks: 42/42 passed; .NET Release tests: 131/131 passed; Release
+  publish and SBOM generation completed successfully.
+- All 493 file hashes matched `SHA256SUMS.txt`; ZIP contents matched the
+  publish directory, and no certificate/private-key files were packaged.
+- No signing certificate, commit, push, pull request, or public release was
+  created. Real desktop visual acceptance remains a disposable-session/VM
+  gate.
+
+## 2026-08-02 — Version 0.99.1 release preparation
+
+Change:
+
+- Advanced the canonical product, Runtime package, documentation, and issue
+  template version to `0.99.1`.
+- Prepared the signed-release workflow to read SBOM and release-note versions
+  from the canonical version source instead of a hardcoded value.
+- Included the current preview-bubble, progress-message identity, Japanese
+  localization, calibration/onboarding, and factory-reset implementation in the
+  release scope.
+
+Reason:
+
+- Publish one coherent maintenance release without allowing stale `0.99.0`
+  metadata to appear in the package, README files, or GitHub Release.
+
+Impact:
+
+- The `v0.99.1` tag will produce a self-contained Windows x64 package with
+  per-release signing, SHA-256 checksums, SPDX SBOM, and provenance attestation.
+
+Modified Files:
+
+- `eng/MyCO.Version.props`, Runtime package metadata, release scripts/workflow,
+  localized README files, changelog, and current project handoff documents.
+- Current Manager/Core/Runtime UI and behavior changes already present in the
+  working tree.
+
+Testing:
+
+- Runtime `npm ci`/`npm run check` passed with 42/42 tests and 0 vulnerabilities.
+- .NET Release build and tests passed with 131/131 tests and 0 warnings/errors.
+- Local `scripts\build-release.ps1 -GenerateSbom` passed and produced a
+  0.99.1 self-contained ZIP, per-file SHA-256 manifest, archive hash, and SPDX
+  SBOM. GitHub Actions publication remains the next verification gate.

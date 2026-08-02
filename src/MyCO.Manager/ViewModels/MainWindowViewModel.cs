@@ -14,6 +14,7 @@ using MyCO.Diagnostics;
 using MyCO.Manager.Localization;
 using MyCO.Manager.Resources;
 using MyCO.Manager.Services;
+using MyCO.Manager.Views;
 using MyCO.Startup;
 
 // Main MVVM coordinator that connects WPF controls to config, discovery, and CDP sessions.
@@ -33,6 +34,20 @@ public enum CodexPreviewTheme
 {
     Dark,
     Light
+}
+
+internal enum AvatarImportFailure
+{
+    Validation,
+    Decode
+}
+
+internal sealed class AvatarImportException(
+    AvatarImportFailure failure,
+    Exception innerException)
+    : Exception("The selected avatar could not be prepared safely.", innerException)
+{
+    public AvatarImportFailure Failure { get; } = failure;
 }
 
 public sealed class CodexPreviewThemeOption(
@@ -66,6 +81,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private readonly ConfigPaths _paths = new();
     private readonly ConfigStore _configStore;
+    private readonly FactoryResetService _factoryResetService;
     private readonly AvatarService _avatarService;
     private readonly WindowsApplicationLocator _locator = new();
     private readonly ApplicationAdapterCatalog _adapters = new();
@@ -74,6 +90,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly IPrivacySafeLogger _logger;
     private readonly ThemeService _themeService;
     private readonly IStartupRegistrationService _startupRegistration;
+    private readonly TimeSpan _gracefulShutdownTimeout = TimeSpan.FromSeconds(12);
+    private readonly TimeSpan _forceShutdownTimeout = TimeSpan.FromSeconds(10);
+    private readonly TimeSpan _quiescenceTimeout = TimeSpan.FromSeconds(15);
+    // Serializes the close+launch transaction; see RunDesktopOperationAsync.
+    private readonly SemaphoreSlim _restartGate = new(1, 1);
     // Language changes, calibration, and the Save button can race; serialize disk writes.
     private readonly SemaphoreSlim _configSaveGate = new(1, 1);
     private CalibrationConfig _calibration = new();
@@ -82,7 +103,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private LanguageOption _selectedLanguage =
         LocalizationService.SupportedLanguages[0];
     private ManagerPage _currentPage = ManagerPage.Home;
-    private string _assistantName = "Codex";
+    private string _assistantName = "菲叶子";
     private string _userName = "You";
     private string _assistantAvatar = string.Empty;
     private string _userAvatar = string.Empty;
@@ -111,6 +132,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private BubbleDisplayModeOption? _selectedBubbleDisplayModeOption;
     private bool _launchAtLogin;
     private bool _launchCodexOnMycoStart;
+    private bool _previewThemeFollowsManager = true;
+    private bool _settingPreviewTheme;
     private string _status = LocalizationService.Get("StatusStarting");
     private string? _statusKey = "StatusStarting";
     private object?[] _statusArguments = [];
@@ -125,13 +148,17 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public MainWindowViewModel()
     {
         // Keep service construction here so the views contain no business logic.
-        RefreshCodexPreviewThemeOptions(CodexPreviewTheme.Dark);
         _configStore = new ConfigStore(_paths);
+        _factoryResetService = new FactoryResetService(_paths);
         _avatarService = new AvatarService(_paths.AvatarsDirectory);
         _logger = new PrivacySafeLogger(_paths.LogsDirectory);
         _themeService = (System.Windows.Application.Current as App)?.ThemeService
                         ?? throw new InvalidOperationException(
                             "The app-level theme service is unavailable.");
+        _themeService.ThemeChanged += HandleThemeChanged;
+        RefreshCodexPreviewThemeOptions(
+            ToPreviewTheme(_themeService.EffectiveTheme),
+            followsManager: true);
         _startupRegistration = new StartupRegistrationService();
         _controller = new DesktopSessionController(
             RuntimeResourceLoader.Load(),
@@ -198,6 +225,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         SaveSettingsCommand = new AsyncRelayCommand(() => GuardAsync(
             SaveSettingsAsync,
             "ErrorSaveSettings"));
+        FactoryResetCommand = new AsyncRelayCommand(() => GuardAsync(
+            ConfirmAndFactoryResetAsync,
+            "ErrorFactoryReset"),
+            CanUseDesktopSession);
     }
 
     public ObservableCollection<ApplicationCandidate> Candidates { get; } = [];
@@ -229,6 +260,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public ICommand ResetAppearanceCommand { get; }
     public ICommand OpenConfigFolderCommand { get; }
     public ICommand SaveSettingsCommand { get; }
+    public ICommand FactoryResetCommand { get; }
 
     public LanguageOption SelectedLanguage
     {
@@ -295,6 +327,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             if (value is null || !Set(ref _selectedCodexPreviewThemeOption, value))
             {
                 return;
+            }
+            if (!_settingPreviewTheme)
+            {
+                _previewThemeFollowsManager = false;
             }
             RaisePreviewPalette();
         }
@@ -702,6 +738,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var load = await _configStore.LoadAsync().ConfigureAwait(true);
         WasFirstRun = load.WasCreated;
         var config = await MigrateLegacyAvatarsAsync(load.Config).ConfigureAwait(true);
+        if (WasFirstRun)
+        {
+            config = await SeedFirstRunAssistantAvatarAsync(config)
+                .ConfigureAwait(true);
+        }
         _persistedConfig = config;
         RefreshManagerThemeOptions(config.ManagerThemeMode);
         RefreshBubbleDisplayModeOptions(config.Appearance.BubbleDisplayMode);
@@ -813,6 +854,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        _themeService.ThemeChanged -= HandleThemeChanged;
         _controller.StateChanged -= HandleStateChanged;
         _controller.RuntimeEventReceived -= HandleRuntimeEvent;
         await _controller.DisposeAsync().ConfigureAwait(false);
@@ -844,11 +886,34 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private async Task StartAsync(bool explicitRestart)
     {
+        await _restartGate.WaitAsync().ConfigureAwait(true);
+        try
+        {
+            await StartCoreAsync(explicitRestart).ConfigureAwait(true);
+        }
+        finally
+        {
+            _restartGate.Release();
+        }
+    }
+
+    private async Task StartCoreAsync(bool explicitRestart)
+    {
+        _logger.Info(
+            explicitRestart ? "restart_requested" : "start_requested",
+            new Dictionary<string, object?>
+            {
+                ["state"] = SessionState.Phase.ToString().ToLowerInvariant(),
+                ["connected"] = _controller.State.IsConnected
+            });
+
+        // A stale CDP session (renderer already gone) must not delay the restart.
         if (_controller.State.IsConnected)
         {
             SetStatus("StatusDisconnectingForRestart");
             await _controller.DisconnectAsync().ConfigureAwait(true);
         }
+
         var candidate = SelectedCandidate
                         ?? throw new InvalidOperationException("No Desktop candidate is selected.");
         candidate = await RefreshCandidateAsync(candidate).ConfigureAwait(true);
@@ -869,11 +934,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 }
             }
             SetStatus("StatusNormalShutdown");
-            var closeResult = await _restartService.CloseForRestartAsync(
-                candidate,
-                gracefulTimeout: TimeSpan.FromSeconds(12),
-                forceTimeout: TimeSpan.FromSeconds(10),
-                quiescenceTimeout: TimeSpan.FromSeconds(15)).ConfigureAwait(true);
+            var closeResult = await CloseForRestartAsync(candidate).ConfigureAwait(true);
             _logger.Info("desktop_restart_closed", new Dictionary<string, object?>
             {
                 ["stage"] = "shutdown",
@@ -910,6 +971,39 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         catch
         {
             await RefreshAfterLaunchFailureAsync(candidate).ConfigureAwait(true);
+            throw;
+        }
+    }
+
+    private async Task<ApplicationRestartCloseResult> CloseForRestartAsync(
+        ApplicationCandidate candidate)
+    {
+        try
+        {
+            return await _restartService.CloseForRestartAsync(
+                candidate,
+                _gracefulShutdownTimeout,
+                _forceShutdownTimeout,
+                _quiescenceTimeout).ConfigureAwait(true);
+        }
+        catch (ApplicationRestartException restartException)
+        {
+            // A closing instance may still hold process resources. Do not abort
+            // the whole restart transaction on a shutdown-stage timeout; verify
+            // that the old root is actually gone and continue into the launch.
+            _logger.Error("desktop_restart_close_stage", restartException);
+            var stillRunning = _restartService.IsRootRunning(candidate);
+            if (stillRunning)
+            {
+                throw;
+            }
+            SetStatus("StatusRestartingDesktop");
+            return new ApplicationRestartCloseResult(
+                UsedVerifiedForceClose: true,
+                Targets: []);
+        }
+        catch
+        {
             throw;
         }
     }
@@ -953,6 +1047,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                         : "renderer_not_ready"
                 });
                 SetStatus("StatusLaunchRetryFormat", attempt + 1, maximumAttempts);
+                // The retry may target a leftover instance from the previous attempt.
                 await _restartService.CloseForRestartAsync(
                     candidate,
                     gracefulTimeout: TimeSpan.FromSeconds(5),
@@ -1137,7 +1232,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private async Task PickAvatarAsync(bool assistant)
     {
-        // AvatarService validates content and copies it into the managed data directory.
+        // Validate before opening the cropper; only confirmed crop bytes are stored.
         var picker = new Microsoft.Win32.OpenFileDialog
         {
             Title = LocalizationService.Get(
@@ -1152,7 +1247,57 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             return;
         }
-        var imported = await _avatarService.ImportAsync(picker.FileName).ConfigureAwait(true);
+        byte[] imageBytes;
+        try
+        {
+            imageBytes = await _avatarService.ReadValidatedAsync(picker.FileName)
+                .ConfigureAwait(true);
+        }
+        catch (ArgumentException exception)
+        {
+            _logger.Info(
+                "avatar_import_rejected",
+                new Dictionary<string, object?>
+                {
+                    ["stage"] = "validation",
+                    ["outcome"] = "rejected"
+                });
+            throw new AvatarImportException(
+                AvatarImportFailure.Validation,
+                exception);
+        }
+
+        AvatarCropWindow cropWindow;
+        try
+        {
+            cropWindow = new AvatarCropWindow(imageBytes)
+            {
+                Owner = System.Windows.Application.Current?.MainWindow
+            };
+        }
+        catch (Exception exception) when (
+            exception is ArgumentException or FileFormatException or
+                InvalidOperationException or NotSupportedException)
+        {
+            _logger.Info(
+                "avatar_import_rejected",
+                new Dictionary<string, object?>
+                {
+                    ["stage"] = "decode",
+                    ["outcome"] = "rejected"
+                });
+            throw new AvatarImportException(
+                AvatarImportFailure.Decode,
+                exception);
+        }
+        if (cropWindow.ShowDialog() != true ||
+            cropWindow.CroppedPng is not { Length: > 0 } croppedPng)
+        {
+            return;
+        }
+        await using var croppedStream = new MemoryStream(croppedPng, writable: false);
+        var imported = await _avatarService.ImportAsync(croppedStream)
+            .ConfigureAwait(true);
         if (assistant)
         {
             AssistantAvatar = imported.StoredPath;
@@ -1162,6 +1307,181 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             UserAvatar = imported.StoredPath;
         }
         await SaveAndApplyAsync().ConfigureAwait(true);
+    }
+
+    private async Task ConfirmAndFactoryResetAsync()
+    {
+        var confirmation = new ResetConfirmationWindow
+        {
+            Owner = System.Windows.Application.Current?.MainWindow
+        };
+        if (confirmation.ShowDialog() != true)
+        {
+            return;
+        }
+
+        await RunDesktopOperationAsync(FactoryResetAsync).ConfigureAwait(true);
+    }
+
+    private async Task FactoryResetAsync()
+    {
+        var executable = Environment.ProcessPath
+                         ?? throw new InvalidOperationException(
+                             "The MyCO executable path is unavailable.");
+        var previousConfig = _persistedConfig;
+        var previousWasFirstRun = WasFirstRun;
+        var previousRegistration = _startupRegistration.GetStatus(executable);
+        var restoreSkin = SessionState.IsConnected && SessionState.IsSkinRequested;
+        FactoryResetTransaction? transaction = null;
+
+        try
+        {
+            if (SessionState.IsConnected)
+            {
+                await _controller.DisableSkinAsync().ConfigureAwait(true);
+            }
+
+            _startupRegistration.SetEnabled(executable, enabled: false);
+            transaction = _factoryResetService.Stage();
+
+            var load = await _configStore.LoadAsync().ConfigureAwait(true);
+            var defaults = await SeedFirstRunAssistantAvatarAsync(
+                    load.Config,
+                    required: true)
+                .ConfigureAwait(true);
+            _persistedConfig = defaults;
+            WasFirstRun = true;
+            RefreshManagerThemeOptions(defaults.ManagerThemeMode);
+            RefreshBubbleDisplayModeOptions(defaults.Appearance.BubbleDisplayMode);
+            LoadConfig(defaults);
+            _themeService.ApplyMode(defaults.ManagerThemeMode);
+            if (SessionState.IsConnected)
+            {
+                await _controller.ApplyConfigAsync(defaults).ConfigureAwait(true);
+            }
+
+            transaction.Commit();
+            transaction = null;
+            SetStatus("StatusFactoryResetComplete");
+
+            try
+            {
+                new OnboardingWindow(this)
+                {
+                    Owner = System.Windows.Application.Current?.MainWindow
+                }.ShowDialog();
+            }
+            catch (InvalidOperationException exception)
+            {
+                // Reset has committed; a presentation failure must not undo valid data.
+                _logger.Error("factory_reset_onboarding_failed", exception);
+            }
+        }
+        catch
+        {
+            try
+            {
+                transaction?.Rollback();
+                transaction = null;
+            }
+            catch (Exception rollbackException)
+            {
+                _logger.Error("factory_reset_data_rollback_failed", rollbackException);
+            }
+
+            try
+            {
+                _startupRegistration.Restore(previousRegistration);
+            }
+            catch (Exception rollbackException)
+            {
+                _logger.Error("factory_reset_startup_rollback_failed", rollbackException);
+            }
+
+            _persistedConfig = previousConfig;
+            WasFirstRun = previousWasFirstRun;
+            RefreshManagerThemeOptions(previousConfig.ManagerThemeMode);
+            RefreshBubbleDisplayModeOptions(previousConfig.Appearance.BubbleDisplayMode);
+            LoadConfig(previousConfig);
+            _themeService.ApplyMode(previousConfig.ManagerThemeMode);
+            if (SessionState.IsConnected)
+            {
+                try
+                {
+                    await _controller.ApplyConfigAsync(previousConfig).ConfigureAwait(true);
+                    if (restoreSkin)
+                    {
+                        await _controller.EnableSkinAsync().ConfigureAwait(true);
+                    }
+                }
+                catch (Exception rollbackException)
+                {
+                    _logger.Error("factory_reset_runtime_rollback_failed", rollbackException);
+                }
+            }
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null)
+            {
+                try
+                {
+                    transaction.Dispose();
+                }
+                catch (Exception rollbackException)
+                {
+                    _logger.Error("factory_reset_dispose_rollback_failed", rollbackException);
+                }
+            }
+        }
+    }
+
+    private async Task<AppConfig> SeedFirstRunAssistantAvatarAsync(
+        AppConfig config,
+        bool required = false)
+    {
+        if (!string.IsNullOrWhiteSpace(config.Assistant.Avatar))
+        {
+            return config;
+        }
+
+        try
+        {
+            var resource = System.Windows.Application.GetResourceStream(
+                new Uri("pack://application:,,,/Assets/MyCO-logo.png", UriKind.Absolute));
+            if (resource?.Stream is null)
+            {
+                throw new FileNotFoundException("The packaged MyCO logo was not found.");
+            }
+            using (resource.Stream)
+            {
+                var imported = await _avatarService.ImportAsync(resource.Stream)
+                    .ConfigureAwait(true);
+                var seeded = config with
+                {
+                    Assistant = config.Assistant with
+                    {
+                        Avatar = imported.StoredPath
+                    }
+                };
+                await _configStore.SaveAsync(seeded).ConfigureAwait(true);
+                return seeded;
+            }
+        }
+        catch (Exception exception) when (
+            exception is ArgumentException or FileNotFoundException or
+                IOException or InvalidOperationException or
+                UnauthorizedAccessException or NotSupportedException or
+                System.Security.SecurityException)
+        {
+            _logger.Error("default_assistant_avatar_seed_failed", exception);
+            if (required)
+            {
+                throw;
+            }
+            return config;
+        }
     }
 
     private async Task RefreshDiagnosticsAsync()
@@ -1364,7 +1684,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                      PickUserAvatarCommand,
                      CalibrateAssistantCommand,
                      CalibrateUserCommand,
-                     RefreshDiagnosticsCommand
+                     RefreshDiagnosticsCommand,
+                     FactoryResetCommand
                  })
         {
             if (command is AsyncRelayCommand asyncCommand)
@@ -1403,6 +1724,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                             "StartShutdownNotReady",
                         _ => "RestartShutdownFailed"
                     }),
+                AvatarImportException avatarException =>
+                    LocalizationService.Get(
+                        avatarException.Failure == AvatarImportFailure.Validation
+                            ? "AvatarValidationRejected"
+                            : "AvatarDecodeRejected"),
                 TimeoutException =>
                     LocalizationService.Get("StartShutdownNotReady"),
                 _ => null
@@ -1544,7 +1870,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private void RefreshLocalizedProperties()
     {
         RefreshCodexPreviewThemeOptions(
-            SelectedCodexPreviewThemeOption?.Theme ?? CodexPreviewTheme.Dark);
+            SelectedCodexPreviewThemeOption?.Theme ??
+                ToPreviewTheme(_themeService.EffectiveTheme),
+            _previewThemeFollowsManager);
         RefreshManagerThemeOptions(
             SelectedManagerThemeOption?.Mode ?? ManagerThemeMode.System);
         RefreshBubbleDisplayModeOptions(
@@ -1621,7 +1949,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             option => option.Mode == selectedMode);
     }
 
-    private void RefreshCodexPreviewThemeOptions(CodexPreviewTheme selectedTheme)
+    private void RefreshCodexPreviewThemeOptions(
+        CodexPreviewTheme selectedTheme,
+        bool? followsManager = null)
     {
         CodexPreviewThemeOptions.Clear();
         CodexPreviewThemeOptions.Add(
@@ -1632,9 +1962,37 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             new CodexPreviewThemeOption(
                 CodexPreviewTheme.Light,
                 LocalizationService.Get("PreviewModeLight")));
-        SelectedCodexPreviewThemeOption = CodexPreviewThemeOptions.First(
-            option => option.Theme == selectedTheme);
+        _settingPreviewTheme = true;
+        try
+        {
+            SelectedCodexPreviewThemeOption = CodexPreviewThemeOptions.First(
+                option => option.Theme == selectedTheme);
+        }
+        finally
+        {
+            _settingPreviewTheme = false;
+        }
+        if (followsManager.HasValue)
+        {
+            _previewThemeFollowsManager = followsManager.Value;
+        }
     }
+
+    private void HandleThemeChanged(object? sender, EventArgs eventArgs)
+    {
+        if (_previewThemeFollowsManager)
+        {
+            RefreshCodexPreviewThemeOptions(
+                ToPreviewTheme(_themeService.EffectiveTheme),
+                followsManager: true);
+        }
+    }
+
+    private static CodexPreviewTheme ToPreviewTheme(
+        EffectiveManagerTheme theme) =>
+        theme == EffectiveManagerTheme.Light
+            ? CodexPreviewTheme.Light
+            : CodexPreviewTheme.Dark;
 
     private void RaisePreviewPalette()
     {

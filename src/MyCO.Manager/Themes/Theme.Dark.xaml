@@ -60,6 +60,10 @@
     <SolidColorBrush x:Key="ErrorPanelBrush" Color="#302023" />
     <SolidColorBrush x:Key="ErrorBorderBrush" Color="#62363C" />
     <SolidColorBrush x:Key="ErrorTextBrush" Color="#E8A5AC" />
+    <SolidColorBrush x:Key="DangerButtonBrush" Color="#B95C67" />
+    <SolidColorBrush x:Key="DangerButtonHoverBrush" Color="#CC6874" />
+    <SolidColorBrush x:Key="DangerButtonPressedBrush" Color="#9F4B55" />
+    <SolidColorBrush x:Key="DangerButtonForegroundBrush" Color="#FFFFFF" />
 
     <!-- Preview and protected native surfaces -->
     <SolidColorBrush x:Key="PreviewBrush" Color="#181513" />

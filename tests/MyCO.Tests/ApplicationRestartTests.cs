@@ -372,6 +372,290 @@ public sealed class ApplicationRestartTests
                 TimeSpan.FromMilliseconds(20)));
     }
 
+    [Fact]
+    public async Task SlowTearDownIsAcceptedWithoutForceClose()
+    {
+        var root = new ApplicationProcessSnapshot(
+            900,
+            90,
+            ExecutablePath,
+            DateTimeOffset.UtcNow.AddMinutes(-2),
+            HasMainWindow: true);
+        var backend = new FakeProcessBackend(root);
+        var snapshots = new Queue<IReadOnlyList<ApplicationProcessSnapshot>>(
+            [
+                [root],
+                [root with { HasMainWindow = false }],
+                [root with { HasMainWindow = false }],
+                []
+            ]);
+        backend.OnClose = _ => true;
+        backend.OnSnapshot = () =>
+            snapshots.Count > 0 ? snapshots.Dequeue() : [];
+        var service = new ApplicationRestartService(
+            backend,
+            trayDetectionGrace: TimeSpan.FromMilliseconds(10),
+            pollInterval: TimeSpan.FromMilliseconds(1));
+
+        var attempt = await service.RequestGracefulCloseAsync(
+            Candidate(),
+            TimeSpan.FromSeconds(1));
+
+        Assert.Equal(ApplicationCloseStatus.StoppedButRemaining, attempt.Status);
+        Assert.True(attempt.IsClosed);
+        Assert.Empty(backend.KillRequests);
+    }
+
+    [Fact]
+    public async Task RootExitedBeforeWindowlessGraceIsStillSuccessful()
+    {
+        var root = new ApplicationProcessSnapshot(
+            950,
+            95,
+            ExecutablePath,
+            DateTimeOffset.UtcNow.AddMinutes(-2),
+            HasMainWindow: true);
+        var backend = new FakeProcessBackend(root);
+        var snapshots = new Queue<IReadOnlyList<ApplicationProcessSnapshot>>(
+            [
+                [root],
+                [root with { HasMainWindow = false }],
+                [root with { HasMainWindow = false }],
+                []
+            ]);
+        backend.OnClose = _ => true;
+        backend.OnSnapshot = () =>
+            snapshots.Count > 0 ? snapshots.Dequeue() : [];
+        var service = new ApplicationRestartService(
+            backend,
+            trayDetectionGrace: TimeSpan.FromSeconds(30),
+            pollInterval: TimeSpan.FromMilliseconds(1));
+
+        var attempt = await service.RequestGracefulCloseAsync(
+            Candidate(),
+            TimeSpan.FromSeconds(1));
+
+        Assert.True(attempt.IsClosed);
+        Assert.Empty(backend.KillRequests);
+    }
+
+    [Fact]
+    public async Task OrphanedHeadlessChildIsForceCleanedWithoutExpandingScope()
+    {
+        var root = new ApplicationProcessSnapshot(
+            1000,
+            100,
+            ExecutablePath,
+            DateTimeOffset.UtcNow.AddMinutes(-2),
+            HasMainWindow: true);
+        var orphanedChild = new ApplicationProcessSnapshot(
+            1001,
+            1000,
+            ExecutablePath,
+            DateTimeOffset.UtcNow.AddSeconds(-1),
+            HasMainWindow: false);
+        var backend = new FakeProcessBackend(root, orphanedChild);
+        var snapshots = new Queue<IReadOnlyList<ApplicationProcessSnapshot>>(
+            [
+                [root with { HasMainWindow = false }, orphanedChild],
+                [orphanedChild]
+            ]);
+        backend.OnClose = _ => true;
+        backend.OnKill = _ => backend.Snapshots.Clear();
+        backend.OnSnapshot = () =>
+            snapshots.Count > 0 ? snapshots.Dequeue() : [];
+        var service = new ApplicationRestartService(
+            backend,
+            trayDetectionGrace: TimeSpan.FromSeconds(30),
+            pollInterval: TimeSpan.FromMilliseconds(1));
+
+        var result = await service.CloseForRestartAsync(
+            Candidate(),
+            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(1));
+
+        Assert.True(result.UsedVerifiedForceClose);
+        var killed = Assert.Single(backend.KillRequests);
+        Assert.Equal(1001, killed.ProcessId);
+        Assert.Empty(backend.Snapshots);
+    }
+
+    [Fact]
+    public async Task KillRacingMidExitIsAcceptedAsSuccessfulShutdown()
+    {
+        var root = new ApplicationProcessSnapshot(
+            1100,
+            110,
+            ExecutablePath,
+            DateTimeOffset.UtcNow.AddMinutes(-2),
+            HasMainWindow: true);
+        var orphanedChild = new ApplicationProcessSnapshot(
+            1101,
+            1100,
+            ExecutablePath,
+            DateTimeOffset.UtcNow.AddSeconds(-1),
+            HasMainWindow: false);
+        var backend = new FakeProcessBackend(root, orphanedChild);
+        var snapshots = new Queue<IReadOnlyList<ApplicationProcessSnapshot>>(
+            [
+                [root with { HasMainWindow = false }, orphanedChild],
+                [orphanedChild]
+            ]);
+        backend.OnClose = _ => true;
+        backend.OnKill = _ =>
+        {
+            backend.Snapshots.Clear();
+            throw new System.ComponentModel.Win32Exception(5, "Access denied.");
+        };
+        backend.OnSnapshot = () =>
+            snapshots.Count > 0 ? snapshots.Dequeue() : [];
+        var service = new ApplicationRestartService(
+            backend,
+            trayDetectionGrace: TimeSpan.FromSeconds(30),
+            pollInterval: TimeSpan.FromMilliseconds(1));
+
+        var result = await service.CloseForRestartAsync(
+            Candidate(),
+            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(1));
+
+        Assert.True(result.UsedVerifiedForceClose);
+        Assert.Single(backend.KillRequests);
+    }
+
+    [Fact]
+    public async Task ForceCloseRefusesUnattributedWindowedProcess()
+    {
+        var root = new ApplicationProcessSnapshot(
+            1200,
+            120,
+            ExecutablePath,
+            DateTimeOffset.UtcNow.AddMinutes(-2),
+            HasMainWindow: true);
+        var unrelatedWindowed = new ApplicationProcessSnapshot(
+            1201,
+            999,
+            ExecutablePath,
+            DateTimeOffset.UtcNow.AddMinutes(-1),
+            HasMainWindow: true);
+        // The verified root has exited; only an unrelated windowed process with
+        // the same executable path remains. It is not a descendant of the root.
+        var backend = new FakeProcessBackend(unrelatedWindowed);
+        var service = new ApplicationRestartService(
+            backend,
+            trayDetectionGrace: TimeSpan.FromSeconds(30),
+            pollInterval: TimeSpan.FromMilliseconds(1));
+
+        var attempt = new ApplicationCloseAttempt(
+            ApplicationCloseStatus.StoppedButRemaining,
+            [root.Identity]);
+
+        await service.ForceCloseAsync(
+            Candidate(),
+            attempt,
+            TimeSpan.FromSeconds(1));
+
+        // The unrelated windowed process is never terminated.
+        Assert.Empty(backend.KillRequests);
+    }
+
+    [Fact]
+    public async Task AlreadyStoppedCompletesWithoutForceOrQuiescence()
+    {
+        var backend = new FakeProcessBackend();
+        var service = new ApplicationRestartService(backend);
+
+        var result = await service.CloseForRestartAsync(
+            Candidate(),
+            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(1));
+
+        Assert.False(result.UsedVerifiedForceClose);
+        Assert.Empty(result.Targets);
+        Assert.Empty(backend.KillRequests);
+    }
+
+    [Fact]
+    public async Task PidReuseDuringWindowlessCloseFailsClosed()
+    {
+        var root = new ApplicationProcessSnapshot(
+            1300,
+            130,
+            ExecutablePath,
+            DateTimeOffset.UtcNow.AddMinutes(-2),
+            HasMainWindow: true);
+        var backend = new FakeProcessBackend(root);
+        var windowless = root with { HasMainWindow = false };
+        var recycled = root with { StartedAt = root.StartedAt.AddMinutes(1) };
+        var snapshots = new Queue<IReadOnlyList<ApplicationProcessSnapshot>>(
+            [
+                [root],
+                [windowless],
+                [windowless],
+                [recycled]
+            ]);
+        backend.OnClose = _ => true;
+        backend.OnSnapshot = () =>
+            snapshots.Count > 0 ? snapshots.Dequeue() : [root];
+        var service = new ApplicationRestartService(
+            backend,
+            trayDetectionGrace: TimeSpan.FromSeconds(30),
+            pollInterval: TimeSpan.FromMilliseconds(1));
+
+        var attempt = await service.RequestGracefulCloseAsync(
+            Candidate(),
+            TimeSpan.FromSeconds(1));
+
+        Assert.Equal(ApplicationCloseStatus.IdentityUncertain, attempt.Status);
+        Assert.False(attempt.IsClosed);
+        Assert.Empty(backend.KillRequests);
+    }
+
+    [Fact]
+    public async Task TransientSnapshotFailureDuringTearDownDoesNotAbort()
+    {
+        var root = new ApplicationProcessSnapshot(
+            1400,
+            140,
+            ExecutablePath,
+            DateTimeOffset.UtcNow.AddMinutes(-2),
+            HasMainWindow: true);
+        var backend = new FakeProcessBackend(root);
+        var windowless = root with { HasMainWindow = false };
+        var snapshots = new Queue<IReadOnlyList<ApplicationProcessSnapshot>>(
+            [
+                [root],
+                [windowless],
+                [windowless],
+                []
+            ]);
+        backend.OnClose = _ => true;
+        var snapshotCalls = 0;
+        backend.OnSnapshot = () =>
+        {
+            snapshotCalls++;
+            // A dying process becomes transiently unreadable mid-teardown.
+            if (snapshotCalls == 2)
+            {
+                throw new InvalidOperationException("Process identity unreadable.");
+            }
+            return snapshots.Count > 0 ? snapshots.Dequeue() : [];
+        };
+        var service = new ApplicationRestartService(
+            backend,
+            trayDetectionGrace: TimeSpan.FromMilliseconds(10),
+            pollInterval: TimeSpan.FromMilliseconds(1));
+
+        var attempt = await service.RequestGracefulCloseAsync(
+            Candidate(),
+            TimeSpan.FromSeconds(1));
+
+        Assert.True(attempt.IsClosed);
+    }
+
     private static ApplicationCandidate Candidate() =>
         new(
             "ChatGPT / Codex",
@@ -394,6 +678,7 @@ public sealed class ApplicationRestartTests
         public List<ApplicationProcessIdentity> KillRequests { get; } = [];
         public Func<ApplicationProcessIdentity, bool>? OnClose { get; set; }
         public Action<ApplicationProcessIdentity>? OnKill { get; set; }
+        public Func<int, int>? OnParentProcessId { get; set; }
         public Exception? SnapshotException { get; set; }
         public Func<IReadOnlyList<ApplicationProcessSnapshot>>? OnSnapshot { get; set; }
 
@@ -416,6 +701,17 @@ public sealed class ApplicationRestartTests
         {
             KillRequests.Add(identity);
             OnKill?.Invoke(identity);
+        }
+
+        public int ParentProcessId(int processId)
+        {
+            if (OnParentProcessId is not null)
+            {
+                return OnParentProcessId(processId);
+            }
+            return Snapshots
+                .FirstOrDefault(process => process.ProcessId == processId)
+                ?.ParentProcessId ?? 0;
         }
     }
 }

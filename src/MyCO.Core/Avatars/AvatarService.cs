@@ -23,6 +23,42 @@ public sealed partial class AvatarService
         string sourcePath,
         CancellationToken cancellationToken = default)
     {
+        var bytes = await ReadValidatedAsync(sourcePath, cancellationToken)
+            .ConfigureAwait(false);
+        return await ImportBytesAsync(bytes, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<AvatarImportResult> ImportAsync(
+        Stream source,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        await using var buffer = new MemoryStream();
+        var chunk = new byte[81920];
+        while (true)
+        {
+            var read = await source.ReadAsync(chunk, cancellationToken)
+                .ConfigureAwait(false);
+            if (read == 0)
+            {
+                break;
+            }
+            if (buffer.Length + read > MaximumBytes)
+            {
+                throw new ArgumentException(
+                    "Avatar image must be between 1 byte and 10 MiB.");
+            }
+            await buffer.WriteAsync(chunk.AsMemory(0, read), cancellationToken)
+                .ConfigureAwait(false);
+        }
+        return await ImportBytesAsync(buffer.ToArray(), cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<byte[]> ReadValidatedAsync(
+        string sourcePath,
+        CancellationToken cancellationToken = default)
+    {
         if (!File.Exists(sourcePath))
         {
             throw new FileNotFoundException("Avatar image was not found.", sourcePath);
@@ -36,9 +72,15 @@ public sealed partial class AvatarService
 
         var bytes = await File.ReadAllBytesAsync(sourcePath, cancellationToken)
             .ConfigureAwait(false);
-        var (extension, mediaType) = DetectFormat(
-            bytes.AsSpan(0, Math.Min(bytes.Length, 16)));
-        ValidateDimensions(bytes, extension);
+        ValidateBytes(bytes);
+        return bytes;
+    }
+
+    private async Task<AvatarImportResult> ImportBytesAsync(
+        byte[] bytes,
+        CancellationToken cancellationToken)
+    {
+        var (extension, mediaType) = ValidateBytes(bytes);
         var hash = Convert.ToHexString(SHA256.HashData(bytes))
             .ToLowerInvariant();
 
@@ -57,7 +99,18 @@ public sealed partial class AvatarService
             await output.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
         }
 
-        return new AvatarImportResult(destination, mediaType, file.Length);
+        return new AvatarImportResult(destination, mediaType, (long)bytes.Length);
+    }
+
+    private static (string Extension, string MediaType) ValidateBytes(byte[] bytes)
+    {
+        if (bytes.LongLength is <= 0 or > MaximumBytes)
+        {
+            throw new ArgumentException("Avatar image must be between 1 byte and 10 MiB.");
+        }
+        var format = DetectFormat(bytes.AsSpan(0, Math.Min(bytes.Length, 16)));
+        ValidateDimensions(bytes, format.Extension);
+        return format;
     }
 
     public async Task<string> ToDataUrlAsync(

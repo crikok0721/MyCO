@@ -21,7 +21,7 @@ public sealed class ConfigurationTests
 
         Assert.True(first.WasCreated);
         Assert.False(second.WasCreated);
-        Assert.Equal("Codex", second.Config.Assistant.Name);
+        Assert.Equal("菲叶子", second.Config.Assistant.Name);
         Assert.Equal("You", second.Config.User.Name);
         Assert.Equal(LanguageCodes.English, second.Config.Language);
         Assert.True(File.Exists(paths.ConfigFile));
@@ -440,7 +440,7 @@ public sealed class ConfigurationTests
 
         Assert.NotNull(result.CorruptBackupPath);
         Assert.True(File.Exists(result.CorruptBackupPath));
-        Assert.Equal("Codex", result.Config.Assistant.Name);
+        Assert.Equal("菲叶子", result.Config.Assistant.Name);
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(paths.ConfigFile));
         Assert.Equal(4, document.RootElement.GetProperty("schemaVersion").GetInt32());
     }
@@ -566,9 +566,26 @@ public sealed class ConfigurationTests
     [InlineData("en-US", "en-US")]
     [InlineData("ZH-cn", "zh-CN")]
     [InlineData("zh-TW", "zh-TW")]
+    [InlineData("JA-jp", "ja-JP")]
     public void LanguageCodesNormalizeSupportedValues(string input, string expected)
     {
         Assert.Equal(expected, LanguageCodes.Normalize(input));
+    }
+
+    [Fact]
+    public async Task JapaneseLanguagePersistsAcrossSaveAndReload()
+    {
+        using var directory = new TempDirectory();
+        var paths = new ConfigPaths(directory.Path);
+        var store = new ConfigStore(paths);
+
+        await store.SaveAsync(AppConfig.Default with
+        {
+            Language = LanguageCodes.Japanese
+        });
+
+        var loaded = await store.LoadAsync();
+        Assert.Equal(LanguageCodes.Japanese, loaded.Config.Language);
     }
 
     [Fact]

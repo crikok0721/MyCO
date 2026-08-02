@@ -3,81 +3,114 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <Grid Margin="{StaticResource PagePadding}" MaxWidth="900">
+        <Grid Margin="{StaticResource PagePadding}" MaxWidth="820">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <TextBlock Text="{DynamicResource CalibrationTitle}"
                        Style="{StaticResource PageTitleText}" />
 
-            <!-- Read-only summary of the signatures currently stored in config. -->
+            <!-- One continuous workspace keeps status and both actions in one hierarchy. -->
             <Border Grid.Row="1"
-                    Style="{StaticResource ElevatedCardBorder}"
-                    Margin="0,24,0,16">
+                    x:Name="CalibrationWorkspace"
+                    Style="{StaticResource CardBorder}"
+                    Margin="0,20,0,0"
+                    Padding="0">
                 <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="44" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Border Width="34" Height="34"
-                            CornerRadius="{StaticResource RadiusControl}"
-                            Background="{DynamicResource PrimaryMutedBrush}"
-                            VerticalAlignment="Top">
-                        <TextBlock Text="⌖" FontSize="17"
-                                   Foreground="{DynamicResource PrimaryTextBrush}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Text="{DynamicResource CurrentSignatureState}" FontWeight="SemiBold"
-                                   FontSize="16" />
-                        <TextBlock Text="{Binding CalibrationSummary}"
-                                   Foreground="{DynamicResource MutedTextBrush}"
-                                   Margin="0,7,0,0" />
-                    </StackPanel>
-                </Grid>
-            </Border>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="1" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="1" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-            <!-- Each command asks the user to select one visible turn in the desktop app. -->
-            <Grid Grid.Row="2">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition />
-                    <ColumnDefinition Width="16" />
-                    <ColumnDefinition />
-                </Grid.ColumnDefinitions>
-                <Border Style="{StaticResource CardBorder}">
-                    <StackPanel>
-                        <TextBlock Text="1" Foreground="{DynamicResource PrimaryTextBrush}"
-                                   FontWeight="Bold" />
-                        <TextBlock Text="{DynamicResource SelectAssistantTurn}" FontSize="17"
-                                   FontWeight="SemiBold" Margin="0,9,0,0" />
-                        <TextBlock Text="{DynamicResource SelectAssistantDescription}"
-                                   Foreground="{DynamicResource MutedTextBrush}"
-                                   TextWrapping="Wrap" Margin="0,8,0,18" />
-                        <Button Content="{DynamicResource CalibrateAssistant}"
+                    <Grid Margin="20,18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Ellipse Width="8" Height="8"
+                                 Fill="{DynamicResource PrimaryBrush}"
+                                 VerticalAlignment="Center"
+                                 Margin="0,0,12,0" />
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="{DynamicResource CurrentSignatureState}"
+                                       FontSize="15"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding CalibrationSummary}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Grid.Row="1" Background="{DynamicResource BorderBrush}" />
+
+                    <Grid Grid.Row="2" Tag="CalibrationStepRow" Margin="20,18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="30" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="24" Height="24"
+                                CornerRadius="{StaticResource RadiusChip}"
+                                Background="{DynamicResource PrimaryMutedBrush}"
+                                VerticalAlignment="Top">
+                            <TextBlock Text="1"
+                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontWeight="SemiBold" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="10,0,20,0">
+                            <TextBlock Text="{DynamicResource SelectAssistantTurn}"
+                                       FontSize="15" FontWeight="SemiBold" />
+                            <TextBlock Text="{DynamicResource SelectAssistantDescription}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       TextWrapping="Wrap" Margin="0,5,0,0" />
+                        </StackPanel>
+                        <Button Grid.Column="2"
+                                Content="{DynamicResource CalibrateAssistant}"
                                 Command="{Binding CalibrateAssistantCommand}"
                                 Style="{StaticResource PrimaryButton}"
-                                HorizontalAlignment="Left" />
-                    </StackPanel>
-                </Border>
-                <Border Grid.Column="2"
-                        Style="{StaticResource CardBorder}">
-                    <StackPanel>
-                        <TextBlock Text="2" Foreground="{DynamicResource PrimaryTextBrush}"
-                                   FontWeight="Bold" />
-                        <TextBlock Text="{DynamicResource SelectUserTurn}" FontSize="17"
-                                   FontWeight="SemiBold" Margin="0,9,0,0" />
-                        <TextBlock Text="{DynamicResource SelectUserDescription}"
-                                   Foreground="{DynamicResource MutedTextBrush}"
-                                   TextWrapping="Wrap" Margin="0,8,0,18" />
-                        <Button Content="{DynamicResource CalibrateUser}"
+                                VerticalAlignment="Center" />
+                    </Grid>
+
+                    <Border Grid.Row="3" Background="{DynamicResource BorderBrush}" />
+
+                    <Grid Grid.Row="4" Tag="CalibrationStepRow" Margin="20,18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="30" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="24" Height="24"
+                                CornerRadius="{StaticResource RadiusChip}"
+                                Background="{DynamicResource PrimaryMutedBrush}"
+                                VerticalAlignment="Top">
+                            <TextBlock Text="2"
+                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontWeight="SemiBold" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="10,0,20,0">
+                            <TextBlock Text="{DynamicResource SelectUserTurn}"
+                                       FontSize="15" FontWeight="SemiBold" />
+                            <TextBlock Text="{DynamicResource SelectUserDescription}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       TextWrapping="Wrap" Margin="0,5,0,0" />
+                        </StackPanel>
+                        <Button Grid.Column="2"
+                                Content="{DynamicResource CalibrateUser}"
                                 Command="{Binding CalibrateUserCommand}"
                                 Style="{StaticResource PrimaryButton}"
-                                HorizontalAlignment="Left" />
-                    </StackPanel>
-                </Border>
-            </Grid>
+                                VerticalAlignment="Center" />
+                    </Grid>
+                </Grid>
+            </Border>
         </Grid>
     </ScrollViewer>
 </UserControl>

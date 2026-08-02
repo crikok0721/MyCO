@@ -60,7 +60,11 @@ Home and Appearance host the same `ChatPreviewControl` against the same
 `MainWindowViewModel`. A session-local Codex preview-theme selection resolves
 the preview background, borders, both role bubbles, text, nicknames, avatars,
 and elevation together. It is deliberately independent from the Manager theme
-and does not persist or alter the Runtime palette.
+and does not persist or alter the Runtime palette. On startup it is initialized
+from the Manager's effective theme, so the default `System` mode matches the
+current Windows theme. While following the Manager, a Windows theme change
+updates the preview; an explicit preview selection is respected for the rest
+of that session.
 
 ### Core
 
@@ -76,6 +80,7 @@ and does not persist or alter the Runtime palette.
 - `IInjectionBackend` and the initial `CdpInjectionBackend`;
 - runtime session lifecycle and target monitoring;
 - configuration migration/recovery and avatar import;
+- first-run packaged-logo seeding and the Manager avatar crop workflow;
 - per-user `HKCU\...\Run` registration through
   `IStartupRegistrationService`, including exact-value removal and path-drift
   correction;
@@ -126,9 +131,10 @@ The runtime:
   then a validated multi-sample calibration signature; saved screen position
   and layout are never classification fallbacks;
 - decorates only at confidence `>= 0.72`;
-- assigns one identity owner per role and logical conversation turn, so
-  renderer layouts with multiple content units cannot duplicate avatars or
-  nicknames;
+- assigns one identity owner to each distinct legal message unit; multiple
+  Assistant progress/final units inside one logical turn each receive one
+  avatar and nickname, while Markdown children inside a unit never become
+  separate identity owners;
 - reconciles exactly one project-namespaced avatar/nickname pair as direct
   children of each legal identity owner and removes duplicates or orphans;
 - semantically groups only assistant prose as Automatic or Whole bubbles and
@@ -276,12 +282,24 @@ single-sample calibration is explicitly invalidated because it has no verified
 conversation context, while all unrelated preferences and avatar paths remain.
 Legacy avatars are validated and copied into the managed directory. Invalid JSON is
 moved to a bounded timestamped backup set and defaults are restored without
-crashing.
+crashing. A newly created configuration defaults the Assistant nickname to
+`菲叶子`; the packaged `Assets/MyCO-logo.png` is imported into the managed
+avatar directory through `AvatarService` without changing existing or migrated
+configurations.
 
-The `language` field accepts `en-US`, `zh-CN`, or `zh-TW`. Missing
+The `language` field accepts `en-US`, `zh-CN`, `zh-TW`, or `ja-JP`. Missing
 values remain backward-compatible with English. WPF dynamic resources switch
 immediately, while language persistence is serialized through the same atomic
 configuration store and does not implicitly save in-progress appearance edits.
+
+Factory reset first destroys any active MyCO Runtime without closing Codex,
+removes only the known MyCO login-startup values, and stages `config.json`,
+`calibration.json`, `avatars/`, `logs/`, and `backups/` under a unique immediate
+child of `%APPDATA%\Myco`. The data root is retained so the preserved legacy
+`%APPDATA%\MyCodex` source cannot be imported again. Targets are containment-
+checked and reparse points are rejected before any move. Defaults and the
+packaged logo are recreated before commit; failures roll staged data and the
+prior startup registration back.
 
 ## Failure behavior
 

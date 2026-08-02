@@ -1,6 +1,6 @@
 # Project Context
 
-Last updated: 2026-07-30
+Last updated: 2026-08-01
 
 ## 项目目标
 
@@ -24,7 +24,7 @@ WPF 管理器负责角色、头像、昵称、气泡、主题、预览和运行�
 
 Phase 3：Beta 测试与公开测试前稳定性整改。
 
-当前共享版本为 `0.99.0`。Beta 1 系统性故障的代码修复、自动化回归、
+当前共享版本为 `0.99.1`。Beta 1 系统性故障的代码修复、自动化回归、
 本机 Manager 实机检查和隔离 Desktop 三轮重启验证已经完成。真实登录会话中的
 端到端重启与消息视觉验收，以及外部分发前的签名/干净环境验证仍未完成。
 
@@ -38,17 +38,19 @@ Manager 第三阶段视觉重构已采用角色优先的信息架构：角色与
 结论：修复并关闭 `TASK_LIST.md` 中的 Blocker 后可以公开测试；当前不应宣称
 已经达到无条件公开 Beta 标准。
 
-`0.99.0` 的发行工程采用每次构建独立生成的 `CN=Crikok` 自签名 Authenticode
+`0.99.1` 的发行工程采用每次构建独立生成的 `CN=Crikok` 自签名 Authenticode
 证书，并同时发布 SHA-256、SPDX SBOM 与 GitHub 制品证明。该方案无需外部证书
 申请，但不属于 Windows 公共信任链，不能保证消除 SmartScreen 警告。
 
 ## 已实现能力
 
-- 单实例 WPF Manager、三语界面、主题、托盘、启动设置和原子配置。
+- 单实例 WPF Manager、四语界面、主题、托盘、启动设置和原子配置。
 - 角色优先主页、可点击身份入口、侧栏连接坞、原生圆角窗口和统一圆角图标。
 - 官方 Desktop 安装/运行发现、私有 CDP 管道、显式同意的环回 TCP 回退。
 - 多渲染器 Runtime 注入、健康修复、兼容性降级、Safe Mode 和可逆销毁。
 - Assistant/User 头像昵称；仅 Assistant 正文气泡化。
+- 默认主题跟随 Windows，头像支持 Manager 内圆形遮罩裁剪；新用户 Assistant
+  默认昵称为“菲叶子”并使用打包 Logo。
 - Automatic 与 Whole 气泡模式；代码、Diff、工具和交互面保持原生。
 - 精确身份重启、进程树静默期、自动安全强制兜底和 readiness 检测。
 - 开发专用 CdpProbe 与隔离 VisualAcceptance 工具。

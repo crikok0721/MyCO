@@ -2,7 +2,20 @@
 <UserControl x:Class="MyCO.Manager.Controls.ChatPreviewControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:MyCO.Manager.Controls"
              UseLayoutRounding="True">
+    <UserControl.Resources>
+        <!-- Both roles share one geometry algorithm; their semantic brushes remain distinct. -->
+        <Style x:Key="PreviewBubbleStyle" TargetType="Border">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="{Binding BubbleRadius}" />
+            <Setter Property="Padding"
+                    Value="{Binding PreviewBubblePadding,
+                        RelativeSource={RelativeSource AncestorType={x:Type local:ChatPreviewControl}}}" />
+            <Setter Property="MaxWidth" Value="480" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+    </UserControl.Resources>
     <Border Background="{Binding PreviewBackground}"
             BorderBrush="{Binding PreviewBorder}"
             BorderThickness="1"
@@ -95,10 +108,7 @@
                                    FontSize="13"
                                    Margin="2,0,0,6" />
                         <Border Background="{Binding PreviewAssistantBubble}"
-                                CornerRadius="{Binding BubbleRadius}"
-                                Padding="{Binding BubblePaddingX}"
-                                HorizontalAlignment="Left"
-                                MaxWidth="560">
+                                Style="{StaticResource PreviewBubbleStyle}">
                             <TextBlock Text="{DynamicResource PreviewAssistantMessage}"
                                        Foreground="{Binding PreviewAssistantText}"
                                        TextWrapping="Wrap"
@@ -124,11 +134,8 @@
                                    FontSize="13"
                                    Margin="0,0,2,6" />
                         <Border Background="{Binding PreviewUserBubble}"
-                                BorderBrush="{Binding PreviewBorder}"
-                                BorderThickness="1"
-                                CornerRadius="{Binding BubbleRadius}"
-                                Padding="{Binding BubblePaddingX}"
-                                MaxWidth="430">
+                                Style="{StaticResource PreviewBubbleStyle}"
+                                HorizontalAlignment="Right">
                             <TextBlock Text="{DynamicResource PreviewUserMessage}"
                                        Foreground="{Binding PreviewUserText}"
                                        TextWrapping="Wrap"

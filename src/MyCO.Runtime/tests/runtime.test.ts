@@ -280,7 +280,7 @@ test("current Codex unit anchors decorate identities and assistant prose only", 
   runtime.destroy();
 });
 
-test("one logical turn owns one identity per role across multiple assistant units", () => {
+test("each assistant unit owns one identity inside a logical turn", () => {
   const dom = new JSDOM(
     `<!doctype html><html><head></head><body>
       <main class="thread-scroll-container">
@@ -308,8 +308,8 @@ test("one logical turn owns one identity per role across multiple assistant unit
   const section = dom.window.document.querySelector(
     "[data-content-search-turn-key]"
   )!;
-  assert.equal(section.querySelectorAll(".mc-avatar").length, 2);
-  assert.equal(section.querySelectorAll(".mc-nickname").length, 2);
+  assert.equal(section.querySelectorAll(".mc-avatar").length, 3);
+  assert.equal(section.querySelectorAll(".mc-nickname").length, 3);
   assert.equal(
     section.querySelectorAll('[data-myco-role="assistant"]').length,
     2
@@ -322,9 +322,20 @@ test("one logical turn owns one identity per role across multiple assistant unit
     section.querySelectorAll(
       '[data-myco-role="assistant"][data-myco-identity-owner="true"]'
     ).length,
-    1
+    2
   );
+  const tool = section.querySelector("[data-testid=tool-card]")!;
+  assert.equal(tool.querySelector(".mc-avatar"), null);
+  assert.equal(tool.querySelector(".mc-nickname"), null);
+
+  runtime.refresh();
+  runtime.refresh();
+  assert.equal(section.querySelectorAll(".mc-avatar").length, 3);
+  assert.equal(section.querySelectorAll(".mc-nickname").length, 3);
+
   runtime.destroy();
+  assert.equal(section.querySelector(".mc-avatar"), null);
+  assert.equal(section.querySelector(".mc-nickname"), null);
 });
 
 test("empty workspace and composer surfaces never receive identities", () => {

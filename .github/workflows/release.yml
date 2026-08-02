@@ -129,5 +129,5 @@ jobs:
             "artifacts/MyCO-win-x64/MyCO-self-signed-code-signing.cer" `
             --verify-tag `
             --title "MyCO ${{ steps.version.outputs.version }}" `
-            --notes-file "docs/releases/v0.99.0.md" `
+            --notes-file "docs/releases/v${{ steps.version.outputs.version }}.md" `
             --latest

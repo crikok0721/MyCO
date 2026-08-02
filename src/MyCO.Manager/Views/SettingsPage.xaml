@@ -49,33 +49,58 @@
                         BorderThickness="1" CornerRadius="12" Padding="22">
                     <StackPanel>
                         <TextBlock Text="{DynamicResource StartupTitle}"
-                                   FontSize="17" FontWeight="SemiBold" />
-                        <TextBlock Text="{DynamicResource StartupDescription}"
-                                   Foreground="{DynamicResource MutedTextBrush}"
-                                   TextWrapping="Wrap" Margin="0,7,0,16" />
-                <CheckBox Content="{DynamicResource LaunchAtLogin}"
-                          Style="{StaticResource SwitchCheckBox}"
-                          IsChecked="{Binding LaunchAtLogin}"
-                          Margin="0,0,0,12" />
-                        <TextBlock Text="{DynamicResource LaunchAtLoginDescription}"
-                                   Foreground="{DynamicResource MutedTextBrush}"
-                                   TextWrapping="Wrap" Margin="24,-7,0,15" />
-                <CheckBox Content="{DynamicResource LaunchCodexOnStart}"
-                          Style="{StaticResource SwitchCheckBox}"
-                          IsChecked="{Binding LaunchCodexOnMycoStart}" />
-                        <TextBlock Text="{DynamicResource LaunchCodexOnStartDescription}"
-                                   Foreground="{DynamicResource MutedTextBrush}"
-                                   TextWrapping="Wrap" Margin="24,5,0,0" />
+                                   FontSize="17" FontWeight="SemiBold"
+                                   Margin="0,0,0,16" />
+                        <CheckBox Content="{DynamicResource LaunchAtLogin}"
+                                  Style="{StaticResource SwitchCheckBox}"
+                                  IsChecked="{Binding LaunchAtLogin}"
+                                  Margin="0,0,0,14" />
+                        <CheckBox Style="{StaticResource SwitchCheckBox}"
+                                  IsChecked="{Binding LaunchCodexOnMycoStart}"
+                                  HorizontalContentAlignment="Stretch">
+                            <CheckBox.Content>
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource LaunchCodexOnStart}" />
+                                    <TextBlock Text="{DynamicResource LaunchCodexOnStartDescription}"
+                                               Foreground="{DynamicResource MutedTextBrush}"
+                                               FontSize="12"
+                                               LineHeight="18"
+                                               TextWrapping="Wrap"
+                                               Margin="0,4,0,0" />
+                                </StackPanel>
+                            </CheckBox.Content>
+                        </CheckBox>
                     </StackPanel>
                 </Border>
 
-                <Border Margin="0,16,0,0"
-                        Background="{DynamicResource SuccessPanelBrush}"
-                        BorderBrush="{DynamicResource SuccessBorderBrush}"
-                        BorderThickness="1" CornerRadius="10" Padding="16">
-                    <TextBlock Text="{DynamicResource StartupSafetyNote}"
-                               Foreground="{DynamicResource SuccessTextBrush}"
-                               TextWrapping="Wrap" />
+                <Border Margin="0,20,0,0"
+                        Background="{DynamicResource ErrorPanelBrush}"
+                        BorderBrush="{DynamicResource ErrorBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="22">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,24,0">
+                            <TextBlock Text="{DynamicResource FactoryResetTitle}"
+                                       Foreground="{DynamicResource ErrorTextBrush}"
+                                       FontSize="17"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="{DynamicResource FactoryResetDescription}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,6,0,0" />
+                        </StackPanel>
+                        <Button Grid.Column="1"
+                                Content="{DynamicResource FactoryResetButton}"
+                                Command="{Binding FactoryResetCommand}"
+                                Style="{StaticResource DangerButton}"
+                                VerticalAlignment="Center"
+                                MinWidth="150" />
+                    </Grid>
                 </Border>
             </StackPanel>
         </Grid>

@@ -15,7 +15,8 @@ public static class LocalizationService
     [
         new(LanguageCodes.English, "English"),
         new(LanguageCodes.SimplifiedChinese, "简体中文"),
-        new(LanguageCodes.TraditionalChinese, "繁體中文")
+        new(LanguageCodes.TraditionalChinese, "繁體中文"),
+        new(LanguageCodes.Japanese, "日本語")
     ];
 
     public static string CurrentLanguage { get; private set; } =

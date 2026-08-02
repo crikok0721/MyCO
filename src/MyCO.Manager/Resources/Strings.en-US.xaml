@@ -1,4 +1,4 @@
-<!-- English UI strings. Keep every x:Key identical across all three language files. -->
+<!-- English UI strings. Keep every x:Key identical across all four language files. -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
@@ -132,6 +132,7 @@
     <sys:String x:Key="RestartTitle">Restart with MyCO</sys:String>
     <sys:String x:Key="StatusRestartCancelled">Restart cancelled.</sys:String>
     <sys:String x:Key="StatusNormalShutdown">Requesting a normal Desktop shutdown…</sys:String>
+    <sys:String x:Key="StatusRestartingDesktop">Restarting Codex…</sys:String>
     <sys:String x:Key="ForceRestartPrompt">The official app is still running in the tray or background.&#x0a;&#x0a;Force Restart will terminate only the exact verified Desktop process tree. Unsaved app state may be lost.</sys:String>
     <sys:String x:Key="ForceRestartTitle">Force Restart?</sys:String>
     <sys:String x:Key="StatusRestartCancelledUnchanged">Force restart cancelled; Desktop remains running in the background.</sys:String>
@@ -150,6 +151,11 @@
     <sys:String x:Key="ChooseAssistantAvatarTitle">Choose assistant avatar</sys:String>
     <sys:String x:Key="ChooseUserAvatarTitle">Choose user avatar</sys:String>
     <sys:String x:Key="ImageFilter">Images (*.png;*.jpg;*.jpeg;*.gif;*.bmp)|*.png;*.jpg;*.jpeg;*.gif;*.bmp</sys:String>
+    <sys:String x:Key="AvatarCropTitle">Crop avatar</sys:String>
+    <sys:String x:Key="AvatarCropZoomOut">Zoom out</sys:String>
+    <sys:String x:Key="AvatarCropZoomIn">Zoom in</sys:String>
+    <sys:String x:Key="AvatarCropConfirm">Save</sys:String>
+    <sys:String x:Key="AvatarCropCancel">Cancel</sys:String>
     <sys:String x:Key="StatusDiagnosticsRefreshed">Privacy-safe diagnostics refreshed.</sys:String>
     <sys:String x:Key="StatusDefaultsRestored">Reference Dark defaults restored in preview. Save to apply.</sys:String>
     <sys:String x:Key="StatusLanguageSaved">Interface language saved.</sys:String>
@@ -181,6 +187,9 @@
     <sys:String x:Key="ErrorDisableSkin">Unable to disable skin</sys:String>
     <sys:String x:Key="ErrorImportAssistantAvatar">Unable to import assistant avatar</sys:String>
     <sys:String x:Key="ErrorImportUserAvatar">Unable to import user avatar</sys:String>
+    <sys:String x:Key="ErrorCropAvatar">Unable to process this avatar image</sys:String>
+    <sys:String x:Key="AvatarValidationRejected">The image format is invalid or exceeds the 10 MiB / 4096 × 4096 safety limit. Use PNG, JPEG, GIF, or BMP.</sys:String>
+    <sys:String x:Key="AvatarDecodeRejected">The image could not be decoded. Export it as PNG or JPEG and try again.</sys:String>
     <sys:String x:Key="ErrorCalibrateAssistant">Unable to start assistant calibration</sys:String>
     <sys:String x:Key="ErrorCalibrateUser">Unable to start user calibration</sys:String>
     <sys:String x:Key="ErrorReadDiagnostics">Unable to read diagnostics</sys:String>
@@ -190,17 +199,14 @@
     <sys:String x:Key="SettingsSubtitle">Manager theme, tray behavior, and startup options</sys:String>
     <sys:String x:Key="SaveSettings">Save settings</sys:String>
     <sys:String x:Key="ManagerThemeTitle">MyCO Manager theme</sys:String>
-    <sys:String x:Key="ManagerThemeDescription">This setting controls only the MyCO Manager. Codex bubbles always follow the active renderer theme.</sys:String>
+    <sys:String x:Key="ManagerThemeDescription">Only changes the Manager theme; does not change the Codex theme.</sys:String>
     <sys:String x:Key="ManagerThemeDark">Dark</sys:String>
     <sys:String x:Key="ManagerThemeLight">Light</sys:String>
     <sys:String x:Key="ManagerThemeSystem">Follow Windows</sys:String>
     <sys:String x:Key="StartupTitle">Startup</sys:String>
-    <sys:String x:Key="StartupDescription">The two options are independent and use the existing private-pipe launch path.</sys:String>
     <sys:String x:Key="LaunchAtLogin">Start MyCO when I sign in to Windows</sys:String>
-    <sys:String x:Key="LaunchAtLoginDescription">Registers only the current user MyCO Run value and starts in the tray.</sys:String>
-    <sys:String x:Key="LaunchCodexOnStart">Start or safely detect Codex after MyCO starts</sys:String>
-    <sys:String x:Key="LaunchCodexOnStartDescription">If Codex is already running without MyCO control, background startup will not restart it or create a duplicate.</sys:String>
-    <sys:String x:Key="StartupSafetyNote">MyCO does not modify official shortcuts, protocol associations, App Execution Aliases, or official installation files.</sys:String>
+    <sys:String x:Key="LaunchCodexOnStart">Start Codex after MyCO starts</sys:String>
+    <sys:String x:Key="LaunchCodexOnStartDescription">If Codex is already running, MyCO will not proactively modify that running Codex.</sys:String>
     <sys:String x:Key="TrayOpen">Open MyCO</sys:String>
     <sys:String x:Key="TrayStartCodex">Start / open Codex</sys:String>
     <sys:String x:Key="TrayRestartCodex">Restart Codex</sys:String>
@@ -232,4 +238,17 @@
     <sys:String x:Key="StatusAutoStartingDesktop">Starting Codex automatically with a private pipe…</sys:String>
     <sys:String x:Key="StatusAutoStartFailedFormat">Automatic Codex startup failed safely: {0}</sys:String>
     <sys:String x:Key="ErrorSaveSettings">Unable to save settings</sys:String>
+    <sys:String x:Key="FactoryResetTitle">Restore default settings</sys:String>
+    <sys:String x:Key="FactoryResetDescription">Return MyCO to its unused first-launch state.</sys:String>
+    <sys:String x:Key="FactoryResetButton">Restore defaults</sys:String>
+    <sys:String x:Key="FactoryResetConfirmTitle">Restore MyCO defaults?</sys:String>
+    <sys:String x:Key="FactoryResetConfirmDescription">MyCO will safely detach its Runtime from Codex, then reset only MyCO-owned local data.</sys:String>
+    <sys:String x:Key="FactoryResetDeletesTitle">This will delete</sys:String>
+    <sys:String x:Key="FactoryResetDeletes">• Character and appearance settings&#x0a;• Calibration signatures&#x0a;• Managed avatars, privacy-safe logs, and backups&#x0a;• MyCO, Myco, and MyCodex login startup entries</sys:String>
+    <sys:String x:Key="FactoryResetKeepsTitle">This will not delete</sys:String>
+    <sys:String x:Key="FactoryResetKeeps">• MyCO installation files or the legacy migration source folder&#x0a;• The Codex program&#x0a;• Codex user profiles, chats, credentials, or cookies</sys:String>
+    <sys:String x:Key="FactoryResetCancel">Cancel</sys:String>
+    <sys:String x:Key="FactoryResetConfirmButton">Restore defaults</sys:String>
+    <sys:String x:Key="StatusFactoryResetComplete">MyCO was restored to its first-launch state.</sys:String>
+    <sys:String x:Key="ErrorFactoryReset">Unable to restore default settings</sys:String>
 </ResourceDictionary>

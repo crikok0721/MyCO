@@ -1,10 +1,10 @@
 # Task List
 
-Last updated: 2026-07-30
+Last updated: 2026-08-01
 
 ## Current release gate
 
-Status: `0.99.0` has an automated signed-release route using a per-release
+Status: `0.99.1` has an automated signed-release route using a per-release
 self-signed certificate, checksums, SBOM, and provenance attestation. The
 systemic Beta repair is implemented and regressed, but unconditional public
 readiness remains blocked by the environment-dependent items below.
@@ -59,7 +59,14 @@ readiness remains blocked by the environment-dependent items below.
 - [x] Simplified accessible close dialog.
 - [x] Canonical official ICO-to-PNG/multi-frame ICO icon pipeline.
 - [x] Role-safe multi-renderer calibration and protected-surface rejection.
-- [x] One identity owner per logical turn.
+- [x] One identity owner per legal message unit, including multiple Assistant
+  progress/final units inside one logical turn.
+- [x] Shared preview bubble geometry, compact startup spacing, and unified
+  calibration/onboarding surfaces in light and dark themes.
+- [x] Four-language Manager/localization support including natural Japanese and
+  a Japanese README.
+- [x] Transactional factory reset with known-target containment, reparse-point
+  refusal, startup rollback, default-logo reseeding, and onboarding replay.
 - [x] Three-sample structural calibration with context validation and safe
   invalidation of legacy single-sample rules.
 - [x] Conversation-root boundary enforcement, composer/empty-state exclusion,

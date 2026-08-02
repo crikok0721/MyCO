@@ -79,7 +79,7 @@ public sealed record AppConfig
         ManagerThemeMode.System;
     public bool LaunchAtLogin { get; init; }
     public bool LaunchCodexOnMycoStart { get; init; }
-    public PersonConfig Assistant { get; init; } = new() { Name = "Codex" };
+    public PersonConfig Assistant { get; init; } = new() { Name = "菲叶子" };
     public PersonConfig User { get; init; } = new() { Name = "You" };
     public AppearanceConfig Appearance { get; init; } = new();
     public CalibrationConfig Calibration { get; init; } = new();

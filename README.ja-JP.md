@@ -36,7 +36,7 @@ GitHub Releases から `MyCO-win-x64.zip` をダウンロードし、書き込�
 フォルダーに展開して `MyCO.exe` を実行します。配布パッケージは self-contained
 なので、.NET Runtime、Node.js、npm、Visual Studio を別途インストールする必要はありません。
 
-`0.99.0` の MyCO バイナリは、自己署名証明書 `CN=Crikok` による Authenticode
+`0.99.1` の MyCO バイナリは、自己署名証明書 `CN=Crikok` による Authenticode
 SHA-256 署名を使用します。この証明書は Windows の公開信頼チェーンに含まれず、
 公開タイムスタンプにも依存しません。そのため SmartScreen が警告を表示する場合があります。
 Release の SHA-256、公開証明書、SBOM、GitHub provenance も併せて確認してください。

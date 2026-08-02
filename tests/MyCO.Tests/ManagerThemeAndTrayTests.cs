@@ -68,6 +68,82 @@ public sealed partial class ManagerThemeAndTrayTests
     }
 
     [Fact]
+    public void PreviewDefaultsFromTheEffectiveManagerThemeAndCanBeManuallyOverridden()
+    {
+        var root = FindRepositoryRoot();
+        var viewModel = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "ViewModels",
+            "MainWindowViewModel.cs"));
+
+        Assert.Contains(
+            "ToPreviewTheme(_themeService.EffectiveTheme)",
+            viewModel);
+        Assert.Contains("_previewThemeFollowsManager", viewModel);
+        Assert.Contains("_previewThemeFollowsManager = false", viewModel);
+        Assert.DoesNotContain(
+            "RefreshCodexPreviewThemeOptions(CodexPreviewTheme.Dark)",
+            viewModel);
+    }
+
+    [Fact]
+    public void SettingsPageUsesRoundedSwitchesAndRequestedCopy()
+    {
+        var root = FindRepositoryRoot();
+        var manager = Path.Combine(root, "src", "MyCO.Manager");
+        var settings = File.ReadAllText(Path.Combine(
+            manager,
+            "Views",
+            "SettingsPage.xaml"));
+        var sharedStyles = File.ReadAllText(Path.Combine(
+            manager,
+            "Themes",
+            "SharedStyles.xaml"));
+        var simplified = File.ReadAllText(Path.Combine(
+            manager,
+            "Resources",
+            "Strings.zh-CN.xaml"));
+
+        Assert.Equal(2, Regex.Matches(settings, "SwitchCheckBox").Count);
+        Assert.DoesNotContain("StartupDescription", settings);
+        Assert.DoesNotContain("LaunchAtLoginDescription", settings);
+        Assert.DoesNotContain("StartupSafetyNote", settings);
+        Assert.Contains("CornerRadius=\"{StaticResource RadiusControl}\"", sharedStyles);
+        Assert.DoesNotContain("<Ellipse x:Name=\"SwitchKnob\"", sharedStyles);
+        Assert.Contains("仅修改启动器主题，不修改Codex主题", simplified);
+        Assert.Contains("MyCO启动后自动启动Codex", simplified);
+        Assert.Contains(
+            "若Codex已启动，MyCO不会主动修改已启动的Codex",
+            simplified);
+        Assert.DoesNotContain("StartupSafetyNote", simplified);
+    }
+
+    [Fact]
+    public void FirstRunDefaultsUseThePackagedAssistantIdentity()
+    {
+        var root = FindRepositoryRoot();
+        var config = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Core",
+            "Configuration",
+            "AppConfig.cs"));
+        var viewModel = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "ViewModels",
+            "MainWindowViewModel.cs"));
+
+        Assert.Contains("Name = \"菲叶子\"", config);
+        Assert.Contains("SeedFirstRunAssistantAvatarAsync", viewModel);
+        Assert.Contains("pack://application:,,,/Assets/MyCO-logo.png", viewModel);
+        Assert.Contains("ImportAsync(resource.Stream)", viewModel);
+    }
+
+    [Fact]
     public void TrayStateSurvivesTwentyHideRestoreCyclesWithoutDuplicates()
     {
         var state = new TrayWindowStateMachine();
@@ -225,10 +301,86 @@ public sealed partial class ManagerThemeAndTrayTests
     }
 
     [Fact]
+    public void PreviewAndSetupSurfacesUseSharedCompactGeometry()
+    {
+        var root = FindRepositoryRoot();
+        var manager = Path.Combine(root, "src", "MyCO.Manager");
+        var preview = File.ReadAllText(Path.Combine(
+            manager,
+            "Controls",
+            "ChatPreviewControl.xaml"));
+        var previewCode = File.ReadAllText(Path.Combine(
+            manager,
+            "Controls",
+            "ChatPreviewControl.xaml.cs"));
+        var settings = File.ReadAllText(Path.Combine(
+            manager,
+            "Views",
+            "SettingsPage.xaml"));
+        var calibration = File.ReadAllText(Path.Combine(
+            manager,
+            "Views",
+            "CalibrationPage.xaml"));
+        var onboarding = File.ReadAllText(Path.Combine(
+            manager,
+            "Views",
+            "OnboardingWindow.xaml"));
+
+        Assert.Contains("x:Key=\"PreviewBubbleStyle\"", preview);
+        Assert.Equal(2, Regex.Matches(preview, "Style=\"\\{StaticResource PreviewBubbleStyle\\}\"").Count);
+        Assert.Contains("PreviewBubblePadding", preview);
+        Assert.Contains("PreviewBubblePaddingProperty", previewCode);
+        Assert.DoesNotContain("BorderThickness=\"1\"\n                                CornerRadius=\"{Binding BubbleRadius}\"", preview);
+
+        Assert.Contains("Margin=\"0,0,0,16\"", settings);
+        Assert.Contains("LaunchCodexOnStartDescription", settings);
+        Assert.DoesNotContain("Margin=\"24,5,0,0\"", settings);
+
+        Assert.Contains("x:Name=\"CalibrationWorkspace\"", calibration);
+        Assert.Equal(2, Regex.Matches(calibration, "CalibrationStepRow").Count);
+        Assert.DoesNotContain("ElevatedCardBorder", calibration);
+        Assert.DoesNotContain("⌖", calibration);
+
+        Assert.Contains("WindowStyle=\"None\"", onboarding);
+        Assert.Contains("WindowChrome.WindowChrome", onboarding);
+        Assert.Contains("x:Name=\"OnboardingTitleBar\"", onboarding);
+        Assert.Contains("x:Name=\"OnboardingSteps\"", onboarding);
+        Assert.DoesNotContain("DropShadowEffect", onboarding);
+    }
+
+    [Fact]
+    public void SettingsExposeAConfirmableLocalizedFactoryReset()
+    {
+        var root = FindRepositoryRoot();
+        var manager = Path.Combine(root, "src", "MyCO.Manager");
+        var settings = File.ReadAllText(Path.Combine(manager, "Views", "SettingsPage.xaml"));
+        var confirmation = File.ReadAllText(Path.Combine(
+            manager,
+            "Views",
+            "ResetConfirmationWindow.xaml"));
+        var viewModel = File.ReadAllText(Path.Combine(
+            manager,
+            "ViewModels",
+            "MainWindowViewModel.cs"));
+
+        Assert.Contains("FactoryResetTitle", settings);
+        Assert.Contains("FactoryResetCommand", settings);
+        Assert.Contains("DangerButton", settings);
+        Assert.Contains("IsDefault=\"True\"", confirmation);
+        Assert.Contains("IsCancel=\"True\"", confirmation);
+        Assert.Contains("FactoryResetDeletes", confirmation);
+        Assert.Contains("FactoryResetKeeps", confirmation);
+        Assert.Contains("FactoryResetService", viewModel);
+        Assert.Contains("DisableSkinAsync", viewModel);
+        Assert.Contains("SetEnabled(executable, enabled: false)", viewModel);
+        Assert.Contains("new OnboardingWindow(this)", viewModel);
+    }
+
+    [Fact]
     public void PremiumManagerResourcesUseTheExactVisibleMyCOBrand()
     {
         var root = FindRepositoryRoot();
-        foreach (var culture in new[] { "en-US", "zh-CN", "zh-TW" })
+        foreach (var culture in new[] { "en-US", "zh-CN", "zh-TW", "ja-JP" })
         {
             var resources = File.ReadAllText(Path.Combine(
                 root,
@@ -272,15 +424,14 @@ public sealed partial class ManagerThemeAndTrayTests
             png.Take(8).ToArray());
         Assert.Equal(256, ReadBigEndianInt32(png, 16));
         Assert.Equal(256, ReadBigEndianInt32(png, 20));
-        using (var bitmap = new System.Drawing.Bitmap(Path.Combine(
-                   root,
-                   "assets",
-                   "MyCO-logo.png")))
-        {
-            Assert.Equal(0, bitmap.GetPixel(0, 0).A);
-            Assert.Equal(0, bitmap.GetPixel(255, 255).A);
-            Assert.Equal(255, bitmap.GetPixel(128, 128).A);
-        }
+        var alpha = ReadPngAlphaSamples(
+            Path.Combine(root, "assets", "MyCO-logo.png"),
+            (0, 0),
+            (255, 255),
+            (128, 128));
+        Assert.Equal(0, alpha[(0, 0)]);
+        Assert.Equal(0, alpha[(255, 255)]);
+        Assert.Equal(255, alpha[(128, 128)]);
 
         var project = File.ReadAllText(Path.Combine(
             root,
@@ -387,6 +538,119 @@ public sealed partial class ManagerThemeAndTrayTests
         (bytes[offset + 1] << 16) |
         (bytes[offset + 2] << 8) |
         bytes[offset + 3];
+
+    private static Dictionary<(int X, int Y), byte> ReadPngAlphaSamples(
+        string path,
+        params (int X, int Y)[] samples)
+    {
+        var bytes = File.ReadAllBytes(path);
+        Assert.Equal(
+            new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 },
+            bytes.Take(8).ToArray());
+
+        var idat = new List<byte>();
+        var offset = 8;
+        var width = 0;
+        var height = 0;
+        byte bitDepth = 0;
+        byte colorType = 0;
+        byte interlace = 0;
+        while (offset < bytes.Length)
+        {
+            var length = ReadBigEndianInt32(bytes, offset);
+            offset += 4;
+            var type = System.Text.Encoding.ASCII.GetString(bytes, offset, 4);
+            offset += 4;
+            var data = bytes.AsSpan(offset, length);
+            offset += length + 4; // chunk data plus CRC
+
+            if (type == "IHDR")
+            {
+                width = ReadBigEndianInt32(data.ToArray(), 0);
+                height = ReadBigEndianInt32(data.ToArray(), 4);
+                bitDepth = data[8];
+                colorType = data[9];
+                interlace = data[12];
+            }
+            else if (type == "IDAT")
+            {
+                idat.AddRange(data.ToArray());
+            }
+            else if (type == "IEND")
+            {
+                break;
+            }
+        }
+
+        Assert.True(width > 0 && height > 0);
+        Assert.Equal(8, bitDepth);
+        Assert.Equal(6, colorType); // RGBA
+        Assert.Equal(0, interlace);
+
+        using var compressed = new MemoryStream(idat.ToArray());
+        using var zlib = new System.IO.Compression.ZLibStream(
+            compressed,
+            System.IO.Compression.CompressionMode.Decompress);
+        using var decoded = new MemoryStream();
+        zlib.CopyTo(decoded);
+        var scanlines = decoded.ToArray();
+        var rowBytes = checked(width * 4);
+        var expectedLength = checked(height * (rowBytes + 1));
+        Assert.Equal(expectedLength, scanlines.Length);
+
+        var wanted = samples.ToHashSet();
+        foreach (var (x, y) in samples)
+        {
+            Assert.InRange(x, 0, width - 1);
+            Assert.InRange(y, 0, height - 1);
+        }
+
+        var result = new Dictionary<(int X, int Y), byte>();
+        var previous = new byte[rowBytes];
+        for (var y = 0; y < height; y++)
+        {
+            var filter = scanlines[y * (rowBytes + 1)];
+            var encoded = scanlines.AsSpan(y * (rowBytes + 1) + 1, rowBytes);
+            var current = new byte[rowBytes];
+            for (var index = 0; index < rowBytes; index++)
+            {
+                var left = index >= 4 ? current[index - 4] : (byte)0;
+                var up = previous[index];
+                var upLeft = index >= 4 ? previous[index - 4] : (byte)0;
+                current[index] = filter switch
+                {
+                    0 => encoded[index],
+                    1 => unchecked((byte)(encoded[index] + left)),
+                    2 => unchecked((byte)(encoded[index] + up)),
+                    3 => unchecked((byte)(encoded[index] + ((left + up) / 2))),
+                    4 => unchecked((byte)(encoded[index] + Paeth(left, up, upLeft))),
+                    _ => throw new InvalidDataException($"Unsupported PNG filter {filter}.")
+                };
+            }
+
+            foreach (var sample in wanted.Where(sample => sample.Y == y))
+            {
+                result[sample] = current[sample.X * 4 + 3];
+            }
+
+            previous = current;
+        }
+
+        return result;
+    }
+
+    private static byte Paeth(byte left, byte up, byte upLeft)
+    {
+        var estimate = left + up - upLeft;
+        var leftDistance = Math.Abs(estimate - left);
+        var upDistance = Math.Abs(estimate - up);
+        var upLeftDistance = Math.Abs(estimate - upLeft);
+        return leftDistance <= upDistance && leftDistance <= upLeftDistance
+            ? left
+            : upDistance <= upLeftDistance
+                ? up
+                : upLeft;
+    }
 
     private static string FindRepositoryRoot()
     {

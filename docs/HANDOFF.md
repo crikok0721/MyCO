@@ -1,11 +1,11 @@
 # Project Handoff
 
-Last updated: 2026-07-29 (Asia/Hong_Kong)
+Last updated: 2026-08-01 (Asia/Hong_Kong)
 
-Repository: `C:\Users\crikok\Documents\MyCodex`
+Repository: `C:\Users\crikok\Documents\MyCO`
 
-Target local path: `C:\Users\crikok\Documents\MyCO` (rename pending until the
-current VS Code/Codex workspace releases the directory)
+The outer-folder rename is now verified. The old `MyCodex` path is not the active
+checkout; use the `MyCO` path above for all commands.
 
 GitHub: `https://github.com/crikok0721/MyCO`
 
@@ -16,14 +16,16 @@ Runtime for the official Codex/ChatGPT Desktop renderer. It is local, reversible
 privacy-safe, and fail-closed.
 
 - Phase: Phase 3 — Beta testing and pre-release stability remediation
-- Version: `0.99.0`
-- Branch: `beta2`
-- Base HEAD: `59c46670a938a91e36dbc5314ab33e55318405c7` (`beta2`)
-- Working tree: intentionally modified by the MyCodex → MyCO engineering
-  migration, final MyCO display normalization, repository-name normalization,
-  and the pre-existing title-bar version-label removal
-- Git actions: no commit, push, pull request, or release was created
-- Release conclusion: fix the remaining Blockers before public testing
+- Version: `0.99.1`
+- Branch: `main`
+- Base HEAD before this release: `066bd9c9514abcaae15e05a35ec059e1fd7619ef`
+  (`main`)
+- Release scope: the current UI, Runtime, localization, reset, and documentation
+  changes are intentionally included in the `v0.99.1` release commit.
+- Git actions: this release task creates and pushes the scoped commit and tag;
+  no pull request is required for the direct `main` release route.
+- Release conclusion: local unsigned validation is complete; the tag workflow
+  supplies signing, provenance, and public distribution verification.
 
 The active controlling Codex session was never restarted or closed. Production
 restart behavior was exercised only against an exact-owned isolated official
@@ -33,16 +35,16 @@ Desktop process tree.
 
 Read in this order:
 
-1. `AGENTS.md`
-2. this file
-3. `docs/PROJECT_CONTEXT.md`
-4. `docs/architecture.md`
-5. `docs/TASK_LIST.md`
-6. `docs/DEVELOPMENT_LOG.md`
-7. `docs/DECISIONS.md`
+1. `CLAUDE.md`
+2. `docs/CONTEXT.md`
+3. `docs/architecture.md`
+4. `docs/TASK_LIST.md`
+5. `docs/DEVELOPMENT_LOG.md`
+6. `docs/DECISIONS.md`
 
-`docs/CODEX_HANDOFF.md` and `docs/development-notes.md` contain useful historical
-Alpha evidence, but this file describes the current working tree.
+Historical evidence (archived):
+- `docs/archive/CODEX_HANDOFF.md`
+- `docs/archive/development-notes.md`
 
 ## 3. Completed in this session
 
@@ -54,7 +56,7 @@ Alpha evidence, but this file describes the current working tree.
   package contains `MyCO.exe` and is archived as `MyCO-win-x64.zip`.
 - Added the exact slogan `It's MyCO!!!!!` to the existing About page and both
   README brand areas without changing layout.
-- Advanced the product version to `0.99.0`; Config schema remains 4 for the
+- Advanced the product version to `0.99.1`; Config schema remains 4 for the
   renamed persisted startup field.
 - Added copy-only migration from legacy `%APPDATA%\MyCodex` when the retained
   compatibility directory `%APPDATA%\Myco` does not exist, including safe
@@ -101,8 +103,8 @@ Primary files:
 - Tray restore preserves the last non-minimized state and reuses one window.
 - The close dialog now contains one short prompt and Exit / Minimize / Cancel;
   Escape cancels and Minimize is the default focused action.
-- English, Simplified Chinese, and Traditional Chinese resources were kept in
-  sync.
+- English, Simplified Chinese, Traditional Chinese, and Japanese resources are
+  kept in sync.
 
 Primary files:
 
@@ -146,9 +148,10 @@ Primary files:
 - Saved screen position/layout no longer participates in role classification.
   Old single-sample calibration expires while names, avatars, appearance,
   language, and unrelated settings remain.
-- One logical conversation turn owns one identity per role; reconciliation
-  updates that pair and removes duplicate, illegal, detached, or orphaned
-  identity nodes.
+- Each distinct legal message unit owns one identity; multiple Assistant
+  progress/final units under one logical turn each receive an avatar and
+  nickname, while Markdown children and bubble segments do not. Reconciliation
+  removes duplicate, illegal, detached, or orphaned identity nodes.
 - One observer watches the confirmed conversation root and refreshes affected
   turns during streaming rather than suppressing changes inside decorated
   messages.
@@ -342,3 +345,139 @@ routes are slow; never commit regional package-source configuration.
   or account data.
 - Never hand-edit `src/MyCO.Runtime/dist/MyCO.runtime.js`.
 - Do not commit, push, create a PR, or publish without an explicit request.
+
+## 10. Current task handoff — theme, avatar crop, and first-run identity
+
+This task adds the following Manager/Core behavior:
+
+- `MainWindowViewModel` initializes the session-local preview from the
+  effective `ThemeService` theme. In `System` mode it follows Windows changes
+  until the user manually selects a preview theme. The Runtime palette remains
+  independent and no preview selection is persisted.
+- `src/MyCO.Manager/Views/AvatarCropWindow.xaml(.cs)` is the shared modal crop
+  dialog for Assistant and User avatars. It accepts validated image bytes,
+  supports drag, slider/button/mouse-wheel zoom, a 1:1 circular mask, and
+  returns a 512x512 PNG only after Confirm. Cancel returns no bytes and does
+  not save configuration.
+- `src/MyCO.Manager/Services/AvatarCropMath.cs` contains the pixel-space cover,
+  clamp, and square source-rectangle calculations. Keep its tests independent
+  from WPF windows when changing crop behavior.
+- `AvatarService.ReadValidatedAsync` validates a selected file without storing
+  it; `AvatarService.ImportAsync(Stream)` is the only storage path for the
+  cropped bytes. Managed content-hash names and Runtime data-URL restrictions
+  remain unchanged.
+- On `ConfigLoadResult.WasCreated`, `MainWindowViewModel` imports the packaged
+  `Assets/MyCO-logo.png` into `%APPDATA%\Myco\avatars` and saves that managed
+  path. `AppConfig.Default.Assistant.Name` is `菲叶子`; existing and migrated
+  configurations are not overwritten.
+
+How the next Agent should continue:
+
+1. Start in `C:\Users\crikok\Documents\MyCO`; verify `git status` and inspect
+   the current diff before editing. Do not use the historical
+   `C:\Users\crikok\Documents\MyCodex` path.
+2. Preserve the uncommitted Codex restart files and the current localization
+   status key. Do not reset or checkout the worktree.
+3. Use the temporary SDK when the global `dotnet` command reports no SDK:
+
+   ```powershell
+   $sdkRoot = 'C:\Users\crikok\AppData\Local\Temp\MyCO-dotnet8-sdk'
+   & (Join-Path $sdkRoot 'dotnet.exe') build .\MyCO.sln -c Release
+   & (Join-Path $sdkRoot 'dotnet.exe') test .\MyCO.sln -c Release --no-build
+   ```
+
+4. The current published `artifacts\MyCO-win-x64\MyCO.exe` may already be
+   running and owns the single-instance mutex. Never close it by process name;
+   use an isolated disposable session for visual crop/theme checks.
+5. If a later Agent changes this flow, update this section and
+   `docs/DEVELOPMENT_LOG.md` with the problem, cause, fix, verification, and
+   exact continuation command.
+
+交接问题记录（本任务已解决）：
+
+- 问题：旧文档/工作目录仍指向 `C:\Users\crikok\Documents\MyCodex`；原因：
+  仓库改名后的历史路径残留。解决：确认实际 Git 根目录为
+  `C:\Users\crikok\Documents\MyCO`，仅更新当前交接说明，不改动兼容性标识。
+  验证：在 MyCO 根目录执行 `git status --short`、构建和测试均成功启动。
+  下一位 Agent：先 `Set-Location C:\Users\crikok\Documents\MyCO`，不要使用旧路径。
+- 问题：全局 `dotnet` 无 SDK；原因：开发环境未把 SDK 放入 PATH。解决：使用临时
+  `C:\Users\crikok\AppData\Local\Temp\MyCO-dotnet8-sdk\dotnet.exe`，不提交环境配置。
+  验证：Release 构建 0 警告/0 错误。下一位 Agent：沿用上面的显式 `dotnet.exe` 命令。
+- 问题：工作树已有 Codex 重启修复和本地化修改；原因：本任务开始前已有用户变更。
+  解决：未 reset/checkout/覆盖，并在当前 diff 上增量修改。验证：重启相关测试保持通过，
+  `git diff --check` 通过。下一位 Agent：先看 `git status`，只处理确认范围，不清理这些修改。
+- 问题：已运行的 `artifacts\\MyCO-win-x64\\MyCO.exe` 持有单实例互斥；原因：当前开发会话
+  仍在使用该实例。解决：未关闭、重启或按进程名终止。验证：当前进程仍存活；视觉验收标为
+  未测试。下一位 Agent：使用隔离的开发实例/VM 做主题与裁剪器观察，不碰当前实例。
+
+Validation at this handoff: Release build passed with 0 warnings/errors;
+targeted crop/avatar/configuration/localization/theme tests passed 42/42;
+full Release tests passed 120/121, with the one known environment-only
+`System.Drawing.Common` load failure in the existing icon test. `git diff --check`
+passed. Manager visual acceptance remains explicitly untested because the
+current published single-instance process must not be closed.
+
+### Follow-up repair — avatar import error
+
+- 问题：用户选择助手头像后收到 `MCX-UI-ERRORIMPORTA-41D180`；同日日志随后又记录
+  `MCX-UI-ERRORIMPORTA-749D08`。原因证据：前者类型为 `ArgumentException`，旧的
+  隐私日志无法区分图片安全校验和 WPF 解码；后者为 `NullReferenceException`，代码确认
+  `ZoomSlider.ValueChanged` 可在 `ZoomLabel` 创建前由 XAML 初始化触发。
+- 解决：从 XAML 移除事件订阅，在 `AvatarCropWindow.InitializeComponent()` 完成后订阅，
+  并保留空值防护。验证/解码失败现在分别显示三语提示，并仅记录 `stage=validation` 或
+  `stage=decode`、`outcome=rejected`，不记录路径、文件名、图片或异常消息。
+- 验证：Release 构建 0 警告/0 错误；头像、裁剪、配置和本地化测试 40/40 通过；
+  完整 Release 测试 121/122 通过，唯一失败仍是测试环境缺少 `System.Drawing.Common`
+  的既有图标测试。原始选图未被日志保存，因此对该文件的真实 UI 重试仍为未测试。
+- 下一位 Agent 如何使用：运行最新
+  `src\MyCO.Manager\bin\Release\net8.0-windows\MyCO.exe` 后重试。若仍失败，先在
+  `%APPDATA%\Myco\logs\myco-YYYYMMDD.jsonl` 查找紧邻错误码之前的
+  `avatar_import_rejected`：`validation` 表示格式/10 MiB/4096x4096 限制，`decode`
+  表示 WPF 无法解码，应让用户重新导出为 PNG/JPEG。不要要求或记录真实图片路径。
+
+## 11. Current task handoff — unit identities, Japanese, UI refresh, and reset
+
+Date: 2026-08-01
+
+- Runtime identity ownership is now scoped to each distinct legal
+  `data-content-search-unit-key`. Independent Assistant progress/final units in
+  one logical turn each receive one avatar/nickname; tool/native/protected rows
+  remain unowned, refresh is idempotent, and destroy removes every identity.
+- `ChatPreviewControl` uses one `PreviewBubbleStyle` and a testable
+  `PreviewBubblePadding` built from horizontal and vertical values. Role colors
+  remain separate; both roles share max width, radius, padding, line height, and
+  borderless geometry in both preview themes.
+- Settings startup spacing no longer uses a fixed description offset.
+  Calibration is one continuous two-row workspace. Onboarding uses the Manager
+  solid-surface/window-chrome system without gradients, glow, or transparency.
+- `ja-JP` / `日本語` is supported by startup preload, live switching, atomic
+  persistence, all Manager strings/dialogs/statuses, Japanese font fallbacks,
+  `README.ja-JP.md`, and equal-key/equal-placeholder tests.
+- The red Settings factory-reset action opens a localized confirmation with
+  Cancel focused/default. It destroys MyCO Runtime without closing Codex,
+  removes the three known login-startup names, stages only known MyCO data,
+  rejects escapes/reparse points, preserves the data root and legacy source,
+  recreates defaults and packaged logo, reloads the theme/ViewModel, and shows
+  onboarding. Failure paths restore staged data and prior startup registration.
+
+Validation:
+
+- `npm.cmd ci`: passed; 68 packages audited, 0 vulnerabilities.
+- `npm.cmd run check`: passed; lint, 42/42 tests, and generated bundle build.
+- Release solution build: passed, 0 warnings / 0 errors.
+- Full Release .NET suite: 131/131. The icon alpha regression test uses a pure
+  .NET PNG decoder, so it is independent of the test host's GDI assemblies.
+- `scripts\build-release.ps1 -GenerateSbom`: passed end to end and produced
+  `artifacts\MyCO-win-x64.zip`, `SHA256SUMS.txt`, and an SPDX 2.2 SBOM.
+- Archive SHA-256:
+  `9850a8edca40d8068347901302c264389a38c5ea5fe80e333073eafa93df102c`.
+- `git diff --check`: passed.
+- Real visual acceptance for screenshots 1–6, Japanese, light/dark, minimum
+  size, and 100%/150%/200% DPI was not performed. Computer Use policy forbids
+  automating Codex Desktop, and no disposable Windows session/VM was available.
+  Do not reinterpret XAML/DOM assertions as a visual pass.
+
+Next agent: preserve the dirty worktree and use a disposable Windows account or
+VM to inspect the built Manager and an isolated synthetic Codex profile. Do not
+touch the real `%APPDATA%\Myco`, current Codex profile, or any controlling
+process. No commit, push, PR, signing, or public release was performed.

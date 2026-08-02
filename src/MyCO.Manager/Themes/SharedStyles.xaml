@@ -404,9 +404,24 @@
 
     <Style x:Key="DangerButton" TargetType="Button"
            BasedOn="{StaticResource {x:Type Button}}">
-        <Setter Property="Background" Value="{DynamicResource ErrorPanelBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource ErrorBorderBrush}" />
-        <Setter Property="Foreground" Value="{DynamicResource ErrorTextBrush}" />
+        <Setter Property="Background" Value="{DynamicResource DangerButtonBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource DangerButtonBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource DangerButtonForegroundBrush}" />
+        <Setter Property="Effect" Value="{x:Null}" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource DangerButtonHoverBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource DangerButtonHoverBrush}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{DynamicResource DangerButtonPressedBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource DangerButtonPressedBrush}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter Property="Background" Value="{DynamicResource DangerButtonBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource DangerButtonForegroundBrush}" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <Style x:Key="IconButton" TargetType="Button"
@@ -616,20 +631,21 @@
                         </Grid.ColumnDefinitions>
                         <Border x:Name="SwitchTrack"
                                 Width="40" Height="24"
-                                CornerRadius="{StaticResource RadiusPill}"
+                                CornerRadius="{StaticResource RadiusControl}"
                                 Background="{DynamicResource ControlDisabledBrush}"
                                 BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="1">
-                            <Ellipse x:Name="SwitchKnob"
-                                     Width="18" Height="18"
-                                     Margin="2"
-                                     HorizontalAlignment="Left"
-                                     Fill="{DynamicResource SurfaceFloatingBrush}"
-                                     Effect="{DynamicResource CardShadowEffect}">
-                                <Ellipse.RenderTransform>
+                            <Border x:Name="SwitchKnob"
+                                    Width="18" Height="18"
+                                    Margin="2"
+                                    HorizontalAlignment="Left"
+                                    CornerRadius="{StaticResource RadiusControl}"
+                                    Background="{DynamicResource SurfaceFloatingBrush}"
+                                    Effect="{DynamicResource CardShadowEffect}">
+                                <Border.RenderTransform>
                                     <TranslateTransform x:Name="SwitchTranslate" />
-                                </Ellipse.RenderTransform>
-                            </Ellipse>
+                                </Border.RenderTransform>
+                            </Border>
                         </Border>
                         <ContentPresenter Grid.Column="1"
                                           Margin="11,0,0,0"

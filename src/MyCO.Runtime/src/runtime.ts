@@ -148,8 +148,11 @@ export class MyCORuntime implements MyCORuntimeApi {
         }
         confidences.push(result.confidence);
         activeTurns.add(turn);
+        // Codex can render several independent assistant progress/final units
+        // inside one logical turn. Identity belongs to the semantic unit, not
+        // the enclosing turn; classifier gates still exclude tools and chrome.
         const identityAnchor =
-          turn.closest("[data-content-search-turn-key]") ?? turn;
+          turn.closest("[data-content-search-unit-key]") ?? turn;
         let roles = identityRoles.get(identityAnchor);
         if (!roles) {
           roles = new Set<MessageRole>();
