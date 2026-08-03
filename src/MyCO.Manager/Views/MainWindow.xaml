@@ -16,6 +16,12 @@
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         Background="{DynamicResource WindowBrush}">
+    <Window.Resources>
+        <RectangleGeometry x:Key="TitleBarIconClip"
+                           Rect="0,0,32,32"
+                           RadiusX="10"
+                           RadiusY="10" />
+    </Window.Resources>
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="52"
                             ResizeBorderThickness="6"
@@ -53,17 +59,30 @@
                                 CornerRadius="10"
                                 Background="{DynamicResource PrimaryMutedBrush}"
                                 BorderBrush="{DynamicResource AccentBorderBrush}"
-                                BorderThickness="1">
-                            <Image Width="25" Height="25"
+                                BorderThickness="1"
+                                ClipToBounds="True">
+                            <Image Width="32" Height="32"
                                    Source="/MyCO;component/Assets/MyCO-logo.png"
-                                   Stretch="Uniform"
+                                   Stretch="UniformToFill"
+                                   Clip="{StaticResource TitleBarIconClip}"
                                    RenderOptions.BitmapScalingMode="HighQuality" />
                         </Border>
-                        <TextBlock Text="MyCO"
-                                   Margin="10,0,0,0"
-                                   VerticalAlignment="Center"
-                                   FontWeight="SemiBold"
-                                   FontSize="14" />
+                        <StackPanel Margin="10,0,0,0"
+                                    VerticalAlignment="Center">
+                            <TextBlock FontSize="16"
+                                       FontWeight="SemiBold"
+                                       LineHeight="19">
+                                <Run Text="{DynamicResource BrandTitleMy}"
+                                     Foreground="{DynamicResource TextBrush}" />
+                                <Run Text="{DynamicResource BrandTitleCo}"
+                                     Foreground="{DynamicResource PrimaryTextBrush}" />
+                            </TextBlock>
+                            <TextBlock Text="{DynamicResource BrandSubtitle}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       FontSize="9.5"
+                                       LineHeight="12"
+                                       Margin="0,1,0,0" />
+                        </StackPanel>
                     </StackPanel>
 
                     <Border Grid.Column="1"

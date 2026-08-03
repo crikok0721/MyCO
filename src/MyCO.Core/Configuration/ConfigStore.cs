@@ -409,6 +409,14 @@ internal static class ConfigMigration
             migrated,
             "launchCodexOnMycoStart",
             JsonValue.Create(false));
+        changed |= EnsureValue(
+            migrated,
+            "associateCodexLaunches",
+            JsonValue.Create(false));
+        changed |= EnsureValue(
+            migrated,
+            "trayMinimizeNotificationBootId",
+            null);
         if (migrated.Remove("launchCodexOnMyCodexStart"))
         {
             changed = true;
@@ -485,7 +493,9 @@ internal static class ConfigMigration
         string property,
         JsonNode? value)
     {
-        if (target[property] is not null)
+        // A present JSON null is an intentional value for nullable settings;
+        // distinguish it from a missing property so migration is idempotent.
+        if (target.ContainsKey(property))
         {
             return false;
         }

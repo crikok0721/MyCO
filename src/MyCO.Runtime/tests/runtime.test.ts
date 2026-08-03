@@ -73,6 +73,122 @@ test("runtime bubbles prose only and preserves native tool surfaces", () => {
   assert.equal(user.querySelector(".mc-nickname")!.textContent, "Avery");
 });
 
+test("whole mode decorates the Markdown surface, not its flex layout shell", () => {
+  const dom = new JSDOM(
+    `<!doctype html><html><head></head><body><main>
+      <article data-message-author-role="assistant">
+        <div data-content-type="prose" class="group flex min-w-0 flex-col">
+          <div class="markdownContent-current"><p>${"Long answer. ".repeat(120)}</p></div>
+        </div>
+      </article>
+    </main></body></html>`,
+    { url: "app://-/index.html", pretendToBeVisual: true }
+  );
+  const runtime = new MyCORuntime(dom.window.document);
+  const config = defaultConfig();
+  config.appearance.bubbleDisplayMode = "Whole";
+  runtime.applyConfig(config);
+
+  const article = dom.window.document.querySelector("article")!;
+  assert.equal(article.querySelectorAll('[data-myco-prose="assistant"]').length, 1);
+  assert.equal(
+    article.querySelector("[data-content-type=prose]")!.hasAttribute("data-myco-prose"),
+    false
+  );
+  assert.equal(
+    article.querySelector(".markdownContent-current")!.hasAttribute("data-myco-prose"),
+    true
+  );
+  runtime.destroy();
+});
+
+test("mixed Markdown gives bubbles only to prose blocks in both modes", () => {
+  const dom = new JSDOM(
+    `<!doctype html><html><head></head><body><main>
+      <article data-message-author-role="assistant">
+        <div class="markdownContent-current">
+          <h2>Summary</h2>
+          <p>Readable assistant prose.</p>
+          <pre><code>const copied = true;</code></pre>
+          <button>Copy</button>
+          <p>Closing prose.</p>
+        </div>
+      </article>
+    </main></body></html>`,
+    { url: "app://-/index.html", pretendToBeVisual: true }
+  );
+  const runtime = new MyCORuntime(dom.window.document);
+  const config = defaultConfig();
+  for (const mode of ["Automatic", "Whole"] as const) {
+    config.appearance.bubbleDisplayMode = mode;
+    runtime.applyConfig(config);
+    const article = dom.window.document.querySelector("article")!;
+    assert.equal(article.querySelectorAll('[data-myco-prose="assistant"]').length, 3);
+    assert.equal(article.querySelector("pre")!.hasAttribute("data-myco-prose"), false);
+    assert.equal(article.querySelector("code")!.hasAttribute("data-myco-prose"), false);
+    assert.equal(article.querySelector("button")!.hasAttribute("data-myco-prose"), false);
+  }
+  runtime.destroy();
+});
+
+test("long code and its copy control remain native in both modes", () => {
+  const dom = new JSDOM(
+    `<!doctype html><html><head></head><body><main>
+      <article data-message-author-role="assistant">
+        <p>Explanation before the code.</p>
+        <div data-testid="code-card">
+          <pre><code>${"const value = 1; ".repeat(400)}</code></pre>
+          <button data-testid="copy-code">Copy</button>
+        </div>
+        <p>Explanation after the code.</p>
+      </article>
+    </main></body></html>`,
+    { url: "app://-/index.html", pretendToBeVisual: true }
+  );
+  const runtime = new MyCORuntime(dom.window.document);
+  const config = defaultConfig();
+  const article = dom.window.document.querySelector("article")!;
+
+  for (const mode of ["Automatic", "Whole"] as const) {
+    config.appearance.bubbleDisplayMode = mode;
+    runtime.applyConfig(config);
+    assert.equal(article.querySelector("pre")!.hasAttribute("data-myco-prose"), false);
+    assert.equal(article.querySelector("code")!.hasAttribute("data-myco-prose"), false);
+    assert.equal(
+      article.querySelector("[data-testid=copy-code]")!.hasAttribute("data-myco-prose"),
+      false
+    );
+    assert.equal(article.querySelectorAll('[data-myco-prose="assistant"]').length, 2);
+  }
+  runtime.destroy();
+});
+
+test("long continuous prose uses bounded wrapping CSS without a fixed height", () => {
+  const dom = new JSDOM(
+    `<!doctype html><html><head></head><body><main>
+      <article data-message-author-role="assistant">
+        <p>${"C:/a-very-long-unbroken-path/".repeat(220)}</p>
+      </article>
+    </main></body></html>`,
+    { url: "app://-/index.html", pretendToBeVisual: true }
+  );
+  const runtime = new MyCORuntime(dom.window.document);
+  runtime.applyConfig(defaultConfig());
+  const css = dom.window.document.querySelector<HTMLStyleElement>(
+    "#myco-runtime-style"
+  )!.textContent!;
+  const proseRule = css.match(
+    /\[data-myco-prose="assistant"\]\s*\{([\s\S]*?)\}/
+  )?.[1] ?? "";
+
+  assert.match(proseRule, /width:\s*fit-content\(100%\)/);
+  assert.match(proseRule, /min-width:\s*0/);
+  assert.match(proseRule, /max-width:\s*min\(/);
+  assert.match(proseRule, /overflow-wrap:\s*anywhere/);
+  assert.doesNotMatch(proseRule, /height\s*:/);
+  runtime.destroy();
+});
+
 test("install is idempotent and destroy restores injected DOM", () => {
   const dom = fixture();
   const runtime = new MyCORuntime(dom.window.document);
@@ -275,6 +391,32 @@ test("ensureActive repairs a removed style and a replaced conversation root", ()
   assert.equal(assistant.getAttribute("data-myco-role"), "assistant");
   assert.ok(assistant.querySelector('[data-myco-prose="assistant"]'));
   runtime.destroy();
+});
+
+test("virtualized replacement and mode changes keep prose marker counts stable", () => {
+  const dom = new JSDOM(
+    `<!doctype html><html><head></head><body><main>
+      <article data-message-author-role="assistant"><p>First response</p></article>
+    </main></body></html>`,
+    { url: "app://-/index.html", pretendToBeVisual: true }
+  );
+  const runtime = new MyCORuntime(dom.window.document);
+  const config = defaultConfig();
+  runtime.applyConfig(config);
+  const main = dom.window.document.querySelector("main")!;
+  assert.equal(main.querySelectorAll('[data-myco-prose="assistant"]').length, 1);
+
+  config.appearance.bubbleDisplayMode = "Whole";
+  runtime.applyConfig(config);
+  assert.equal(main.querySelectorAll('[data-myco-prose="assistant"]').length, 1);
+
+  main.innerHTML =
+    '<article data-message-author-role="assistant"><div class="markdownContent-current"><p>Second response</p></div></article>';
+  runtime.refresh();
+  assert.equal(main.querySelectorAll('[data-myco-prose="assistant"]').length, 1);
+  assert.equal(main.querySelectorAll("[data-myco-turn]").length, 1);
+  runtime.destroy();
+  assert.equal(main.querySelectorAll("[data-myco-prose], [data-myco-turn], .mc-avatar, .mc-nickname").length, 0);
 });
 
 test("streaming text growth does not repeatedly regroup existing blocks", () => {

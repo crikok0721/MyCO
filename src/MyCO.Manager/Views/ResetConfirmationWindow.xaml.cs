@@ -10,6 +10,11 @@ public partial class ResetConfirmationWindow : Window
         Loaded += (_, _) => CancelButton.Focus();
     }
 
+    private void Close_Click(object sender, RoutedEventArgs eventArgs)
+    {
+        DialogResult = false;
+    }
+
     private void Confirm_Click(object sender, RoutedEventArgs eventArgs)
     {
         DialogResult = true;

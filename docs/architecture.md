@@ -42,15 +42,17 @@ flowchart TB
 
 `MyCO.Manager` is a single-instance WPF application. It owns preview/editing,
 calibration commands, diagnostics, its independent WPF theme, verified restart,
-and orderly shutdown. `WindowChrome` delegates minimize, maximize, restore,
-caption drag, and resize to the Windows window state machine. Taskbar minimize
-remains an ordinary visible taskbar state; only the explicit close choice
-`Minimize to tray` calls the background-hide route. An App-owned `NotifyIcon`
-and the named activation event restore the same window and its last
-non-minimized state. Close presents one short prompt with Exit / Minimize /
-Cancel. Exiting calls runtime `destroy()`, disconnects CDP, unsubscribes
-system-theme events, and disposes the icon; duplicated pipe peer handles owned
-by the exact Codex root prevent that disconnect from closing Codex.
+and orderly shutdown. `WindowChrome` delegates maximize, restore, caption drag,
+and resize to the Windows window state machine. Every user-triggered minimize
+path enters the tray state machine, sets `ShowInTaskbar=false`, hides the
+window, and preserves its last Normal/Maximized state. An App-owned `NotifyIcon`
+and the named activation event restore the same window. A boot-session marker
+in MyCO config gates one localized user-minimize balloon per Windows boot;
+background startup and duplicate state events are silent. Close presents one
+short prompt with Exit / Minimize / Cancel. Exiting calls runtime `destroy()`,
+disconnects CDP, unsubscribes system-theme events, and disposes the icon;
+duplicated pipe peer handles owned by the exact Codex root prevent that
+disconnect from closing Codex.
 
 The kernel mutex and activation-event names deliberately retain their
 pre-rename values so an old build and a MyCO build cannot run side by side.
@@ -80,6 +82,9 @@ of that session.
 - `IInjectionBackend` and the initial `CdpInjectionBackend`;
 - runtime session lifecycle and target monitoring;
 - configuration migration/recovery and avatar import;
+- optional MyCO-owned Codex launch associations and AUMID identity;
+- official GitHub release checking, bounded package validation, and the
+  project-owned external updater;
 - first-run packaged-logo seeding and the Manager avatar crop workflow;
 - per-user `HKCU\...\Run` registration through
   `IStartupRegistrationService`, including exact-value removal and path-drift
@@ -138,8 +143,12 @@ The runtime:
 - reconciles exactly one project-namespaced avatar/nickname pair as direct
   children of each legal identity owner and removes duplicates or orphans;
 - semantically groups only assistant prose as Automatic or Whole bubbles and
-  leaves the official user bubble untouched; Whole mode prefers an existing
-  stable Markdown surface and does not move or rewrite native nodes;
+  leaves the official user bubble untouched; Whole mode prefers the innermost
+  existing stable Markdown surface, rejects shells containing protected
+  content, and does not move or rewrite native nodes;
+- bounds bubble width with `fit-content(100%)`, a zero flex minimum, and the
+  available-space maximum so long content grows naturally instead of becoming
+  a narrow page-height surface;
 - keeps headings with following prose, lists/quotes atomic, and existing
   streaming block groups stable until structure changes;
 - excludes `pre`, `code`, diffs, tool/status/command cards, toolbars, buttons,
@@ -206,13 +215,45 @@ launch never asks for TCP consent or shows a blocking dialog. It starts Codex
 over the existing private-pipe route only when no Desktop is already running;
 an uncontrolled running Desktop is reported rather than duplicated.
 
-The existing `TrayService` is the single notification-icon owner. The caption
-minimize command calls the native taskbar minimize path and never hides the
-window. Only the explicit close-dialog Minimize action hides the window and its
-taskbar button. Double-click, the tray menu, or the single-instance activation
-event restores/focuses it without creating another window. Close presents Exit,
-Minimize, and Cancel. Tray Exit invokes the same orderly self-only close path;
-tray Restart uses the verified restart transaction.
+The existing `TrayService` is the single notification-icon owner. Caption,
+system, and close-dialog user-minimize paths all hide the window and taskbar
+button through the same state machine. Double-click, the tray menu, or the
+single-instance activation event restores/focuses it without creating another
+window. The one-per-Windows-boot balloon is backed by a persisted uptime-derived
+identity. Close presents Exit, Minimize, and Cancel. Tray Exit invokes the same
+orderly self-only close path; tray Restart uses the verified restart transaction.
+
+### Codex launch association feasibility matrix
+
+The setting is default-off and changes only MyCO-owned launch surfaces:
+
+| Entry | Owner | Implementation | Coverage | Reversal | Windows 10/11 limit |
+| --- | --- | --- | --- | --- | --- |
+| Start menu | MyCO | Per-user `MyCO - Codex.lnk` with `--codex-launch` | MyCO-created shortcut only | Delete exact MyCO-owned shortcut | Does not rewrite an official Codex shortcut |
+| Desktop | MyCO | Per-user `MyCO - Codex.lnk` with `--codex-launch` | MyCO-created shortcut only | Delete exact MyCO-owned shortcut | Existing user shortcut is never overwritten |
+| Taskbar pinned item | Windows Shell / user | No automatic rewrite; offer MyCO shortcut and re-pin guidance | Not covered | User unpins/re-pins explicitly | Standard-user APIs require user confirmation and do not safely retarget an existing official pin |
+| Protocol | MyCO per-user registration | `myco-codex:` under `HKCU\Software\Classes` | MyCO protocol launches | Delete exact MyCO command registration | Does not claim or replace `codex://` or unknown protocols |
+| AUMID | MyCO process | `SetCurrentProcessExplicitAppUserModelID` for `Crikok.MyCO` | MyCO taskbar/notification identity | Process identity ends with MyCO | Cannot inherit or impersonate Codex's AUMID |
+
+No entry modifies Codex binaries, installation directories, configuration,
+profiles, credentials, or pinned taskbar state. Existing foreign shortcuts and
+protocols are left unchanged; therefore there is no foreign shortcut backup to
+restore. MyCO-created entries are removed only after exact ownership checks.
+Associated launches signal the existing single instance when one is already
+running; they never start a second MyCO or duplicate a running Codex session.
+
+### Update route
+
+Settings checks the official GitHub release list with an explicit User-Agent,
+timeout, cancellation, and semantic-version comparison. Drafts and previews
+are ignored. Only the exact x64 ZIP and SHA-256 asset names are accepted. The
+Manager downloads to a unique `%TEMP%\MyCO\Updates` directory, validates the
+repository URL, size, hash, archive paths, reparse points, and extracted file
+list, then copies the project-owned updater outside the install directory. The
+updater verifies the exact Manager PID, path, and UTC start-time ticks before
+waiting for exit, performs the staged directory replacement with rollback, and
+starts only the verified new `MyCO.exe`. It never touches `%APPDATA%` or Codex
+data and never requests elevation.
 
 ## CDP lifecycle
 
@@ -272,8 +313,9 @@ shell, filesystem, process, credential, or networking capability.
 exist, the legacy `%APPDATA%\MyCodex` tree is copied through a same-parent
 staging directory and atomically adopted. Existing new data is never
 overwritten and legacy data is never deleted. Writes use a unique temporary
-file followed by an atomic move. Config schema 4 migrates the renamed startup
-field; schema 3 adds `bubbleDisplayMode`; schema 2 separates
+file followed by an atomic move. Config schema 5 adds the optional Codex
+association and persisted boot-scoped tray-notification fields; schema 4
+migrates the renamed startup field; schema 3 adds `bubbleDisplayMode`; schema 2 separates
 Manager theme/startup options and Dark/Light bubble palettes. Schema 0/1 names,
 avatar paths, layout, language,
 custom Assistant colors migrate without reset; legacy colors become the Dark

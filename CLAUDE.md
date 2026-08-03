@@ -35,7 +35,22 @@ Historical: `docs/archive/CODEX_HANDOFF.md`, `docs/archive/development-notes.md`
 - **Restart exact identity.** Revalidate PID, path, start time, tree ownership. Never terminate by process name.
 - **Atomic config.** Versioned, backward-compatible, corrupt → backup + restore defaults.
 - **No commit/push/PR/release without explicit request.**
+- **Launch-path handoff:** every completed task must include a separate final-report
+  section stating where the modified program can be launched and how to launch it.
+  If no executable was produced or the executable was not verified, say
+  `not produced` / `not verified` explicitly; never point to an older or unrelated
+  binary.
 - **All UI text in 4 languages:** en-US, zh-CN, zh-TW, ja-JP.
+- **User-facing wording:** ordinary UI text must use the current locale and
+  must not expose development terms such as Runtime, pipe, lifecycle, schema,
+  or signature. Keep MyCO, Codex, ChatGPT, Windows, GitHub, version numbers,
+  and necessary file extensions when they are proper names or actionable
+  labels. Translate technical concepts into user language such as appearance,
+  connection, startup, settings, or sign-in information.
+- **Diagnostics wording:** an abbreviation may remain on a diagnostics page
+  only when the current locale explains it. Audit every touched page and new
+  resource key for mixed technical terminology; list unrelated existing
+  violations before expanding the change scope.
 
 ## Key files
 

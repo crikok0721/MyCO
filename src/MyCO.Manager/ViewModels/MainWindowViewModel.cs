@@ -16,6 +16,7 @@ using MyCO.Manager.Resources;
 using MyCO.Manager.Services;
 using MyCO.Manager.Views;
 using MyCO.Startup;
+using MyCO.Updates;
 
 // Main MVVM coordinator that connects WPF controls to config, discovery, and CDP sessions.
 namespace MyCO.Manager.ViewModels;
@@ -90,6 +91,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private readonly IPrivacySafeLogger _logger;
     private readonly ThemeService _themeService;
     private readonly IStartupRegistrationService _startupRegistration;
+    private readonly CodexLaunchAssociationService _codexLaunchAssociation;
+    private readonly UpdateCoordinator _updateCoordinator;
     private readonly TimeSpan _gracefulShutdownTimeout = TimeSpan.FromSeconds(12);
     private readonly TimeSpan _forceShutdownTimeout = TimeSpan.FromSeconds(10);
     private readonly TimeSpan _quiescenceTimeout = TimeSpan.FromSeconds(15);
@@ -132,11 +135,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private BubbleDisplayModeOption? _selectedBubbleDisplayModeOption;
     private bool _launchAtLogin;
     private bool _launchCodexOnMycoStart;
+    private bool _associateCodexLaunches;
+    private string? _trayMinimizeNotificationBootId;
     private bool _previewThemeFollowsManager = true;
     private bool _settingPreviewTheme;
     private string _status = LocalizationService.Get("StatusStarting");
     private string? _statusKey = "StatusStarting";
     private object?[] _statusArguments = [];
+    private string _updateStatusKey = "UpdateStatusReady";
+    private object?[] _updateStatusArguments = [];
     private string _diagnosticsText =
         LocalizationService.Get("DiagnosticsNotRefreshed");
     private bool _diagnosticsGenerated;
@@ -160,6 +167,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             ToPreviewTheme(_themeService.EffectiveTheme),
             followsManager: true);
         _startupRegistration = new StartupRegistrationService();
+        _codexLaunchAssociation = new CodexLaunchAssociationService();
+        _updateCoordinator = new UpdateCoordinator();
         _controller = new DesktopSessionController(
             RuntimeResourceLoader.Load(),
             logger: _logger);
@@ -229,6 +238,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             ConfirmAndFactoryResetAsync,
             "ErrorFactoryReset"),
             CanUseDesktopSession);
+        CheckForUpdatesCommand = new AsyncRelayCommand(
+            () => GuardAsync(CheckForUpdatesAsync, "ErrorCheckForUpdates"));
     }
 
     public ObservableCollection<ApplicationCandidate> Candidates { get; } = [];
@@ -261,6 +272,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public ICommand OpenConfigFolderCommand { get; }
     public ICommand SaveSettingsCommand { get; }
     public ICommand FactoryResetCommand { get; }
+    public ICommand CheckForUpdatesCommand { get; }
 
     public LanguageOption SelectedLanguage
     {
@@ -386,6 +398,28 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         get => _launchCodexOnMycoStart;
         set => Set(ref _launchCodexOnMycoStart, value);
+    }
+
+    public bool AssociateCodexLaunches
+    {
+        get => _associateCodexLaunches;
+        set => Set(ref _associateCodexLaunches, value);
+    }
+
+    public bool TryClaimTrayMinimizeNotification()
+    {
+        var bootId = SystemBootIdentity.Current();
+        if (!TrayNotificationPolicy.ShouldNotify(
+                userInitiated: true,
+                bootId,
+                _trayMinimizeNotificationBootId))
+        {
+            return false;
+        }
+
+        _trayMinimizeNotificationBootId = bootId;
+        _ = PersistTrayMinimizeNotificationBootIdAsync();
+        return true;
     }
 
     public string AssistantName
@@ -731,6 +765,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     public bool WasFirstRun { get; private set; }
     public string VersionLabel => BuildInfo.Version;
+    public string CurrentVersionLabel =>
+        LocalizationService.Format("UpdateCurrentVersionFormat", BuildInfo.Version);
+    public string UpdateStatusText { get; private set; } =
+        LocalizationService.Get("UpdateStatusReady");
 
     public async Task InitializeAsync()
     {
@@ -749,9 +787,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         LoadConfig(config);
         var startupRegistrationRecovered =
             await ReconcileStartupRegistrationAsync().ConfigureAwait(true);
+        var associationRecovered =
+            await ReconcileCodexLaunchAssociationAsync().ConfigureAwait(true);
         await DetectAsync().ConfigureAwait(true);
         SetStatus(
-            startupRegistrationRecovered
+             startupRegistrationRecovered || associationRecovered
                 ? "StatusStartupRegistrationRecovered"
                 : load.CorruptBackupPath is null
                 ? "StatusReady"
@@ -760,16 +800,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     }
 
     public Task StartAutomaticallyIfConfiguredAsync() =>
-        RunDesktopOperationAsync(StartAutomaticallyCoreAsync);
+        RunDesktopOperationAsync(() => StartAutomaticallyCoreAsync(force: false));
 
-    private async Task StartAutomaticallyCoreAsync()
+    public Task StartFromAssociatedLaunchAsync() =>
+        RunDesktopOperationAsync(() => StartAutomaticallyCoreAsync(force: true));
+
+    private async Task StartAutomaticallyCoreAsync(bool force)
     {
         try
         {
             await DetectAsync().ConfigureAwait(true);
             var candidate = SelectedCandidate;
             var decision = AutomaticCodexLaunchPolicy.Decide(
-                _persistedConfig.LaunchCodexOnMycoStart,
+                force || _persistedConfig.LaunchCodexOnMycoStart,
                 candidate is not null,
                 candidate?.IsRunning == true,
                 SessionState.IsConnected);
@@ -858,6 +901,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _controller.StateChanged -= HandleStateChanged;
         _controller.RuntimeEventReceived -= HandleRuntimeEvent;
         await _controller.DisposeAsync().ConfigureAwait(false);
+        _updateCoordinator.Dispose();
     }
 
     private async Task DetectAsync()
@@ -1166,9 +1210,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                              "The MyCO executable path is unavailable.");
         var previousConfig = _persistedConfig;
         var previousRegistration = _startupRegistration.GetStatus(executable);
+        var previousAssociation = _codexLaunchAssociation.GetStatus(executable);
         try
         {
             _startupRegistration.SetEnabled(executable, LaunchAtLogin);
+            _codexLaunchAssociation.SetEnabled(executable, AssociateCodexLaunches);
             var config = BuildConfig();
             await SaveConfigAsync(config).ConfigureAwait(true);
             _themeService.ApplyMode(config.ManagerThemeMode);
@@ -1183,6 +1229,25 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             catch (Exception rollbackException)
             {
                 _logger.Error("startup_registration_rollback_failed", rollbackException);
+            }
+            try
+            {
+                _codexLaunchAssociation.SetEnabled(
+                    executable,
+                    previousAssociation.IsEnabled);
+            }
+            catch (Exception rollbackException)
+            {
+                _logger.Error("codex_association_rollback_failed", rollbackException);
+            }
+            try
+            {
+                await SaveConfigAsync(previousConfig).ConfigureAwait(true);
+            }
+            catch (Exception rollbackException)
+            {
+                _logger.Error("settings_config_rollback_failed", rollbackException);
+                _persistedConfig = previousConfig;
             }
             RefreshManagerThemeOptions(previousConfig.ManagerThemeMode);
             LoadConfig(previousConfig);
@@ -1331,6 +1396,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var previousConfig = _persistedConfig;
         var previousWasFirstRun = WasFirstRun;
         var previousRegistration = _startupRegistration.GetStatus(executable);
+        var previousAssociation = _codexLaunchAssociation.GetStatus(executable);
         var restoreSkin = SessionState.IsConnected && SessionState.IsSkinRequested;
         FactoryResetTransaction? transaction = null;
 
@@ -1342,6 +1408,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
 
             _startupRegistration.SetEnabled(executable, enabled: false);
+            _codexLaunchAssociation.SetEnabled(executable, enabled: false);
             transaction = _factoryResetService.Stage();
 
             var load = await _configStore.LoadAsync().ConfigureAwait(true);
@@ -1349,6 +1416,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     load.Config,
                     required: true)
                 .ConfigureAwait(true);
+            // This is process-independent boot-session state, not a user
+            // appearance setting. Preserve it so Reset cannot show a second
+            // balloon during the same Windows boot.
+            defaults = defaults with
+            {
+                TrayMinimizeNotificationBootId =
+                    previousConfig.TrayMinimizeNotificationBootId
+            };
+            await SaveConfigAsync(defaults).ConfigureAwait(true);
             _persistedConfig = defaults;
             WasFirstRun = true;
             RefreshManagerThemeOptions(defaults.ManagerThemeMode);
@@ -1396,6 +1472,16 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             catch (Exception rollbackException)
             {
                 _logger.Error("factory_reset_startup_rollback_failed", rollbackException);
+            }
+            try
+            {
+                _codexLaunchAssociation.SetEnabled(
+                    executable,
+                    previousAssociation.IsEnabled);
+            }
+            catch (Exception rollbackException)
+            {
+                _logger.Error("factory_reset_association_rollback_failed", rollbackException);
             }
 
             _persistedConfig = previousConfig;
@@ -1528,6 +1614,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     SelectedManagerThemeOption?.Mode ?? ManagerThemeMode.System,
                 LaunchAtLogin = LaunchAtLogin,
                 LaunchCodexOnMycoStart = LaunchCodexOnMycoStart,
+                AssociateCodexLaunches = AssociateCodexLaunches,
+                TrayMinimizeNotificationBootId = _trayMinimizeNotificationBootId,
                 Calibration = _calibration
             });
         SetStatus("StatusDefaultsRestored");
@@ -1553,6 +1641,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 SelectedManagerThemeOption?.Mode ?? ManagerThemeMode.System,
             LaunchAtLogin = LaunchAtLogin,
             LaunchCodexOnMycoStart = LaunchCodexOnMycoStart,
+            AssociateCodexLaunches = AssociateCodexLaunches,
+            TrayMinimizeNotificationBootId = _trayMinimizeNotificationBootId,
             Assistant = new PersonConfig
             {
                 Name = NicknameValidator.Normalize(AssistantName),
@@ -1618,6 +1708,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             option => option.Mode == config.Appearance.BubbleDisplayMode);
         LaunchAtLogin = config.LaunchAtLogin;
         LaunchCodexOnMycoStart = config.LaunchCodexOnMycoStart;
+        AssociateCodexLaunches = config.AssociateCodexLaunches;
+        _trayMinimizeNotificationBootId = config.TrayMinimizeNotificationBootId;
         AssistantName = config.Assistant.Name;
         UserName = config.User.Name;
         AssistantAvatar = config.Assistant.Avatar;
@@ -1683,9 +1775,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                      PickAssistantAvatarCommand,
                      PickUserAvatarCommand,
                      CalibrateAssistantCommand,
-                     CalibrateUserCommand,
-                     RefreshDiagnosticsCommand,
-                     FactoryResetCommand
+                      CalibrateUserCommand,
+                      RefreshDiagnosticsCommand,
+                      FactoryResetCommand,
+                      CheckForUpdatesCommand
                  })
         {
             if (command is AsyncRelayCommand asyncCommand)
@@ -1835,6 +1928,149 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    private async Task<bool> ReconcileCodexLaunchAssociationAsync()
+    {
+        var executable = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(executable))
+        {
+            return false;
+        }
+        try
+        {
+            var status = _codexLaunchAssociation.GetStatus(executable);
+            if (_persistedConfig.AssociateCodexLaunches)
+            {
+                if (!status.IsEnabled)
+                {
+                    _codexLaunchAssociation.SetEnabled(executable, enabled: true);
+                }
+            }
+            else if (status.IsEnabled)
+            {
+                _codexLaunchAssociation.SetEnabled(executable, enabled: false);
+            }
+            return false;
+        }
+        catch (Exception exception) when (
+            exception is InvalidOperationException or
+                UnauthorizedAccessException or
+                System.Security.SecurityException or
+                IOException)
+        {
+            _logger.Error("codex_association_reconcile_failed", exception);
+            if (_persistedConfig.AssociateCodexLaunches)
+            {
+                _persistedConfig = _persistedConfig with
+                {
+                    AssociateCodexLaunches = false
+                };
+                AssociateCodexLaunches = false;
+                await SaveConfigAsync(_persistedConfig).ConfigureAwait(true);
+            }
+            return true;
+        }
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        SetUpdateStatus("UpdateStatusChecking");
+        var result = await _updateCoordinator.CheckLatestAsync().ConfigureAwait(true);
+        switch (result.Outcome)
+        {
+            case UpdateCheckOutcome.UpToDate:
+                SetUpdateStatus("UpdateStatusUpToDate");
+                return;
+            case UpdateCheckOutcome.Offline:
+                SetUpdateStatus("UpdateStatusOffline");
+                return;
+            case UpdateCheckOutcome.Timeout:
+                SetUpdateStatus("UpdateStatusTimeout");
+                return;
+            case UpdateCheckOutcome.RateLimited:
+                SetUpdateStatus("UpdateStatusRateLimited");
+                return;
+            case UpdateCheckOutcome.InvalidFormat:
+                SetUpdateStatus("UpdateStatusInvalid");
+                return;
+            case UpdateCheckOutcome.Available:
+                break;
+            default:
+                SetUpdateStatus("UpdateStatusInvalid");
+                return;
+        }
+
+        if (result.Release is null)
+        {
+            SetUpdateStatus("UpdateStatusInvalid");
+            return;
+        }
+        SetUpdateStatus(
+            "UpdateStatusAvailableFormat",
+            result.Release.Version.ToString());
+        var dialog = new UpdateAvailableWindow(result.Release)
+        {
+            Owner = System.Windows.Application.Current?.MainWindow
+        };
+        if (dialog.ShowDialog() != true || !dialog.Confirmed)
+        {
+            return;
+        }
+
+        SetUpdateStatus("UpdateStatusDownloading");
+        try
+        {
+            var prepared = await _updateCoordinator.PrepareAsync(result.Release)
+                .ConfigureAwait(true);
+            _ = _updateCoordinator.Launch(prepared);
+            if (System.Windows.Application.Current?.MainWindow is MainWindow window)
+            {
+                // The updater waits for this exact process identity, then starts only
+                // the new MyCO executable. It never closes or restarts Codex.
+                window.RequestExit();
+            }
+        }
+        catch (Exception exception) when (
+            exception is UnauthorizedAccessException or
+                System.Security.SecurityException or
+                DirectoryNotFoundException)
+        {
+            _logger.Error("update_permission_failed", exception);
+            SetUpdateStatus("UpdateStatusPermission");
+        }
+        catch (Exception exception)
+        {
+            _logger.Error("update_install_failed", exception);
+            SetUpdateStatus("UpdateStatusFailed");
+        }
+    }
+
+    private async Task PersistTrayMinimizeNotificationBootIdAsync()
+    {
+        try
+        {
+            await _configSaveGate.WaitAsync().ConfigureAwait(true);
+            try
+            {
+                var config = _persistedConfig with
+                {
+                    TrayMinimizeNotificationBootId =
+                        _trayMinimizeNotificationBootId
+                };
+                await _configStore.SaveAsync(config).ConfigureAwait(true);
+                _persistedConfig = config;
+            }
+            finally
+            {
+                _configSaveGate.Release();
+            }
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnauthorizedAccessException)
+        {
+            _logger.Info("tray_notification_state_save_failed");
+        }
+    }
+
     private async Task PersistLanguageAsync(string language)
     {
         try
@@ -1894,6 +2130,11 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Raise(nameof(BubblePaddingYLabel));
         Raise(nameof(MessageGapLabel));
         Raise(nameof(MessageMaxWidthLabel));
+        Raise(nameof(CurrentVersionLabel));
+        UpdateStatusText = LocalizationService.Format(
+            _updateStatusKey,
+            _updateStatusArguments);
+        Raise(nameof(UpdateStatusText));
         if (_statusKey is not null)
         {
             Status = LocalizationService.Format(_statusKey, _statusArguments);
@@ -2040,6 +2281,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         _statusKey = null;
         _statusArguments = [];
         Status = text;
+    }
+
+    private void SetUpdateStatus(string key, params object?[] arguments)
+    {
+        _updateStatusKey = key;
+        _updateStatusArguments = arguments;
+        UpdateStatusText = LocalizationService.Format(key, arguments);
+        Raise(nameof(UpdateStatusText));
     }
 
     private void SetStatusFromSession(string status)

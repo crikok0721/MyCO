@@ -1,6 +1,6 @@
 # Project Context
 
-Last updated: 2026-08-02
+Last updated: 2026-08-03
 
 ## Project goal
 
@@ -24,7 +24,7 @@ Core constraints:
 - **Phase:** Phase 3 — Beta testing and pre-release stability remediation
 - **Version:** `0.99.2` (local UI repair; not released)
 - **Branch:** `main`
-- **Base HEAD:** `3b93ab9` (existing local commit preserved)
+- **Base HEAD:** `e52f21a` (existing local commit preserved)
 - **GitHub:** https://github.com/crikok0721/MyCO
 
 The active controlling Codex session was never restarted or closed. Production
@@ -50,6 +50,15 @@ restart was exercised only against isolated official Desktop process trees.
 - Exact-identity restart, process-tree quiescence, force fallback, readiness detection.
 - Dev tools: CdpProbe, isolated VisualAcceptance host.
 - Self-contained win-x64 ZIP build, per-release self-signed Authenticode signing.
+- Optional default-off MyCO-owned Codex launch associations with explicit
+  Start-menu/Desktop/protocol coverage and taskbar-pin limitation.
+- Official-release update checking with bounded validation and a separate
+  project-owned updater; the local self-contained win-x64 publish includes both
+  `MyCO.exe` and the single-file `MyCO.Updater.exe`.
+- User minimize now hides to the single tray icon, preserves Normal/Maximized
+  state, and shows one persisted balloon per Windows boot.
+- Runtime Whole-mode shell regression fix and protected mixed-Markdown
+  boundary fixtures.
 
 ## Public Beta gap
 
@@ -81,18 +90,27 @@ Full task list: `docs/TASK_LIST.md`.
 - Real Manager/Codex visual acceptance for the August 1 UI changes remains a
   disposable-session/VM gate; automated XAML/DOM tests are supporting evidence only.
 
-## Validation for the local 0.99.2 UI repair
+## Validation for the local 0.99.2 incremental development
 
-- `dotnet build .\MyCO.sln -c Release`: passed with 0 warnings and 0 errors.
-- `dotnet test .\MyCO.sln -c Release --no-build`: 150/150 passed.
-- `git diff --check`: passed.
-- Local Manager visual check: zh-CN light and dark themes showed the unified
-  preview bubbles, borderless cards, exact reset copy, and the retained two
-  appearance edit entries. The notification-area tray menu could not be
-  opened through the available desktop observation surface, so its visual
-  acceptance remains outstanding.
-- No Runtime, CDP, restart, reset-service, protocol, or schema files were
-  changed; no release, tag, push, or PR was created.
+- Runtime `npm ci`/`npm run check`: 0 vulnerabilities, lint, 51/51 tests, and
+  generated bundle rebuild passed after the long-content boundary fix.
+- Full .NET SDK 8.0.423 build: 0 warnings and 0 errors.
+- .NET test suite: 173/173 passed, 0 failed, 0 skipped.
+- Isolated self-contained publish completed at
+  `artifacts/MyCO-current-0.99.2-win-x64-20260803/`, containing `MyCO.exe` and
+  the single-file `MyCO.Updater.exe`. Starting the updater without arguments
+  safely exits with code 2.
+- `scripts/build-release.ps1` completed in an isolated temporary worktree, so
+  it did not overwrite the pre-incremental `artifacts/MyCO-win-x64` package.
+  The validation ZIP contained `MyCO.exe`, `MyCO.Updater.exe`,
+  `MyCO.runtimeconfig.json`, and `SHA256SUMS.txt`; the embedded Runtime bundle
+  was rebuilt and included in `MyCO.exe`. The registry audit endpoint was
+  unavailable, so the script was completed with the one-shot local npm audit
+  cache, which reported 0 vulnerabilities.
+- Public release packaging remains intentionally unperformed.
+- Real Windows visual acceptance, taskbar-entry verification, and isolated
+  updater replacement tests remain pending.
+- No commit, push, tag, PR, or release was created.
 
 ## Next recommended steps
 

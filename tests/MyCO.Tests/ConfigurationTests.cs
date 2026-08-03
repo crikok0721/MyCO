@@ -49,7 +49,7 @@ public sealed class ConfigurationTests
         var result = await new ConfigStore(paths).LoadAsync();
 
         Assert.True(result.WasMigrated);
-        Assert.Equal(4, result.Config.SchemaVersion);
+        Assert.Equal(5, result.Config.SchemaVersion);
         Assert.Equal(
             BubbleDisplayMode.Automatic,
             result.Config.Appearance.BubbleDisplayMode);
@@ -113,7 +113,7 @@ public sealed class ConfigurationTests
         Assert.Equal(
             BubbleDisplayMode.Automatic,
             loaded.Config.Appearance.BubbleDisplayMode);
-        Assert.Equal(4, loaded.Config.SchemaVersion);
+        Assert.Equal(5, loaded.Config.SchemaVersion);
     }
 
     [Fact]
@@ -234,7 +234,7 @@ public sealed class ConfigurationTests
         var loaded = await new ConfigStore(paths).LoadAsync();
 
         Assert.True(loaded.WasMigrated);
-        Assert.Equal(4, loaded.Config.SchemaVersion);
+        Assert.Equal(5, loaded.Config.SchemaVersion);
         Assert.Equal("露娜", loaded.Config.Assistant.Name);
         Assert.Equal(@"C:\头像\assistant.png", loaded.Config.Assistant.Avatar);
         Assert.Equal(52, loaded.Config.Appearance.AvatarSize);
@@ -284,6 +284,50 @@ public sealed class ConfigurationTests
         Assert.Equal(theme, loaded.Config.ManagerThemeMode);
         Assert.True(loaded.Config.LaunchAtLogin);
         Assert.True(loaded.Config.LaunchCodexOnMycoStart);
+    }
+
+    [Fact]
+    public async Task SchemaFourAddsLaunchAssociationAndBootScopedTrayNotificationDefaults()
+    {
+        using var directory = new TempDirectory();
+        var paths = new ConfigPaths(directory.Path);
+        paths.EnsureDirectories();
+        await new ConfigStore(paths).SaveAsync(AppConfig.Default);
+
+        var json = JsonNode.Parse(await File.ReadAllTextAsync(paths.ConfigFile))!
+            .AsObject();
+        json["schemaVersion"] = 4;
+        json.Remove("associateCodexLaunches");
+        json.Remove("trayMinimizeNotificationBootId");
+        await File.WriteAllTextAsync(paths.ConfigFile, json.ToJsonString());
+
+        var loaded = await new ConfigStore(paths).LoadAsync();
+
+        Assert.True(loaded.WasMigrated);
+        Assert.Equal(5, loaded.Config.SchemaVersion);
+        Assert.False(loaded.Config.AssociateCodexLaunches);
+        Assert.Null(loaded.Config.TrayMinimizeNotificationBootId);
+    }
+
+    [Fact]
+    public async Task LaunchAssociationAndTrayNotificationBootIdRoundTrip()
+    {
+        using var directory = new TempDirectory();
+        var store = new ConfigStore(new ConfigPaths(directory.Path));
+        var expected = AppConfig.Default with
+        {
+            AssociateCodexLaunches = true,
+            TrayMinimizeNotificationBootId = "2026-08-02T05:00:00Z"
+        };
+
+        await store.SaveAsync(expected);
+
+        var loaded = await store.LoadAsync();
+
+        Assert.True(loaded.Config.AssociateCodexLaunches);
+        Assert.Equal(
+            expected.TrayMinimizeNotificationBootId,
+            loaded.Config.TrayMinimizeNotificationBootId);
     }
 
     [Fact]
@@ -361,7 +405,7 @@ public sealed class ConfigurationTests
         using var document = JsonDocument.Parse(json);
         var root = document.RootElement;
 
-        Assert.Equal(4, root.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(5, root.GetProperty("schemaVersion").GetInt32());
         Assert.Equal(
             LanguageCodes.TraditionalChinese,
             root.GetProperty("language").GetString());
@@ -446,7 +490,7 @@ public sealed class ConfigurationTests
         Assert.True(File.Exists(result.CorruptBackupPath));
         Assert.Equal("菲叶子", result.Config.Assistant.Name);
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(paths.ConfigFile));
-        Assert.Equal(4, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(5, document.RootElement.GetProperty("schemaVersion").GetInt32());
     }
 
     [Fact]
@@ -672,7 +716,7 @@ public sealed class ConfigurationTests
 
         using var currentJson = JsonDocument.Parse(
             await File.ReadAllTextAsync(currentPaths.ConfigFile));
-        Assert.Equal(4, currentJson.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(5, currentJson.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.True(currentJson.RootElement.TryGetProperty(
             "launchCodexOnMycoStart",
             out _));

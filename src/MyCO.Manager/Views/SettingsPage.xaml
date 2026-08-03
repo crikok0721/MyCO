@@ -66,7 +66,51 @@
                                 </StackPanel>
                             </CheckBox.Content>
                         </CheckBox>
+                        <CheckBox Style="{StaticResource SwitchCheckBox}"
+                                  IsChecked="{Binding AssociateCodexLaunches}"
+                                  HorizontalContentAlignment="Stretch"
+                                  Margin="0,14,0,0">
+                            <CheckBox.Content>
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource AssociateCodexLaunches}" />
+                                    <TextBlock Text="{DynamicResource AssociateCodexLaunchesDescription}"
+                                               Foreground="{DynamicResource MutedTextBrush}"
+                                               FontSize="12"
+                                               LineHeight="18"
+                                               TextWrapping="Wrap"
+                                               Margin="0,4,0,0" />
+                                </StackPanel>
+                            </CheckBox.Content>
+                        </CheckBox>
                     </StackPanel>
+                </Border>
+
+                <Border Margin="0,16,0,0"
+                        Style="{StaticResource CardBorder}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,24,0">
+                            <TextBlock Text="{DynamicResource UpdateTitle}"
+                                       FontSize="17"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding CurrentVersionLabel}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       Margin="0,6,0,0" />
+                            <TextBlock Text="{Binding UpdateStatusText}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,4,0,0" />
+                        </StackPanel>
+                        <Button Grid.Column="1"
+                                Content="{DynamicResource CheckForUpdates}"
+                                Command="{Binding CheckForUpdatesCommand}"
+                                Style="{StaticResource PrimaryButton}"
+                                VerticalAlignment="Center"
+                                MinWidth="140" />
+                    </Grid>
                 </Border>
 
                 <Border Margin="0,20,0,0"

@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using MyCO.Configuration;
 using MyCO.Manager.Services;
 
@@ -106,7 +107,7 @@ public sealed partial class ManagerThemeAndTrayTests
             "Resources",
             "Strings.zh-CN.xaml"));
 
-        Assert.Equal(2, Regex.Matches(settings, "SwitchCheckBox").Count);
+        Assert.Equal(3, Regex.Matches(settings, "SwitchCheckBox").Count);
         Assert.DoesNotContain("StartupDescription", settings);
         Assert.DoesNotContain("LaunchAtLoginDescription", settings);
         Assert.DoesNotContain("StartupSafetyNote", settings);
@@ -117,6 +118,8 @@ public sealed partial class ManagerThemeAndTrayTests
         Assert.Contains(
             "若Codex已启动，MyCO不会主动修改已启动的Codex",
             simplified);
+        Assert.Contains("AssociateCodexLaunches", settings);
+        Assert.Contains("将 MyCO 关联到 Codex 启动", simplified);
         Assert.DoesNotContain("StartupSafetyNote", simplified);
     }
 
@@ -155,6 +158,129 @@ public sealed partial class ManagerThemeAndTrayTests
             Assert.True(state.Restore());
             Assert.False(state.Restore());
             Assert.Equal(TrayWindowPresentation.Visible, state.State);
+        }
+    }
+
+    [Fact]
+    public void TrayNotificationIsClaimedOnlyOncePerWindowsBoot()
+    {
+        const string boot = "2026-08-02T05:00:00.0000000+00:00";
+
+        Assert.True(TrayNotificationPolicy.ShouldNotify(true, boot, null));
+        Assert.False(TrayNotificationPolicy.ShouldNotify(true, boot, boot));
+        Assert.False(TrayNotificationPolicy.ShouldNotify(false, boot, null));
+        Assert.True(TrayNotificationPolicy.ShouldNotify(
+            true,
+            "2026-08-03T05:00:00.0000000+00:00",
+            boot));
+    }
+
+    [Fact]
+    public void MainWindowTitleBarUsesFilledIconAndLocalizedBrandSubtitle()
+    {
+        var root = FindRepositoryRoot();
+        var xaml = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "Views",
+            "MainWindow.xaml"));
+
+        Assert.Contains("Stretch=\"UniformToFill\"", xaml);
+        Assert.Contains("ClipToBounds=\"True\"", xaml);
+        Assert.Contains("BrandTitleMy", xaml);
+        Assert.Contains("BrandTitleCo", xaml);
+        Assert.Contains("BrandSubtitle", xaml);
+    }
+
+    [Fact]
+    public void BrandResourcesRemainSynchronizedAcrossFourLocales()
+    {
+        var root = FindRepositoryRoot();
+        foreach (var culture in new[] { "en-US", "zh-CN", "zh-TW", "ja-JP" })
+        {
+            var resources = File.ReadAllText(Path.Combine(
+                root,
+                "src",
+                "MyCO.Manager",
+                "Resources",
+                $"Strings.{culture}.xaml"));
+
+            Assert.Contains("x:Key=\"BrandTitleMy\"", resources);
+            Assert.Contains("x:Key=\"BrandTitleCo\"", resources);
+            Assert.Contains(
+                "<sys:String x:Key=\"BrandSubtitle\">It's MyCO!!!!!</sys:String>",
+                resources);
+        }
+    }
+
+    [Fact]
+    public void NewlyTouchedUserCopyDoesNotExposeRuntimeImplementationTerms()
+    {
+        var root = FindRepositoryRoot();
+        var touchedKeys = new[]
+        {
+            "BrandTitleMy",
+            "BrandTitleCo",
+            "BrandSubtitle",
+            "AssociateCodexLaunches",
+            "AssociateCodexLaunchesDescription",
+            "TrayMinimizedNotification",
+            "UpdateTitle",
+            "UpdateStatusReady",
+            "UpdateStatusChecking",
+            "UpdateStatusUpToDate",
+            "UpdateStatusAvailableFormat",
+            "UpdateStatusOffline",
+            "UpdateStatusTimeout",
+            "UpdateStatusRateLimited",
+            "UpdateStatusInvalid",
+            "UpdateDialogTitle",
+            "UpdateDialogDescriptionFormat",
+            "UpdateNow",
+            "UpdateLater",
+            "UpdateStatusDownloading",
+            "UpdateStatusFailed",
+            "UpdateStatusPermission",
+            "FactoryResetConfirmTitle",
+            "FactoryResetConfirmDescription",
+            "FactoryResetDeletesTitle",
+            "FactoryResetDeleteAppearance",
+            "FactoryResetDeleteCalibration",
+            "FactoryResetDeleteDiagnostics",
+            "FactoryResetDeleteStartup",
+            "FactoryResetKeepsTitle",
+            "FactoryResetKeepProgram",
+            "FactoryResetKeepCodexProgram",
+            "FactoryResetKeepCodexData"
+        };
+        var forbiddenTerms = new[]
+        {
+            "Runtime",
+            "pipe",
+            "lifecycle",
+            "schema",
+            "signature",
+            "protocol"
+        };
+
+        foreach (var culture in new[] { "en-US", "zh-CN", "zh-TW", "ja-JP" })
+        {
+            var document = ReadManagerXaml("Resources", $"Strings.{culture}.xaml");
+            foreach (var element in Elements(document, "String")
+                         .Where(element => Attribute(element, "Key") is { } key &&
+                                           touchedKeys.Contains(
+                                               key,
+                                               StringComparer.Ordinal)))
+            {
+                foreach (var forbidden in forbiddenTerms)
+                {
+                    Assert.DoesNotContain(
+                        forbidden,
+                        element.Value,
+                        StringComparison.OrdinalIgnoreCase);
+                }
+            }
         }
     }
 
@@ -496,15 +622,77 @@ public sealed partial class ManagerThemeAndTrayTests
             "MyCO.Manager",
             "Views",
             "MainWindow.xaml.cs"));
+        var app = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "App.xaml.cs"));
 
         Assert.Contains("MaximizeRestoreButton", xaml);
         Assert.Contains("WindowChrome", xaml);
-        Assert.Contains("SystemCommands.MinimizeWindow(this)", code);
+        Assert.Contains("PrepareForBackground(userInitiated: true)", code);
+        Assert.Contains("ShowInTaskbar = false", code);
+        Assert.Contains("UserMinimizedToTray", code);
+        Assert.DoesNotContain("SystemCommands.MinimizeWindow(this)", code);
         Assert.Contains("SystemCommands.MaximizeWindow(this)", code);
-        Assert.Contains("PrepareForBackground()", code);
+        Assert.Contains("PrepareForBackground()", app);
         Assert.DoesNotContain(
             "WindowState = WindowState.Normal;\n        Hide();",
             code.Replace("\r\n", "\n", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void AssociatedLaunchUsesTheExistingSingleInstanceActivationPath()
+    {
+        var root = FindRepositoryRoot();
+        var presentation = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "Services",
+            "TrayWindowStateMachine.cs"));
+        var app = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "App.xaml.cs"));
+
+        Assert.Contains("--codex-launch", presentation);
+        Assert.Contains("CodexLaunchEventName", app);
+        Assert.Contains("StartFromAssociatedLaunchAsync", app);
+        Assert.Contains("MyCOAppIdentity.Apply", app);
+        Assert.DoesNotContain("Process.GetProcessesByName", app);
+    }
+
+    [Fact]
+    public void TrayNotificationUsesOneBalloonEventAndLocalizedText()
+    {
+        var root = FindRepositoryRoot();
+        var tray = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "Services",
+            "TrayService.cs"));
+        Assert.Single(Regex.Matches(tray, "ShowBalloonTip").Cast<Match>());
+        Assert.Contains("TrayMinimizedNotification", tray);
+        Assert.Contains("UserMinimizedToTray", tray);
+    }
+
+    [Fact]
+    public void FactoryResetPersistsTheBootScopedTrayClaimBeforeCommit()
+    {
+        var root = FindRepositoryRoot();
+        var viewModel = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "ViewModels",
+            "MainWindowViewModel.cs"));
+
+        Assert.Contains("TrayMinimizeNotificationBootId =", viewModel);
+        Assert.Contains("await SaveConfigAsync(defaults).ConfigureAwait(true);", viewModel);
+        Assert.Contains("transaction.Commit();", viewModel);
     }
 
     [Fact]
@@ -665,6 +853,32 @@ public sealed partial class ManagerThemeAndTrayTests
         }
         throw new DirectoryNotFoundException("Repository root was not found.");
     }
+
+    private static XDocument ReadManagerXaml(string directory, string file) =>
+        XDocument.Load(Path.Combine(
+            FindRepositoryRoot(),
+            "src",
+            "MyCO.Manager",
+            directory,
+            file));
+
+    private static IEnumerable<XElement> Elements(
+        XDocument document,
+        string localName) =>
+        document.Descendants().Where(element =>
+            string.Equals(
+                element.Name.LocalName,
+                localName,
+                StringComparison.Ordinal));
+
+    private static string? Attribute(XElement element, string localName) =>
+        element.Attributes()
+            .FirstOrDefault(attribute =>
+                string.Equals(
+                    attribute.Name.LocalName,
+                    localName,
+                    StringComparison.Ordinal))
+            ?.Value;
 
     [GeneratedRegex("x:Key=\"([^\"]+)\"", RegexOptions.CultureInvariant)]
     private static partial Regex KeyRegex();

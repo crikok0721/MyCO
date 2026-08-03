@@ -4,7 +4,8 @@ Last updated: 2026-08-02
 
 ## Current release gate
 
-Status: `0.99.2` Manager UI repair is implemented locally and is not released.
+Status: `0.99.2` incremental development is implemented locally and is not
+released; build and Windows acceptance gates remain open.
 The existing `0.99.1` signed-release route remains documented below; public
 readiness is still blocked by the environment-dependent items below.
 
@@ -30,6 +31,9 @@ readiness is still blocked by the environment-dependent items below.
   including multi-monitor maximize/restore and tray restore.
 - [ ] Add a user-facing privacy-safe diagnostics export and issue-report
   workflow.
+- [ ] Audit legacy user-visible status and diagnostics strings for untranslated
+  development terms such as Runtime/pipe/signature; expand only after a
+  separate wording plan and four-language review.
 - [ ] Define and run a compatibility smoke matrix for supported official
   Desktop versions and verify Safe Mode after an incompatible update.
 - [ ] Document crash-recovery and restart-failure actions in the user guide.
@@ -37,7 +41,8 @@ readiness is still blocked by the environment-dependent items below.
 ## Medium — 可在 Beta 中继续
 
 - [ ] Evaluate an installer/MSIX route with explicit uninstall semantics.
-- [ ] Add an opt-in version check/update notification flow.
+- [x] Add an opt-in version check/update flow with official-release validation
+  and a project-owned external updater; run the isolated replacement matrix.
 - [ ] Add a disposable real-process production-restart integration fixture.
 - [ ] Expand accessibility and keyboard navigation checks for all pages.
 
@@ -47,6 +52,11 @@ readiness is still blocked by the environment-dependent items below.
 - [ ] Add optional release signing verification in local tooling.
 
 ## Completed in the current repair
+
+- [x] 0.99.2 incremental scope: filled titlebar icon, two-tone brand title and
+  subtitle, one-per-Windows-boot tray minimize balloon, default-off MyCO-owned
+  Codex associations, official release update flow, reset confirmation layout,
+  and the long-content Runtime shell regression fix.
 
 - [x] 0.99.2 Manager UI repair: shared user-style preview bubbles, exact
   four-language factory-reset copy, borderless semantic content cards, the
@@ -74,7 +84,8 @@ readiness is still blocked by the environment-dependent items below.
 - [x] Conversation-root boundary enforcement, composer/empty-state exclusion,
   singleton reconciliation, orphan cleanup, and streaming mutation refresh.
 - [x] Stable Whole-response surface and fully rounded bubble contours.
-- [x] Native taskbar minimize separated from explicit tray hiding.
+- [x] User minimize paths uniformly hide to the single tray icon and preserve
+  the prior Normal/Maximized state.
 - [x] Standard minimize/maximize/restore/close window controls.
 - [x] Privacy-safe polling-log deduplication.
 - [x] Runtime, .NET, isolated restart/theme/destroy, and Manager visual

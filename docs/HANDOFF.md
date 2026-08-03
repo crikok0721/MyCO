@@ -1,6 +1,6 @@
 # Project Handoff
 
-Last updated: 2026-08-01 (Asia/Hong_Kong)
+Last updated: 2026-08-03 (Asia/Hong_Kong)
 
 Repository: `C:\Users\crikok\Documents\MyCO`
 
@@ -9,6 +9,14 @@ checkout; use the `MyCO` path above for all commands.
 
 GitHub: `https://github.com/crikok0721/MyCO`
 
+Current local incremental executable (not a public release):
+
+`C:\Users\crikok\Documents\MyCO\artifacts\MyCO-current-0.99.2-win-x64-20260803\MyCO.exe`
+
+The matching single-file updater is in the same directory as
+`MyCO.Updater.exe`. Launch the Manager from the path above; do not use the
+older `artifacts\MyCO-win-x64` package or the temporary updater experiments.
+
 ## 1. Current status
 
 MyCO is a Windows 10/11 x64 .NET 8 WPF manager plus an embedded TypeScript
@@ -16,17 +24,12 @@ Runtime for the official Codex/ChatGPT Desktop renderer. It is local, reversible
 privacy-safe, and fail-closed.
 
 - Phase: Phase 3 — Beta testing and pre-release stability remediation
-- Version: `0.99.1`
+- Version: `0.99.2` (local incremental development; not released)
 - Branch: `main`
-- Base HEAD before this release: `066bd9c9514abcaae15e05a35ec059e1fd7619ef`
-  (`main`)
-- Release scope: the current UI, Runtime, localization, reset, and documentation
-  changes are intentionally included in the `v0.99.1` release commit.
-- Git actions: this release task creates and pushes the scoped commit and tag;
-  no pull request is required for the direct `main` release route.
-- Release conclusion: local unsigned validation and the tag workflow's signing,
-  provenance, checksum, SBOM, and public distribution verification are complete
-  for `v0.99.1`.
+- Base HEAD: `e52f21a1caef` (`main`); all 0.99.2 changes remain uncommitted.
+- Release scope: the confirmed 0.99.2 UI, Runtime, tray, association, update,
+  reset, and documentation changes are present only in the working tree.
+- Git actions: no commit, push, tag, PR, or release was created.
 
 The active controlling Codex session was never restarted or closed. Production
 restart behavior was exercised only against an exact-owned isolated official
@@ -97,10 +100,11 @@ Primary files:
 
 - `WindowChrome` now provides native minimize, maximize, restore, drag, resize,
   and caption hit testing.
-- Caption/taskbar minimize uses the Windows minimized state and never hides to
-  tray.
-- Only the explicit close-dialog Minimize choice calls the tray background
-  route.
+- Caption/taskbar and close-dialog user minimize all use the tray background
+  route, hide the taskbar button, and preserve the prior Normal/Maximized
+  state.
+- The first user minimize in one Windows boot may show one localized tray
+  notification; background startup and duplicate state events stay silent.
 - Tray restore preserves the last non-minimized state and reuses one window.
 - The close dialog now contains one short prompt and Exit / Minimize / Cancel;
   Escape cancels and Minimize is the default focused action.
@@ -325,12 +329,26 @@ dotnet test .\MyCO.sln -c Release --no-build
 .\scripts\build-release.ps1
 ```
 
-This validation found no installed .NET SDK. It used an official .NET 8.0.423
-SDK extracted temporarily under `%TEMP%\MyCO-dotnet8-sdk` and placed first on
-`PATH`:
+The global machine has no installed .NET SDK. Local validation used the official
+full .NET 8.0.423 SDK extracted temporarily under
+`%TEMP%\MyCO-dotnet8-full-sdk\sdk` and placed first on `PATH`. It completed the
+build and test commands above with 0 warnings/errors and 173/173 tests passed.
+The Runtime check completed with 51/51 tests and regenerated the bundle.
+
+The isolated self-contained executable is:
+
+`C:\Users\crikok\Documents\MyCO\artifacts\MyCO-current-0.99.2-win-x64-20260803\MyCO.exe`
+
+The matching updater is beside it as `MyCO.Updater.exe`. The release script was
+run only in an isolated temporary worktree because running it in this checkout
+would overwrite the retained pre-incremental `artifacts\MyCO-win-x64` package.
+It produced and inspected a ZIP containing `MyCO.exe`, `MyCO.Updater.exe`,
+`MyCO.runtimeconfig.json`, and `SHA256SUMS.txt`; no public package was created.
+
+For a repeatable local SDK setup:
 
 ```powershell
-$sdkRoot = Join-Path $env:TEMP "MyCO-dotnet8-sdk"
+$sdkRoot = Join-Path $env:TEMP "MyCO-dotnet8-full-sdk\sdk"
 $env:PATH = "$sdkRoot;" + $env:PATH
 ```
 

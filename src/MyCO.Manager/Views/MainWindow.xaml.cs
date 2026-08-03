@@ -17,8 +17,11 @@ public partial class MainWindow : Window
     private readonly TrayWindowStateMachine _presentation = new();
     private WindowState _stateBeforeTray = WindowState.Normal;
     private WindowState _lastNonMinimizedState = WindowState.Normal;
+    private bool _transitioningToTray;
     private const int DwmWindowCornerPreference = 33;
     private const int DwmWindowCornerRound = 2;
+
+    public event EventHandler? UserMinimizedToTray;
 
     public MainWindow(MainWindowViewModel viewModel)
     {
@@ -31,7 +34,7 @@ public partial class MainWindow : Window
 
     private void Minimize_Click(object sender, RoutedEventArgs eventArgs)
     {
-        SystemCommands.MinimizeWindow(this);
+        PrepareForBackground(userInitiated: true);
     }
 
     private void MaximizeRestore_Click(object sender, RoutedEventArgs eventArgs)
@@ -51,7 +54,7 @@ public partial class MainWindow : Window
         Close();
     }
 
-    public void PrepareForBackground()
+    public void PrepareForBackground(bool userInitiated = false)
     {
         if (!_presentation.Hide())
         {
@@ -60,27 +63,35 @@ public partial class MainWindow : Window
         _stateBeforeTray = WindowState == WindowState.Minimized
             ? _lastNonMinimizedState
             : WindowState;
-        ShowInTaskbar = false;
-        Hide();
+        _transitioningToTray = true;
+        try
+        {
+            ShowInTaskbar = false;
+            Hide();
+        }
+        finally
+        {
+            _transitioningToTray = false;
+        }
+
+        if (userInitiated && ViewModel.TryClaimTrayMinimizeNotification())
+        {
+            UserMinimizedToTray?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     public void RestoreFromTray()
     {
-        if (!_presentation.Restore() && IsVisible)
-        {
-            if (WindowState == WindowState.Minimized)
-            {
-                SystemCommands.RestoreWindow(this);
-            }
-            ActivateWindow();
-            return;
-        }
+        var restoredFromTray = _presentation.Restore();
         ShowInTaskbar = true;
         if (!IsVisible)
         {
             Show();
         }
-        WindowState = _stateBeforeTray;
+        if (restoredFromTray || WindowState == WindowState.Minimized)
+        {
+            WindowState = _stateBeforeTray;
+        }
         ActivateWindow();
     }
 
@@ -100,6 +111,21 @@ public partial class MainWindow : Window
 
     private void HandleWindowStateChanged(object? sender, EventArgs eventArgs)
     {
+        if (WindowState == WindowState.Minimized &&
+            IsVisible &&
+            !_transitioningToTray)
+        {
+            _ = Dispatcher.InvokeAsync(
+                () =>
+                {
+                    if (WindowState == WindowState.Minimized && IsVisible)
+                    {
+                        PrepareForBackground(userInitiated: true);
+                    }
+                },
+                DispatcherPriority.Background);
+        }
+
         if (WindowState != WindowState.Minimized)
         {
             _lastNonMinimizedState = WindowState;
@@ -185,7 +211,7 @@ public partial class MainWindow : Window
             choiceWindow.ShowDialog();
             if (choiceWindow.Choice == CloseChoice.MinimizeToTray)
             {
-                PrepareForBackground();
+                PrepareForBackground(userInitiated: true);
                 return;
             }
             if (choiceWindow.Choice != CloseChoice.Exit)

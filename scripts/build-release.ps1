@@ -19,6 +19,7 @@ if ([string]::IsNullOrWhiteSpace($version)) {
 }
 $runtimeRoot = Join-Path $repoRoot "src\MyCO.Runtime"
 $managerProject = Join-Path $repoRoot "src\MyCO.Manager\MyCO.Manager.csproj"
+$updaterProject = Join-Path $repoRoot "src\MyCO.Updater\MyCO.Updater.csproj"
 $solution = Join-Path $repoRoot "MyCO.sln"
 $artifactsRoot = Join-Path $repoRoot "artifacts"
 $artifactName = "MyCO-$RuntimeIdentifier"
@@ -62,10 +63,12 @@ finally {
 
 $restoreArguments = @("restore", $solution)
 $ridRestoreArguments = @("restore", $managerProject, "-r", $RuntimeIdentifier)
+$ridUpdaterRestoreArguments = @("restore", $updaterProject, "-r", $RuntimeIdentifier)
 if ($UseChinaMirrors) {
     $nugetSource = "https://repo.huaweicloud.com/repository/nuget/v3/index.json"
     $restoreArguments += @("--source", $nugetSource)
     $ridRestoreArguments += @("--source", $nugetSource)
+    $ridUpdaterRestoreArguments += @("--source", $nugetSource)
 }
 
 & $dotnet @restoreArguments
@@ -107,6 +110,22 @@ New-Item -ItemType Directory -Path $publishRoot -Force | Out-Null
     -o $publishRoot
 if ($LASTEXITCODE -ne 0) {
     throw "Publish failed with exit code $LASTEXITCODE."
+}
+& $dotnet @ridUpdaterRestoreArguments
+if ($LASTEXITCODE -ne 0) {
+    throw "Updater runtime-specific restore failed with exit code $LASTEXITCODE."
+}
+
+# The updater is a separate process so it can replace the running Manager.
+# Publish it into the same package without touching the Manager executable.
+& $dotnet publish $updaterProject `
+    -c $Configuration `
+    -r $RuntimeIdentifier `
+    --self-contained true `
+    --no-restore `
+    -o $publishRoot
+if ($LASTEXITCODE -ne 0) {
+    throw "Updater publish failed with exit code $LASTEXITCODE."
 }
 
 if (-not [string]::IsNullOrWhiteSpace($SigningCertificatePath)) {

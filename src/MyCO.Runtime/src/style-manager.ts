@@ -217,7 +217,8 @@ function runtimeCss(): string {
 }
 [data-myco-prose="assistant"] {
   display: block !important;
-  width: fit-content !important;
+  width: fit-content(100%) !important;
+  min-width: 0 !important;
   max-width: min(var(--mc-message-max-width), 100%) !important;
   box-sizing: border-box !important;
   margin-left: 0 !important;

@@ -1,5 +1,104 @@
 # Development Log
 
+## 2026-08-03 — MyCO 0.99.2 local build and executable handoff
+
+Date:
+
+2026-08-03
+
+Change:
+
+- Completed the compile/test repair pass for the confirmed 0.99.2 incremental
+  changes, including COM interop casts, update-package validation overloads,
+  missing namespace imports, and regression-test fixtures/assertions.
+- Published an isolated self-contained win-x64 build with the Manager and the
+  single-file external updater; the existing pre-incremental artifact was not
+  overwritten.
+
+Reason:
+
+Provide one unambiguous executable path for the current incremental build and
+prevent future handoffs from pointing to a stale or experimental binary.
+
+Impact:
+
+No official Codex files, user data, credentials, or public release artifacts
+were modified. The working tree remains uncommitted.
+
+Modified Files:
+
+- `src/MyCO.Core/Startup/CodexLaunchAssociationService.cs`
+- `src/MyCO.Core/Updates/UpdatePackageValidator.cs`
+- `src/MyCO.Core/Updates/UpdateCoordinator.cs`
+- `src/MyCO.Manager/ViewModels/MainWindowViewModel.cs`
+- `tests/MyCO.Tests/UpdateTests.cs`
+- `tests/MyCO.Tests/ManagerThemeAndTrayTests.cs`
+- `tests/MyCO.Tests/ManagerUiRegressionTests.cs`
+
+Testing:
+
+Full .NET SDK 8.0.423 build passed with 0 warnings and 0 errors; .NET tests
+passed 173/173; Runtime `npm ci` and `npm run check` passed with 51/51 tests
+and regenerated `dist/MyCO.runtime.js`; `scripts/build-release.ps1` also passed
+in an isolated temporary worktree and produced a ZIP containing the Manager,
+single-file updater, embedded Runtime evidence, and `SHA256SUMS.txt`.
+`git diff --check` passed. The public registry audit endpoint was unavailable;
+the one-shot offline npm audit cache reported 0 vulnerabilities.
+
+## 2026-08-02 — MyCO 0.99.2 incremental feature set
+
+## 2026-08-02 — MyCO 0.99.2 incremental feature set
+
+Date:
+
+2026-08-02
+
+Change:
+
+- Filled only the titlebar avatar presentation and added synchronized four-
+  locale two-tone MyCO branding with the `It's MyCO!!!!!` subtitle.
+- Unified user minimize paths into the existing single tray icon, hid the
+  taskbar entry, preserved Normal/Maximized state, and persisted one balloon
+  claim per Windows boot session.
+- Added schema 5 migration for the default-off Codex launch association and
+  boot-scoped tray notification state. Associations are limited to MyCO-owned
+  Start-menu/Desktop shortcuts, a MyCO protocol, and MyCO's own AUMID; official
+  Codex files, protocols, and pinned taskbar items remain untouched.
+- Added official GitHub release checking, exact asset/hash/package validation,
+  a temporary staged update area, and a separate external updater with exact
+  PID/path/start-time waiting and rollback.
+- Reworked the reset confirmation surface and added the four-language user-
+  wording hard rule to `CLAUDE.md`.
+- Reproduced the Runtime long-bar regression with a minimal nested prose shell;
+  Whole mode now selects the innermost safe Markdown surface, rejects protected
+  mixed-content shells, and uses an available-space bounded width rule.
+
+Reason:
+
+Complete the confirmed 0.99.2 scope while preserving the private CDP boundary,
+single-instance lifecycle, atomic configuration, official Codex ownership, and
+privacy-safe diagnostics.
+
+Impact:
+
+Manager/Core/Updater/config schema and Runtime source changed. The generated
+Runtime bundle must be rebuilt by `npm run check`; no official Codex files or
+user data are modified by the implementation.
+
+Modified Files:
+
+See the final handoff's Changed Files section; no commit or release was made.
+
+Testing:
+
+Runtime `npm ci`/`npm run check` passed locally: 0 vulnerabilities, lint, 51/51
+tests, and generated bundle rebuild. XML/resource parity and `git diff --check`
+also passed. The initial `dotnet build`, `dotnet test`, and
+`scripts/build-release.ps1` attempts stopped at restore because the global
+environment had no .NET SDK; the full-SDK completion and isolated release
+validation are recorded in the 2026-08-03 entry above. Isolated Windows updater
+replacement and real desktop visual acceptance remain pending.
+
 ## 2026-08-02 — MyCO 0.99.2 Manager UI repair
 
 Date:

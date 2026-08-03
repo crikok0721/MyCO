@@ -66,7 +66,7 @@ public sealed class ManagerUiRegressionTests
         var reset = ReadManagerXaml("Views", "ResetConfirmationWindow.xaml");
 
         var settingsCards = Elements(settings, "Border").ToArray();
-        Assert.Equal(3, settingsCards.Count(element => HasStyle(element, "CardBorder")));
+        Assert.Equal(4, settingsCards.Count(element => HasStyle(element, "CardBorder")));
         Assert.DoesNotContain(
             settingsCards,
             element => Attribute(element, "BorderThickness") == "1");
@@ -93,7 +93,7 @@ public sealed class ManagerUiRegressionTests
                         Attribute(element, "BorderThickness") == "1");
 
         var resetCards = Elements(reset, "Border")
-            .Where(element => Attribute(element, "Grid.Row") is "1" or "2")
+            .Where(element => Attribute(element, "Grid.Row") is "2" or "3")
             .ToArray();
         Assert.Equal(2, resetCards.Length);
         Assert.All(resetCards, element => Assert.True(HasStyle(element, "CardBorder")));
@@ -122,6 +122,101 @@ public sealed class ManagerUiRegressionTests
 
             Assert.Equal(value, description);
         }
+    }
+
+    [Fact]
+    public void SettingsExposeAssociationAndUpdateSurfaces()
+    {
+        var settings = ReadManagerXaml("Views", "SettingsPage.xaml");
+        var switches = Elements(settings, "CheckBox")
+            .Where(element => HasStyle(element, "SwitchCheckBox"))
+            .ToArray();
+
+        Assert.Equal(3, switches.Length);
+        Assert.Contains(
+            switches,
+            element => element.Descendants().Any(descendant =>
+                Attribute(descendant, "Text")?.Contains(
+                    "AssociateCodexLaunches",
+                    StringComparison.Ordinal) == true));
+        Assert.Contains(
+            Elements(settings, "Button"),
+            element => Attribute(element, "Command")?.Contains(
+                "CheckForUpdatesCommand",
+                StringComparison.Ordinal) == true);
+        Assert.Contains(
+            Elements(settings, "TextBlock"),
+            element => Attribute(element, "Text")?.Contains(
+                "CurrentVersionLabel",
+                StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
+    public void ResetConfirmationUsesVerticalListsAndKeepsDangerousActionNonDefault()
+    {
+        var reset = ReadManagerXaml("Views", "ResetConfirmationWindow.xaml");
+        var cancel = Elements(reset, "Button")
+            .Single(element => Attribute(element, "Name") == "CancelButton");
+        var confirm = Elements(reset, "Button")
+            .Single(element => Attribute(element, "Click") == "Confirm_Click");
+
+        Assert.Equal("True", Attribute(cancel, "IsDefault"));
+        Assert.Equal("True", Attribute(cancel, "IsCancel"));
+        Assert.Null(Attribute(confirm, "IsDefault"));
+        Assert.Equal(
+            4,
+            Elements(reset, "TextBlock")
+                .Count(element => Attribute(element, "Text")?.Contains(
+                    "FactoryResetDelete",
+                    StringComparison.Ordinal) == true &&
+                    !Attribute(element, "Text")!.Contains(
+                        "FactoryResetDeletesTitle",
+                        StringComparison.Ordinal)));
+        Assert.Equal(
+            3,
+            Elements(reset, "TextBlock")
+                .Count(element => Attribute(element, "Text")?.Contains(
+                    "FactoryResetKeep",
+                    StringComparison.Ordinal) == true &&
+                    !Attribute(element, "Text")!.Contains(
+                        "FactoryResetKeepsTitle",
+                        StringComparison.Ordinal)));
+        Assert.Empty(Elements(reset, "LinearGradientBrush"));
+    }
+
+    [Fact]
+    public void SimplifiedChineseResetConfirmationUsesTheApprovedUserCopy()
+    {
+        var document = ReadManagerXaml("Resources", "Strings.zh-CN.xaml");
+        var values = Elements(document, "String")
+            .Where(element => Attribute(element, "Key") is
+                "FactoryResetConfirmTitle" or
+                "FactoryResetConfirmDescription" or
+                "FactoryResetDeleteAppearance" or
+                "FactoryResetDeleteCalibration" or
+                "FactoryResetDeleteDiagnostics" or
+                "FactoryResetDeleteStartup" or
+                "FactoryResetKeepProgram" or
+                "FactoryResetKeepCodexProgram" or
+                "FactoryResetKeepCodexData")
+            .ToDictionary(
+                element => Attribute(element, "Key")!,
+                element => element.Value,
+                StringComparer.Ordinal);
+
+        Assert.Equal("恢复 MyCO 默认设置？", values["FactoryResetConfirmTitle"]);
+        Assert.Equal(
+            "MyCO 会先安全撤销对 Codex 外观的临时调整，然后重置由 MyCO 保存的本地设置。",
+            values["FactoryResetConfirmDescription"]);
+        Assert.Equal("角色、头像与外观设置", values["FactoryResetDeleteAppearance"]);
+        Assert.Equal("校准信息", values["FactoryResetDeleteCalibration"]);
+        Assert.Equal("MyCO 保存的诊断记录和备份", values["FactoryResetDeleteDiagnostics"]);
+        Assert.Equal("MyCO 的开机启动与 Codex 关联设置", values["FactoryResetDeleteStartup"]);
+        Assert.Equal("MyCO 程序文件", values["FactoryResetKeepProgram"]);
+        Assert.Equal("Codex 程序", values["FactoryResetKeepCodexProgram"]);
+        Assert.Equal(
+            "Codex 账号、聊天记录和登录信息",
+            values["FactoryResetKeepCodexData"]);
     }
 
     [Fact]
@@ -154,7 +249,7 @@ public sealed class ManagerUiRegressionTests
 
         Assert.Contains("<MyCOVersion>0.99.2</MyCOVersion>", version);
         Assert.Contains("<MyCOProtocolVersion>1</MyCOProtocolVersion>", version);
-        Assert.Contains("<MyCOConfigSchemaVersion>4</MyCOConfigSchemaVersion>", version);
+        Assert.Contains("<MyCOConfigSchemaVersion>5</MyCOConfigSchemaVersion>", version);
         Assert.Contains("<MyCOCalibrationSchemaVersion>1</MyCOCalibrationSchemaVersion>", version);
     }
 

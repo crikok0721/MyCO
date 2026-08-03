@@ -1,6 +1,6 @@
 # Technical Decisions
 
-Last updated: 2026-07-30
+Last updated: 2026-08-02
 
 This file records current decisions. Historical detail remains in
 `docs/development-notes.md` and `docs/CODEX_HANDOFF.md`.
@@ -61,14 +61,22 @@ Rejected:
 - Longer fixed sleeps: hide races and slow every successful restart.
 - Process-name-wide termination: can close unrelated or controlling sessions.
 
-## D-005 — Keep Windows and tray states separate
+## D-005 — User minimize always hides to the tray
 
-Decision: caption/taskbar minimize uses `SystemCommands.MinimizeWindow`; only an
-explicit in-app Minimize-to-tray choice hides the window. `WindowChrome`
-preserves native maximize/restore, drag, resize, and hit testing.
+Decision: every user-triggered minimize path transitions through the one
+tray-state machine, sets `ShowInTaskbar=false` before hiding, and preserves the
+last Normal/Maximized state. Tray double-click, the tray menu, and the
+single-instance activation event restore that state. `TrayService` remains the
+sole `NotifyIcon` owner. A localized balloon is shown only for the first
+user-triggered minimize in the current Windows boot session; the boot identity
+is persisted so restarting MyCO cannot repeat it, while a later Windows reboot
+allows one new notification. Background startup and duplicate state events do
+not notify.
 
-Reason: a WPF `WindowState.Minimized` event does not identify whether the user
-wants a tray transition.
+Reason: the requested product behavior treats minimize as a notification-area
+presence rather than a taskbar presence. A persisted uptime-derived boot
+identity gives the rule process independence without adding another system
+service or touching Windows user data outside MyCO's config.
 
 ## D-006 — Calibrate semantic units, then assign one owner per legal unit
 
@@ -229,3 +237,55 @@ import path and never persists a repository or pack URI.
 Reason: one validation/storage boundary prevents external paths and unbounded
 image data from entering configuration, while the crop math remains testable
 without depending on WPF window state.
+
+## D-016 — Associate only MyCO-owned Codex launch entries
+
+Decision: the optional, default-off association setting creates only a MyCO
+Start-menu shortcut, a MyCO desktop shortcut, and the per-user `myco-codex:`
+protocol. Each entry launches MyCO with `--codex-launch`, which routes through
+the existing mutex, activation event, private CDP pipe, and exact running-state
+policy. Existing shortcuts, official Codex files, pinned taskbar entries,
+Codex protocols, AUMIDs, profiles, credentials, and configuration are never
+rewritten. If a requested path is occupied by another owner, the operation
+fails closed and leaves it unchanged. Disabling or factory reset removes only
+entries whose target and arguments exactly match the current MyCO executable.
+
+Reason: Windows does not provide a safe standard-user API to redirect an
+already pinned official taskbar item. A reversible MyCO-owned entry gives
+useful coverage without claiming control over an external owner. Since no
+foreign shortcut is overwritten, the precise backup set for user-owned entries
+is intentionally empty; rollback removes only entries created by MyCO.
+
+## D-017 — Verify releases before external replacement
+
+Decision: update checks use only the official GitHub Releases API for
+`crikok0721/MyCO`, select the newest non-draft, non-prerelease semantic release,
+and accept only `MyCO-win-x64.zip` plus `MyCO-win-x64.zip.sha256` over validated
+HTTPS asset URLs. Downloads are bounded and staged in a unique child of
+`%TEMP%\MyCO\Updates`; the updater accepts no cleanup or staging path outside
+that private update area.
+The archive, hash, paths, reparse points, expanded file list, and required
+`MyCO.exe` are validated before an external `MyCO.Updater.exe` waits for the
+exact current PID/path/start-time identity, renames the old install to a
+temporary backup, swaps the staged directory, verifies the new executable,
+rolls back on failure, and starts only the new MyCO. AppData and Codex data are
+outside the replacement directory.
+
+Reason: a running executable cannot safely overwrite itself. A project-owned
+minimal updater separates replacement from the process being replaced and
+keeps the failure boundary explicit without silent elevation.
+
+## D-018 — Select the innermost safe Markdown surface
+
+Decision: Whole-mode segmentation prefers the most specific safe existing
+Markdown surface when the renderer exposes both a prose/layout shell and a
+Markdown child. A candidate containing code, tables, tools, status, or controls
+is rejected and segmentation falls back to legal prose blocks. The bubble CSS
+uses `fit-content(100%)`, a zero flex minimum, the available-space maximum, and
+natural height; it never wraps or rewrites host DOM.
+
+Reason: the reproducible long-bar fixture showed the outer `data-content-type`
+prose shell being selected around a Markdown child. Host flex sizing then made
+the shell a narrow, page-height surface. Choosing the child fixes ownership at
+the boundary; the bounded width rule prevents the same layout combination from
+collapsing a valid surface.

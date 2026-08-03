@@ -8,6 +8,7 @@ using MyCO.Manager.Localization;
 using MyCO.Manager.Services;
 using MyCO.Manager.ViewModels;
 using MyCO.Manager.Views;
+using MyCO.Startup;
 
 // WPF application entry point: language, single-instance guard, setup, and main window.
 namespace MyCO.Manager;
@@ -17,8 +18,10 @@ public partial class App : System.Windows.Application
     // Preserve the legacy kernel names so old and renamed builds cannot run together.
     private const string MutexName = "Local\\MyCodex.Manager.0.2";
     private const string ActivationEventName = "Local\\MyCodex.Manager.Activate.0.2";
+    private const string CodexLaunchEventName = "Local\\MyCodex.Manager.CodexLaunch.0.2";
     private Mutex? _singleInstance;
     private EventWaitHandle? _activationEvent;
+    private EventWaitHandle? _codexLaunchEvent;
     private EventWaitHandle? _activationStop;
     private Task? _activationTask;
     private bool _ownsMutex;
@@ -30,6 +33,7 @@ public partial class App : System.Windows.Application
     protected override async void OnStartup(StartupEventArgs eventArgs)
     {
         base.OnStartup(eventArgs);
+        MyCOAppIdentity.Apply();
         ApplyMotionPreference();
         _logger = TryCreateLogger();
         DispatcherUnhandledException += HandleDispatcherUnhandledException;
@@ -49,8 +53,16 @@ public partial class App : System.Windows.Application
             false,
             EventResetMode.AutoReset,
             ActivationEventName);
+        _codexLaunchEvent = new EventWaitHandle(
+            false,
+            EventResetMode.AutoReset,
+            CodexLaunchEventName);
         if (!_ownsMutex)
         {
+            if (StartupPresentation.IsCodexLaunch(eventArgs.Args))
+            {
+                _codexLaunchEvent.Set();
+            }
             _activationEvent.Set();
             Shutdown();
             return;
@@ -61,6 +73,7 @@ public partial class App : System.Windows.Application
             var viewModel = new MainWindowViewModel();
             await viewModel.InitializeAsync();
             var background = StartupPresentation.StartsInBackground(eventArgs.Args);
+            var associatedCodexLaunch = StartupPresentation.IsCodexLaunch(eventArgs.Args);
             if (viewModel.WasFirstRun && !background)
             {
                 new OnboardingWindow(viewModel).ShowDialog();
@@ -69,7 +82,7 @@ public partial class App : System.Windows.Application
             MainWindow = window;
             ShutdownMode = ShutdownMode.OnMainWindowClose;
             _trayService = new TrayService(window, viewModel, ThemeService);
-            StartActivationListener();
+            StartActivationListener(viewModel);
             if (background)
             {
                 window.PrepareForBackground();
@@ -78,7 +91,14 @@ public partial class App : System.Windows.Application
             {
                 window.Show();
             }
-            await viewModel.StartAutomaticallyIfConfiguredAsync().ConfigureAwait(true);
+            if (associatedCodexLaunch)
+            {
+                await viewModel.StartFromAssociatedLaunchAsync().ConfigureAwait(true);
+            }
+            else
+            {
+                await viewModel.StartAutomaticallyIfConfiguredAsync().ConfigureAwait(true);
+            }
         }
         catch (Exception exception)
         {
@@ -105,6 +125,7 @@ public partial class App : System.Windows.Application
             // The process is already exiting; activation listener errors are non-fatal.
         }
         _activationStop?.Dispose();
+        _codexLaunchEvent?.Dispose();
         _activationEvent?.Dispose();
         _trayService?.Dispose();
         ThemeService?.Dispose();
@@ -119,15 +140,34 @@ public partial class App : System.Windows.Application
         base.OnExit(eventArgs);
     }
 
-    private void StartActivationListener()
+    private void StartActivationListener(MainWindowViewModel viewModel)
     {
         _activationStop = new EventWaitHandle(false, EventResetMode.ManualReset);
         _activationTask = Task.Run(() =>
         {
-            var handles = new WaitHandle[] { _activationEvent!, _activationStop };
-            while (WaitHandle.WaitAny(handles) == 0)
+            var handles = new WaitHandle[]
             {
-                _ = Dispatcher.InvokeAsync(() => _trayService?.ShowWindow());
+                _activationEvent!,
+                _codexLaunchEvent!,
+                _activationStop
+            };
+            while (true)
+            {
+                var signaled = WaitHandle.WaitAny(handles);
+                if (signaled == 2)
+                {
+                    return;
+                }
+                if (signaled == 0)
+                {
+                    _ = Dispatcher.InvokeAsync(() => _trayService?.ShowWindow());
+                    continue;
+                }
+                _ = Dispatcher.InvokeAsync(async () =>
+                {
+                    _trayService?.ShowWindow();
+                    await viewModel.StartFromAssociatedLaunchAsync();
+                });
             }
         });
     }

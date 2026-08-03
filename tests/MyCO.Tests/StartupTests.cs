@@ -168,6 +168,46 @@ public sealed class StartupTests
                 connected));
     }
 
+    [Fact]
+    public void CodexAssociationCreatesAndRemovesOnlyMycoOwnedEntries()
+    {
+        var backend = new FakeAssociationBackend();
+        var service = new CodexLaunchAssociationService(backend);
+        var executable = Path.Combine(
+            Path.GetTempPath(),
+            "MyCO Association Tests",
+            "MyCO.exe");
+
+        service.SetEnabled(executable, enabled: true);
+
+        var status = service.GetStatus(executable);
+        Assert.True(status.IsEnabled);
+        Assert.Equal(2, backend.Shortcuts.Count);
+        Assert.Single(backend.Protocols);
+
+        service.SetEnabled(executable, enabled: false);
+
+        Assert.Empty(backend.Shortcuts);
+        Assert.Empty(backend.Protocols);
+        Assert.False(service.GetStatus(executable).IsEnabled);
+    }
+
+    [Fact]
+    public void CodexAssociationRefusesForeignShortcutAndLeavesItUnchanged()
+    {
+        var backend = new FakeAssociationBackend();
+        var service = new CodexLaunchAssociationService(backend);
+        var executable = Path.Combine(Path.GetTempPath(), "MyCO.exe");
+        var paths = CodexLaunchAssociationService.AssociationPaths.For(executable);
+        backend.ForeignShortcuts.Add(paths.StartMenuShortcut);
+        backend.ForeignProtocols.Add(paths.ProtocolCommand);
+
+        Assert.Throws<IOException>(() => service.SetEnabled(executable, enabled: true));
+        Assert.Empty(backend.Writes);
+        Assert.Contains(paths.StartMenuShortcut, backend.ForeignShortcuts);
+        Assert.Contains(paths.ProtocolCommand, backend.ForeignProtocols);
+    }
+
     private sealed class FakeRunKeyBackend :
         StartupRegistrationService.IRunKeyBackend
     {
@@ -184,5 +224,59 @@ public sealed class StartupTests
 
         public void Delete(string valueName) =>
             Values.Remove(valueName);
+    }
+
+    private sealed class FakeAssociationBackend :
+        CodexLaunchAssociationService.IAssociationBackend
+    {
+        public HashSet<string> Shortcuts { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public HashSet<string> ForeignShortcuts { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public HashSet<string> Protocols { get; } = new(StringComparer.Ordinal);
+        public HashSet<string> ForeignProtocols { get; } = new(StringComparer.Ordinal);
+        public List<string> Writes { get; } = [];
+
+        public bool IsOwnedShortcut(string path, string executablePath) =>
+            Shortcuts.Contains(path);
+
+        public void EnsureShortcutAvailable(string path)
+        {
+            if (ForeignShortcuts.Contains(path))
+            {
+                throw new IOException("foreign shortcut");
+            }
+        }
+
+        public void WriteShortcut(
+            string path,
+            string executablePath,
+            string arguments,
+            string appUserModelId)
+        {
+            Writes.Add(path);
+            Shortcuts.Add(path);
+        }
+
+        public void RemoveOwnedShortcut(string path, string executablePath) =>
+            Shortcuts.Remove(path);
+
+        public bool IsOwnedProtocol(string commandKey, string executablePath) =>
+            Protocols.Contains(commandKey);
+
+        public void EnsureProtocolAvailable(string commandKey, string executablePath)
+        {
+            if (ForeignProtocols.Contains(commandKey))
+            {
+                throw new IOException("foreign protocol");
+            }
+        }
+
+        public void WriteProtocol(string commandKey, string executablePath)
+        {
+            Writes.Add(commandKey);
+            Protocols.Add(commandKey);
+        }
+
+        public void RemoveOwnedProtocol(string commandKey, string executablePath) =>
+            Protocols.Remove(commandKey);
     }
 }

@@ -39,4 +39,9 @@ internal static class StartupPresentation
         arguments.Any(argument => argument.Equals(
             "--background",
             StringComparison.OrdinalIgnoreCase));
+
+    public static bool IsCodexLaunch(IEnumerable<string> arguments) =>
+        arguments.Any(argument => argument.Equals(
+            "--codex-launch",
+            StringComparison.OrdinalIgnoreCase));
 }

@@ -75,13 +75,18 @@ function findWholeResponseSurfaces(turn: Element): Element[] {
   const candidates = Array.from(
     turn.querySelectorAll(WHOLE_SURFACE_SELECTOR)
   ).filter((element) => isWholeResponseSurface(element, turn));
-  const outermost = candidates.filter(
+  // A renderer may expose both a prose/layout shell and the actual Markdown
+  // surface. Decorating the shell lets host flex/grid sizing collapse the
+  // bubble while its descendants determine the height. Prefer the most
+  // specific safe surface; never fall back to an ancestor merely because it
+  // also carries a broad prose marker.
+  const innermost = candidates.filter(
     (candidate) =>
-      !candidates.some(
-        (other) => other !== candidate && other.contains(candidate)
+      !candidates.some((other) =>
+        other !== candidate && candidate.contains(other)
       )
   );
-  return outermost.length > 0 ? outermost : findSafeBlocks(turn);
+  return innermost.length > 0 ? innermost : findSafeBlocks(turn);
 }
 
 function isWholeResponseSurface(element: Element, turn: Element): boolean {
@@ -89,6 +94,12 @@ function isWholeResponseSurface(element: Element, turn: Element): boolean {
   const owner = element.closest("[data-myco-turn]");
   if (owner && owner !== turn) return false;
   if (element.closest(".mc-nickname,.mc-avatar")) return false;
+  if (
+    element.matches(PROTECTED_SELECTOR) ||
+    element.querySelector(PROTECTED_SELECTOR)
+  ) {
+    return false;
+  }
   // Styling an existing Markdown/prose container does not move or rewrite its
   // code, tables, links, or controls. Reject only when the container itself is
   // a native tool/status surface.

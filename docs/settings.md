@@ -46,8 +46,9 @@ calibration are preserved.
   barriers and remain native in both modes.
 
 The selection is stored in the versioned configuration and applies immediately
-after **Save & apply**. Config schema 4 preserves prior schema 0/1/2/3 settings
-and migrates the pre-rename startup field without losing user choices.
+after **Save & apply**. Config schema 5 preserves prior schema 0/1/2/3/4
+settings and adds the optional launch-association state without losing user
+choices.
 
 ## Tray lifecycle / 托盘生命周期
 
@@ -59,13 +60,16 @@ and migrates the pre-rename startup field without losing user choices.
   **Cancel**. Exit releases CDP sessions, Runtime observers, theme/system
   listeners, and the notification icon but leaves Codex running.
 - The tray menu exposes Open, Start/apply, verified Restart, and Exit.
+- The minimize balloon appears once after each Windows boot, only after a
+  user-triggered minimize. Background startup, reopening, and repeated state
+  events do not show it.
 
 最小化表示收纳到托盘；关闭时可选择退出、最小化或取消。退出 MyCO 不会关闭
 Codex。再次运行程序会激活已有实例。
 
 ## Startup options / 启动选项
 
-The two switches are independent:
+The startup card has three independent switches:
 
 1. **Start MyCO when I sign in to Windows** writes exactly one fixed
    `MyCO` value under
@@ -75,16 +79,32 @@ The two switches are independent:
    path when Codex is not running. A controlled session is reused. An
    uncontrolled running Codex is not duplicated; MyCO reports that state so
    the user can choose an interactive restart later.
+3. **Associate MyCO with Codex launches** is off by default. It creates only
+   MyCO-owned Start-menu/Desktop launch entries and a MyCO-owned launch link;
+   existing official Codex shortcuts, pinned taskbar items, and other launch
+   entries are not rewritten. Turning it off or restoring defaults removes
+   only exact MyCO-owned entries.
 
-When both switches are enabled, sign-in starts MyCO hidden with a usable
+When the first two switches are enabled, sign-in starts MyCO hidden with a usable
 tray icon and then performs the non-interactive Codex check. TCP fallback never
 opens a consent dialog during background startup. A failed registration rolls
 the setting back and shows a privacy-safe error. Moving the self-contained
 folder is detected and corrects the Run command on the next start.
 
-这两个开关互不依赖。开机项只写当前用户的固定 `MyCO` 值，不请求管理员权限，
-关闭时也只精确删除该值。MyCO 不修改官方 Codex 快捷方式、协议关联、App
-Execution Alias 或安装目录。
+这三个开关互不依赖。开机项只写当前用户的固定 `MyCO` 值，不请求管理员权限，
+关闭时也只精确删除该值。Codex 关联默认关闭，只创建 MyCO 自己的启动入口；
+MyCO 不修改官方 Codex 快捷方式、任务栏固定项、安装目录或用户资料。
+
+## Check for updates / 检查更新
+
+The update card checks only the latest formal release in the official
+`crikok0721/MyCO` repository. It ignores drafts and previews, reports offline,
+timeout, rate-limit, and invalid-release states separately, and does not
+download anything when **Later** is chosen. **Update now** accepts only the
+exact x64 ZIP and matching SHA-256 asset, stages it below `%TEMP%\MyCO\Updates`,
+and uses the project-owned external updater. The updater verifies the running
+MyCO PID, path, and start time, keeps AppData and Codex data untouched, and
+rolls back if replacement or verification fails.
 
 ## Brand migration / 品牌迁移
 

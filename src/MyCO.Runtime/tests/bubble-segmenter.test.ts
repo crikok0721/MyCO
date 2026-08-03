@@ -74,7 +74,7 @@ test("whole mode joins all contiguous safe prose", () => {
   );
 });
 
-test("whole mode uses one existing Markdown surface including protected children", () => {
+test("whole mode keeps a mixed Markdown surface split at protected children", () => {
   const article = turn(
     `<div class="markdownContent-current">
        <p>Opening.</p>
@@ -85,10 +85,33 @@ test("whole mode uses one existing Markdown surface including protected children
 
   const segments = segmentAssistantProse(article, "Whole");
 
+  assert.deepEqual(
+    segments.map(({ element }) => element.tagName),
+    ["P", "P"]
+  );
+  assert.equal(segments.some(({ element }) => element.querySelector("pre,code")), false);
+});
+
+test("whole mode does not mark a prose layout shell around the Markdown surface", () => {
+  const article = turn(
+    `<div data-content-type="prose" class="group flex min-w-0 flex-col">
+       <div class="markdownContent-current">
+         <p>Long assistant response.</p>
+       </div>
+     </div>`
+  );
+
+  const segments = segmentAssistantProse(article, "Whole");
+
   assert.equal(segments.length, 1);
-  assert.equal(segments[0]!.element.classList.contains("markdownContent-current"), true);
-  assert.equal(segments[0]!.position, "single");
-  assert.ok(segments[0]!.element.querySelector("pre code"));
+  assert.equal(
+    segments[0]!.element.classList.contains("markdownContent-current"),
+    true
+  );
+  assert.equal(
+    segments[0]!.element.getAttribute("data-content-type"),
+    null
+  );
 });
 
 test("one very long paragraph is never cut in the middle", () => {
@@ -99,4 +122,35 @@ test("one very long paragraph is never cut in the middle", () => {
   assert.equal(segments.length, 1);
   assert.equal(segments[0]!.element.textContent, text);
   assert.equal(segments[0]!.position, "single");
+});
+
+test("whole mode rejects tool and status shells even when they contain prose", () => {
+  const article = turn(
+    `<div data-content-type="tool"><p>Tool explanation</p></div>
+     <div data-content-type="status"><p>Status text</p></div>
+     <div class="markdownContent-current"><p>Assistant prose</p></div>`
+  );
+
+  const segments = segmentAssistantProse(article, "Whole");
+
+  assert.deepEqual(
+    segments.map(({ element }) => element.textContent?.trim()),
+    ["Assistant prose"]
+  );
+  assert.equal(
+    segments.some(({ element }) => element.closest("[data-content-type=tool]")),
+    false
+  );
+});
+
+test("long continuous strings remain a single safe prose surface", () => {
+  const article = turn(
+    `<div class="markdownContent-current"><p>${"C:\\very-long-path\\".repeat(160)}</p></div>`
+  );
+  const automatic = segmentAssistantProse(article, "Automatic");
+  const whole = segmentAssistantProse(article, "Whole");
+
+  assert.equal(automatic.length, 1);
+  assert.equal(whole.length, 1);
+  assert.equal(whole[0]!.element.classList.contains("markdownContent-current"), true);
 });
