@@ -208,6 +208,36 @@ public sealed class StartupTests
         Assert.Contains(paths.ProtocolCommand, backend.ForeignProtocols);
     }
 
+    [Fact]
+    public void WindowsAssociationBackendLoadsAnExistingShortcutBeforeInspectingIt()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var directory = new TempDirectory();
+        var executable = Path.Combine(directory.Path, "MyCO.exe");
+        var shortcut = Path.Combine(directory.Path, "MyCO.lnk");
+        File.WriteAllBytes(executable, []);
+
+        var backendType = typeof(CodexLaunchAssociationService).GetNestedType(
+                               "WindowsAssociationBackend",
+                               System.Reflection.BindingFlags.NonPublic)
+                           ?? throw new InvalidOperationException(
+                               "The Windows association backend is unavailable.");
+        var backend = (CodexLaunchAssociationService.IAssociationBackend)
+            Activator.CreateInstance(backendType, nonPublic: true)!;
+
+        backend.WriteShortcut(
+            shortcut,
+            executable,
+            "--codex-launch",
+            CodexLaunchAssociationService.AppUserModelId);
+
+        Assert.True(backend.IsOwnedShortcut(shortcut, executable));
+    }
+
     private sealed class FakeRunKeyBackend :
         StartupRegistrationService.IRunKeyBackend
     {

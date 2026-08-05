@@ -1,5 +1,46 @@
 # Development Log
 
+## 2026-08-06 — Repair startup failure when inspecting existing MyCO shortcuts
+
+Date:
+
+2026-08-06
+
+Change:
+
+- Fixed `MCX-APP-STARTUP-*` failures caused by inspecting an uninitialised
+  Windows ShellLink during startup association reconciliation. Existing `.lnk`
+  files are now loaded through `IPersistFile` before their target and
+  arguments are read; empty or malformed targets fail closed, and COM objects
+  are released on every path.
+- Added a Windows regression test that writes and then reloads a real shortcut.
+
+Reason:
+
+`IsOwnedShortcut` previously read from a blank ShellLink and passed an empty
+target to `Path.GetFullPath`, which raised `ArgumentException` and aborted
+startup before the main window was created.
+
+Impact:
+
+Existing MyCO-owned shortcuts can be reconciled safely; foreign or malformed
+shortcuts are left untouched. A repaired self-contained validation artifact is
+available at `artifacts\\MyCO-current-0.99.2-win-x64-20260806\\MyCO.exe`.
+
+Modified Files:
+
+- `src/MyCO.Core/Startup/CodexLaunchAssociationService.cs`
+- `tests/MyCO.Tests/StartupTests.cs`
+- `docs/DEVELOPMENT_LOG.md`
+
+Testing:
+
+The targeted regression test failed before the fix and passed after it. The
+Release build passed with 0 warnings and 0 errors; .NET tests passed 174/174;
+Runtime `npm run check` passed with 51/51 tests; and the repaired executable
+was launched from the new artifact path with a responsive `MyCO` window and
+no new startup error log entries. The old 20260803 artifact was not overwritten.
+
 ## 2026-08-03 — MyCO 0.99.2 local build and executable handoff
 
 Date:

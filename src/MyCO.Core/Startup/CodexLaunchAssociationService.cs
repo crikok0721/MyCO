@@ -183,23 +183,42 @@ public sealed class CodexLaunchAssociationService
             try
             {
                 var link = (IShellLinkW)(object)new ShellLink();
-                var target = new StringBuilder(32768);
-                var arguments = new StringBuilder(2048);
-                link.GetPath(target, target.Capacity, IntPtr.Zero, 0);
-                link.GetArguments(arguments, arguments.Capacity);
-                var matches = string.Equals(
-                                  Path.GetFullPath(target.ToString()),
-                                  executablePath,
-                                  StringComparison.OrdinalIgnoreCase) &&
-                              string.Equals(
-                                  arguments.ToString(),
-                                  "--codex-launch",
-                                  StringComparison.Ordinal);
-                Marshal.FinalReleaseComObject(link);
-                return matches;
+                var persist = (IPersistFile)link;
+                try
+                {
+                    persist.Load(path, 0);
+                    var target = new StringBuilder(32768);
+                    var arguments = new StringBuilder(2048);
+                    link.GetPath(target, target.Capacity, IntPtr.Zero, 0);
+                    link.GetArguments(arguments, arguments.Capacity);
+                    var targetPath = target.ToString();
+                    if (string.IsNullOrWhiteSpace(targetPath))
+                    {
+                        return false;
+                    }
+
+                    return string.Equals(
+                               Path.GetFullPath(targetPath),
+                               executablePath,
+                               StringComparison.OrdinalIgnoreCase) &&
+                           string.Equals(
+                               arguments.ToString(),
+                               "--codex-launch",
+                               StringComparison.Ordinal);
+                }
+                finally
+                {
+                    Marshal.FinalReleaseComObject(persist);
+                    Marshal.FinalReleaseComObject(link);
+                }
             }
             catch (COMException)
             {
+                return false;
+            }
+            catch (ArgumentException)
+            {
+                // A malformed shortcut must never abort MyCO startup.
                 return false;
             }
         }
