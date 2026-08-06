@@ -280,9 +280,13 @@ function runtimeCss(): string {
 }
 [data-myco-prose="assistant"] {
   display: block !important;
-  width: fit-content(100%) !important;
+  width: max-content !important;
   min-width: 0 !important;
   max-width: min(var(--mc-assistant-bubble-max-width), 100%) !important;
+  min-height: 0 !important;
+  height: auto !important;
+  flex: 0 1 auto !important;
+  align-self: flex-start !important;
   box-sizing: border-box !important;
   margin-left: 0 !important;
   margin-right: auto !important;

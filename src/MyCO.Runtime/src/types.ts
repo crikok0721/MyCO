@@ -223,7 +223,7 @@ export function defaultConfig(): RuntimeConfig {
         avatarBorder: "#FFFFFF14"
       },
       lightBubblePalette: {
-        assistantBubble: "#f1f3f5",
+        assistantBubble: "#e5ebe8",
         assistantText: "#202124",
         nicknameColor: "#5f6672",
         avatarBackground: "#e5e7eb",

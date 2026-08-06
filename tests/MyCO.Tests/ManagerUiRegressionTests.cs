@@ -128,7 +128,7 @@ public sealed class ManagerUiRegressionTests
                      "AssistantNicknameOffsetX", "AssistantNicknameOffsetY",
                      "UserAvatarOffsetX", "UserAvatarOffsetY",
                      "UserNicknameOffsetX", "UserNicknameOffsetY",
-                     "MessageGap", "AssistantBubbleMaxWidth"
+                     "MessageGap", "PreviewBubbleMaxWidth"
                  })
         {
             Assert.Contains(property, source, StringComparison.Ordinal);
@@ -139,10 +139,13 @@ public sealed class ManagerUiRegressionTests
         var userBubble = Elements(preview, "Border")
             .Single(element => Attribute(element, "Name") == "UserPreviewBubble");
         Assert.Contains(
-            "AssistantBubbleMaxWidth",
+            "PreviewBubbleMaxWidth",
             Attribute(assistantBubble, "MaxWidth"),
             StringComparison.Ordinal);
-        Assert.Null(Attribute(userBubble, "MaxWidth"));
+        Assert.Contains(
+            "PreviewBubbleMaxWidth",
+            Attribute(userBubble, "MaxWidth"),
+            StringComparison.Ordinal);
     }
 
     [Fact]

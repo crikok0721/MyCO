@@ -136,7 +136,7 @@
                                 Style="{StaticResource PreviewBubbleStyle}"
                                 Margin="{Binding AssistantNicknameOffsetY,
                                     Converter={StaticResource PreviewNicknameBubbleMarginConverter}}"
-                                MaxWidth="{Binding PreviewAssistantBubbleMaxWidth,
+                                MaxWidth="{Binding PreviewBubbleMaxWidth,
                                     RelativeSource={RelativeSource AncestorType={x:Type local:ChatPreviewControl}}}">
                             <TextBlock Text="{DynamicResource PreviewAssistantMessage}"
                                        Foreground="{Binding PreviewAssistantText}"
@@ -181,6 +181,8 @@
                                 Style="{StaticResource PreviewBubbleStyle}"
                                 Margin="{Binding UserNicknameOffsetY,
                                     Converter={StaticResource PreviewNicknameBubbleMarginConverter}}"
+                                MaxWidth="{Binding PreviewBubbleMaxWidth,
+                                    RelativeSource={RelativeSource AncestorType={x:Type local:ChatPreviewControl}}}"
                                 HorizontalAlignment="Right">
                             <TextBlock Text="{DynamicResource PreviewUserMessage}"
                                        Foreground="{Binding PreviewUserText}"

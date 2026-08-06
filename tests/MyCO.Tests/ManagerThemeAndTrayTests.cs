@@ -142,8 +142,8 @@ public sealed partial class ManagerThemeAndTrayTests
 
         Assert.Contains("Name = \"菲叶子\"", config);
         Assert.Contains("SeedFirstRunAssistantAvatarAsync", viewModel);
-        Assert.Contains("pack://application:,,,/Assets/MyCO-logo.png", viewModel);
-        Assert.Contains("ImportAsync(resource.Stream)", viewModel);
+        Assert.Contains("DefaultAvatarAsset.ResourceUri", viewModel);
+        Assert.Contains("DefaultAvatarAsset.SeedAsync", viewModel);
     }
 
     [Fact]

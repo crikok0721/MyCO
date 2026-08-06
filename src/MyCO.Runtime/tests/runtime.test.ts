@@ -189,11 +189,14 @@ test("long continuous prose uses bounded wrapping CSS without a fixed height", (
     /\[data-myco-prose="assistant"\]\s*\{([\s\S]*?)\}/
   )?.[1] ?? "";
 
-  assert.match(proseRule, /width:\s*fit-content\(100%\)/);
+  assert.match(proseRule, /width:\s*max-content/);
   assert.match(proseRule, /min-width:\s*0/);
   assert.match(proseRule, /max-width:\s*min\(/);
+  assert.match(proseRule, /height:\s*auto/);
+  assert.match(proseRule, /flex:\s*0 1 auto/);
+  assert.match(proseRule, /align-self:\s*flex-start/);
   assert.match(proseRule, /overflow-wrap:\s*anywhere/);
-  assert.doesNotMatch(proseRule, /height\s*:/);
+  assert.doesNotMatch(proseRule, /height:\s*100%/);
   runtime.destroy();
 });
 

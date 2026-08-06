@@ -68,6 +68,11 @@ current Windows theme. While following the Manager, a Windows theme change
 updates the preview; an explicit preview selection is respected for the rest
 of that session.
 
+Both preview roles use `PreviewBubbleStyle` and one computed
+`PreviewBubbleMaxWidth`. The role brushes remain separate, but radius, padding,
+content measurement, and maximum width are not duplicated between Assistant
+and User previews.
+
 `SaveAndApplyAsync` first atomically persists schema 7, then asks
 `DesktopSessionController` to apply one serialized config transaction to every
 current renderer. Renderer calls fan out concurrently, but consecutive save
@@ -155,9 +160,11 @@ The runtime:
   leaves the official user bubble untouched; Whole mode prefers the innermost
   existing stable Markdown surface, rejects shells containing protected
   content, and does not move or rewrite native nodes;
-- bounds bubble width with `fit-content(100%)`, a zero flex minimum, and the
-  available-space maximum so long content grows naturally instead of becoming
-  a narrow page-height surface;
+- rejects flex/grid/stretch Markdown layout shells and falls back to safe
+  semantic prose blocks when no stable content surface exists;
+- bounds bubble width with `max-content`, auto height, a zero flex minimum, and
+  the available-space maximum so short content shrinks while long content wraps
+  instead of becoming a narrow page-height surface;
 - keeps headings with following prose, lists/quotes atomic, and existing
   streaming block groups stable until structure changes;
 - excludes `pre`, `code`, diffs, tool/status/command cards, toolbars, buttons,
@@ -352,8 +359,10 @@ Legacy avatars are validated and copied into the managed directory. Invalid JSON
 moved to a bounded timestamped backup set and defaults are restored without
 crashing. A newly created configuration defaults the Assistant nickname to
 `菲叶子`; the packaged `Assets/MyCO-logo.png` is imported into the managed
-avatar directory through `AvatarService` without changing existing or migrated
-configurations.
+  avatar directory through `DefaultAvatarAsset` and `AvatarService` without
+  changing existing or migrated configurations. Missing or invalid pack
+  resources keep the safe empty-avatar fallback; required factory-reset seeding
+  fails the transaction and rolls back instead of writing a partial config.
 
 The `language` field accepts `en-US`, `zh-CN`, `zh-TW`, or `ja-JP`. Missing
 values remain backward-compatible with English. WPF dynamic resources switch

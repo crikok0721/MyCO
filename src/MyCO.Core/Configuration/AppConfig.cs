@@ -33,7 +33,9 @@ public sealed record BubblePalette
 
     public static BubblePalette LightDefault => new()
     {
-        AssistantBubble = "#F1F3F5",
+        // Keep the assistant surface visibly separate from the light Codex
+        // canvas while retaining the native-looking neutral palette.
+        AssistantBubble = "#E5EBE8",
         AssistantText = "#202124",
         NicknameColor = "#5F6672",
         AvatarBackground = "#E5E7EB",

@@ -114,6 +114,27 @@ test("whole mode does not mark a prose layout shell around the Markdown surface"
   );
 });
 
+test("whole mode rejects a stretching Markdown shell when it is the only surface candidate", () => {
+  const article = turn(
+    `<div data-content-type="prose" class="markdownContent-current flex min-w-0 flex-col flex-1 h-full">
+       <div class="prose"><p>${"Long Markdown paragraph. ".repeat(80)}</p></div>
+     </div>`
+  );
+
+  const segments = segmentAssistantProse(article, "Whole");
+
+  assert.equal(segments.length, 1);
+  assert.equal(segments[0]!.element.tagName, "P");
+  assert.equal(
+    segments[0]!.element.closest(".markdownContent-current"),
+    article.querySelector(".markdownContent-current")
+  );
+  assert.equal(
+    segments[0]!.element.hasAttribute("data-myco-prose"),
+    false
+  );
+});
+
 test("one very long paragraph is never cut in the middle", () => {
   const text = `${"Complete sentence. ".repeat(100)}`;
   const article = turn(`<p>${text}</p>`);

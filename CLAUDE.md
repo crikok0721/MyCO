@@ -19,16 +19,17 @@ Add `-UseChinaMirrors` for slow mainland routes; never commit regional sources.
 1. `CLAUDE.md` (this file)
 2. `docs/REQUIREMENTS.md` — single current requirements ledger; filter by module IDs
 3. `docs/REQUIREMENTS_AUDIT.md` — evidence scope, conflicts and restoration batches
-4. `docs/CONTEXT.md` — current state, blockers, validation
-5. `docs/PROJECT_CONTEXT.md` — product goals and long-term constraints
-6. `docs/architecture.md` — architecture, data flow
-7. `docs/DECISIONS.md` — design decisions
-8. `docs/TASK_LIST.md` — current priorities
-9. `docs/TECH_STACK.md` — technical stack details
+4. `docs/ERROR_LEDGER.md` — current error and regression-prevention ledger
+5. `docs/CONTEXT.md` — current state, blockers, validation
+6. `docs/PROJECT_CONTEXT.md` — product goals and long-term constraints
+7. `docs/architecture.md` — architecture, data flow
+8. `docs/DECISIONS.md` — design decisions
+9. `docs/TASK_LIST.md` — current priorities
+10. `docs/TECH_STACK.md` — technical stack details
 
 Historical: `docs/archive/CODEX_HANDOFF.md`, `docs/archive/development-notes.md`
 
-Before complex implementation, write a Requirement Impact Check naming affected IDs, preserved safety/architecture boundaries, regression links, and evidence gaps. If requirements conflict, record the Superseded/Unknown relation rather than silently deleting one. After implementation, update the ledger evidence and status; historical `HANDOFF.md` is evidence only and is not synchronized into a second current-state source.
+Before complex implementation, write a Requirement Impact Check naming affected IDs, preserved safety/architecture boundaries, regression links, and evidence gaps. If requirements conflict, record the Superseded/Unknown relation rather than silently deleting one. After the plan and failing tests are ready, execute the scoped implementation automatically and deliver it for final user acceptance. Pause only for destructive actions, official Codex/user-data changes, unauthorized architecture expansion, TCP fallback, elevation, external publication, commit/push/PR, or paid services. The old “wait for confirmation after the plan” rule is superseded by the user decision on 2026-08-06 and is historical evidence only. Update ledger evidence and status; historical `HANDOFF.md` is evidence only and is not synchronized into a second current-state source.
 
 ## Key rules (non-negotiable)
 

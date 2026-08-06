@@ -14,12 +14,13 @@ MyCO 是 Windows 10/11 x64 上的 .NET 8 WPF 启动器 + 嵌入式 TypeScript Ru
 1. `CLAUDE.md` — 主入口（Claude Code 使用）
 2. `docs/REQUIREMENTS.md` — 当前唯一需求账本，先按模块筛选需求 ID
 3. `docs/REQUIREMENTS_AUDIT.md` — 历史证据、冲突和恢复批次
-4. `docs/CONTEXT.md` — 当前状态、Blockers、验证结果
-5. `docs/PROJECT_CONTEXT.md` — 产品目标与长期约束
-6. `docs/architecture.md` — 架构与数据流
-7. `docs/DECISIONS.md` — 设计决策
-8. `docs/TASK_LIST.md` — 当前优先级
-9. `docs/TECH_STACK.md` — 技术栈细节
+4. `docs/ERROR_LEDGER.md` — 当前错误与防复发账本
+5. `docs/CONTEXT.md` — 当前状态、Blockers、验证结果
+6. `docs/PROJECT_CONTEXT.md` — 产品目标与长期约束
+7. `docs/architecture.md` — 架构与数据流
+8. `docs/DECISIONS.md` — 设计决策
+9. `docs/TASK_LIST.md` — 当前优先级
+10. `docs/TECH_STACK.md` — 技术栈细节
 
 历史文档：`docs/archive/CODEX_HANDOFF.md`、`docs/archive/development-notes.md`
 
@@ -34,7 +35,11 @@ dotnet test .\MyCO.sln -c Release --no-build
 
 大陆网络慢时可加 `-UseChinaMirrors`，但不要提交区域源设置。
 
-复杂任务编码前必须完成 Requirement Impact Check：列出受影响需求 ID、必须保持不变的安全/架构边界、关联回归风险和证据缺口。发现冲突时记录 Superseded/Unknown 关系，不得静默删除有效要求。用户明确授权自主执行时仍先增加失败测试，完成后按需求 ID更新代码、自动化和视觉/系统证据；历史 HANDOFF 只作证据，不作为当前事实来源。
+复杂任务编码前必须完成 Requirement Impact Check：列出受影响需求 ID、必须保持不变的安全/架构边界、关联回归风险和证据缺口。发现冲突时记录 Superseded/Unknown 关系，不得静默删除有效要求。计划和失败测试准备好后自动执行最小实现、验证并交付，由用户在最终阶段验收。只有破坏性操作、修改官方 Codex 文件或用户数据、扩大未授权架构、TCP 回退、提权、外部发布、提交、推送、PR 或购买服务等需要新授权的行为才暂停；历史 HANDOFF 只作证据，不作为当前事实来源。
+
+## Autonomous implementation workflow
+
+复杂任务遵循“分析 → Requirement Impact Check → 失败测试 → 实现 → 验证 → 交付”。旧版“制定方案后必须等待用户确认才能编码”规则已被用户于 2026-08-06 明确 Superseded，不再作为当前工作流；该历史变化只在需求审计中保留。
 
 ## Key rules（不可逾越的安全边界）
 

@@ -4,6 +4,7 @@ param(
     [switch]$GenerateSbom,
     [string]$Configuration = "Release",
     [string]$RuntimeIdentifier = "win-x64",
+    [string]$ArtifactsRoot,
     [string]$SigningCertificatePath,
     [securestring]$SigningCertificatePassword,
     [string]$PublicSigningCertificatePath
@@ -21,7 +22,12 @@ $runtimeRoot = Join-Path $repoRoot "src\MyCO.Runtime"
 $managerProject = Join-Path $repoRoot "src\MyCO.Manager\MyCO.Manager.csproj"
 $updaterProject = Join-Path $repoRoot "src\MyCO.Updater\MyCO.Updater.csproj"
 $solution = Join-Path $repoRoot "MyCO.sln"
-$artifactsRoot = Join-Path $repoRoot "artifacts"
+$artifactsRoot = if ([string]::IsNullOrWhiteSpace($ArtifactsRoot)) {
+    Join-Path $repoRoot "artifacts"
+}
+else {
+    [System.IO.Path]::GetFullPath($ArtifactsRoot)
+}
 $artifactName = "MyCO-$RuntimeIdentifier"
 $publishRoot = Join-Path $artifactsRoot $artifactName
 $archivePath = Join-Path $artifactsRoot "$artifactName.zip"

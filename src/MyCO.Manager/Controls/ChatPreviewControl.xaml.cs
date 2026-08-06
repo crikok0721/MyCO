@@ -100,12 +100,17 @@ public partial class ChatPreviewControl : System.Windows.Controls.UserControl
             typeof(ChatPreviewControl),
             new PropertyMetadata(new Thickness(14, 10, 14, 10)));
 
-    public static readonly DependencyProperty PreviewAssistantBubbleMaxWidthProperty =
+    public static readonly DependencyProperty PreviewBubbleMaxWidthProperty =
         DependencyProperty.Register(
-            nameof(PreviewAssistantBubbleMaxWidth),
+            nameof(PreviewBubbleMaxWidth),
             typeof(double),
             typeof(ChatPreviewControl),
             new PropertyMetadata(320d));
+
+    // Source-compatible alias for preview hosts using the former
+    // assistant-only property name. Both role surfaces share one cap.
+    public static readonly DependencyProperty PreviewAssistantBubbleMaxWidthProperty =
+        PreviewBubbleMaxWidthProperty;
 
     public static readonly DependencyProperty PreviewMessageGapProperty =
         DependencyProperty.Register(
@@ -140,7 +145,7 @@ public partial class ChatPreviewControl : System.Windows.Controls.UserControl
             new System.Windows.Data.Binding("AssistantBubbleMaxWidth"));
         widthBinding.Bindings.Add(
             new System.Windows.Data.Binding("AvatarSize"));
-        SetBinding(PreviewAssistantBubbleMaxWidthProperty, widthBinding);
+        SetBinding(PreviewBubbleMaxWidthProperty, widthBinding);
 
         SetBinding(
             PreviewMessageGapProperty,
@@ -157,10 +162,16 @@ public partial class ChatPreviewControl : System.Windows.Controls.UserControl
         set => SetValue(PreviewBubblePaddingProperty, value);
     }
 
+    public double PreviewBubbleMaxWidth
+    {
+        get => (double)GetValue(PreviewBubbleMaxWidthProperty);
+        set => SetValue(PreviewBubbleMaxWidthProperty, value);
+    }
+
     public double PreviewAssistantBubbleMaxWidth
     {
-        get => (double)GetValue(PreviewAssistantBubbleMaxWidthProperty);
-        set => SetValue(PreviewAssistantBubbleMaxWidthProperty, value);
+        get => PreviewBubbleMaxWidth;
+        set => PreviewBubbleMaxWidth = value;
     }
 
     public Thickness PreviewMessageGap

@@ -357,3 +357,27 @@ Reason: the previous broad protected selector dropped paragraphs containing
 inline code, and a same-element/mode cache kept stale positions after a new
 protected child appeared. The repair is marker-only and leaves DOM order and
 native surfaces untouched.
+
+## D-024 — Reject stretching shells and use shrink-to-content bubbles
+
+Decision: Whole mode rejects a candidate Markdown/prose element when its
+semantic descendants are inside a flex/grid/stretch shell that owns layout
+height. It falls back to safe semantic blocks. Assistant prose markers use a
+`max-content` width with the configured percentage as `max-width`, explicit
+auto height, and `flex: 0 1 auto`; no fixed height or minimum width is added.
+
+Reason: the supplied long-Markdown regression showed that selecting a host
+layout shell could produce a page-tall blank bubble. The width property must
+also let one-character replies shrink independently from longer segments.
+
+## D-025 — One managed packaged default avatar contract
+
+Decision: `DefaultAvatarAsset` owns the stable file/resource names and imports
+the WPF pack resource through `AvatarService` into `%APPDATA%\\Myco\\avatars`.
+`MainWindowViewModel` invokes it only for a newly created config or a required
+factory reset. Existing, migrated, and custom assistant avatars are preserved;
+resource/import failures remain fail-safe.
+
+Reason: a pack URI is a host resource locator, not a valid persisted Runtime
+avatar path. A single Core contract keeps preview, config and Runtime on the
+managed data URL path without writing repository or machine-specific paths.

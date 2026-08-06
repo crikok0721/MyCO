@@ -76,7 +76,11 @@ export function segmentAssistantProse(
 function findWholeResponseSurfaces(turn: Element): Element[] {
   const candidates = Array.from(
     turn.querySelectorAll(WHOLE_SURFACE_SELECTOR)
-  ).filter((element) => isWholeResponseSurface(element, turn));
+  ).filter(
+    (element) =>
+      isWholeResponseSurface(element, turn) &&
+      !isStretchingLayoutShell(element)
+  );
   // A renderer may expose both a prose/layout shell and the actual Markdown
   // surface. Decorating the shell lets host flex/grid sizing collapse the
   // bubble while its descendants determine the height. Prefer the most
@@ -89,6 +93,30 @@ function findWholeResponseSurfaces(turn: Element): Element[] {
       )
   );
   return innermost.length > 0 ? innermost : findSafeBlocks(turn);
+}
+
+function isStretchingLayoutShell(element: Element): boolean {
+  // A few renderer versions put the real Markdown surface inside a flex/grid
+  // shell that owns the turn height. Styling that shell creates the observed
+  // narrow, page-tall empty bubble. This is a semantic/layout check only; it
+  // does not depend on generated class names or copy host nodes.
+  const classTokens = Array.from(element.classList);
+  const hasLayoutToken = classTokens.some((token) =>
+    /^(?:flex|grid|flex-col|flex-row|flex-1|grow|shrink|min-w-0|min-h-0|h-full|w-full|items-stretch|self-stretch)$/.test(
+      token
+    )
+  );
+  const inlineStyle = element.getAttribute("style") ?? "";
+  const hasStretchStyle =
+    /(?:display\s*:\s*(?:flex|grid)|(?:^|;)\s*(?:height|min-height|width)\s*:\s*(?:100%|100vh|stretch))/i.test(
+      inlineStyle
+    );
+  const hasSemanticChild = Boolean(
+    element.querySelector(
+      "h1,h2,h3,h4,h5,h6,p,blockquote,ul,ol,[data-content-type=prose],[data-testid*=markdown],[class*=markdownContent]"
+    )
+  );
+  return hasSemanticChild && (hasLayoutToken || hasStretchStyle);
 }
 
 function isWholeResponseSurface(element: Element, turn: Element): boolean {
@@ -113,9 +141,10 @@ function findSafeBlocks(turn: Element): Element[] {
   const safe = candidates.filter(isSafeProseBlock);
   const specific = safe.filter((candidate) => {
     if (candidate.getAttribute("data-content-type") !== "prose") return true;
-    return !Array.from(candidate.children).some((child) =>
-      child.matches(SEMANTIC_BLOCK_SELECTOR)
-    );
+    // A prose shell can contain another wrapper before the actual Markdown
+    // blocks. Keep the shell only when it is the leaf safe surface; otherwise
+    // mark the semantic blocks so host flex sizing cannot collapse the shell.
+    return !candidate.querySelector(SEMANTIC_BLOCK_SELECTOR);
   });
   return specific.filter(
     (candidate) =>

@@ -53,6 +53,15 @@ readiness is still blocked by the environment-dependent items below.
 
 ## Implemented in code; verification gates still open
 
+- [x] `DEF-001` packaged `MyCO-logo.png` default Assistant avatar through
+  managed storage; custom and migrated avatars remain untouched. Fresh-profile
+  and Windows visual proof remain open.
+- [x] `BUB-004`/`BUB-005`/`PRE-003` Whole shell rejection, shrink-to-content
+  Assistant width, and shared preview bubble cap. Runtime fixture evidence is
+  current; real Codex/WPF/DPI evidence remains open. Defects are indexed as
+  `ERR-001` through `ERR-004`.
+- [x] `MEM-004` autonomous plan-to-delivery workflow and `ERROR_LEDGER.md`.
+
 - [ ] Schema 7 baseline-plus-delta Assistant/User avatar and nickname offsets
   plus Assistant-only ordinary-prose maximum width. Baseline v2 (35px avatar,
   -4px User avatar Y) and migration tests are present; the real preview/Codex
@@ -101,7 +110,8 @@ readiness is still blocked by the environment-dependent items below.
 - [x] Conversation-root boundary enforcement, composer/empty-state exclusion,
   singleton reconciliation, orphan cleanup, and streaming mutation refresh.
 - [ ] Automatic and Whole response grouping repairs and fully rounded contours;
-  Runtime 57/57 fixture tests pass, but real Codex DOM evidence is pending.
+  current Runtime fixtures cover shell fallback and adaptive width, but real
+  Codex DOM evidence is pending.
 - [x] User minimize paths uniformly hide to the single tray icon and preserve
   the prior Normal/Maximized state.
 - [x] Standard minimize/maximize/restore/close window controls.

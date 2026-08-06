@@ -24,7 +24,7 @@ Core constraints:
 - **Phase:** Phase 3 — Beta testing and pre-release stability remediation
 - **Version:** `0.99.2` (local UI repair; not released)
 - **Branch:** `main`
-- **Base HEAD:** `705219c86ac38cc94a61544247854d8568b2fe5c` (existing commit preserved; current implementation is uncommitted)
+- **Base HEAD:** `da71bfb4b0bf51b6c00b8eb2f60ba92ea538e2b9` (existing commit preserved; current repair is uncommitted)
 - **GitHub:** https://github.com/crikok0721/MyCO
 
 The active controlling Codex session was never restarted or closed. Production
@@ -59,6 +59,10 @@ restart was exercised only against isolated official Desktop process trees.
   state, and shows one persisted balloon per Windows boot.
 - Runtime Automatic/Whole protected-barrier and inline-code regression repair;
   structure fingerprints now invalidate stale bubble positions.
+- Whole-mode stretching-shell rejection, shrink-to-content Assistant bubbles,
+  shared Home/Appearance preview width cap, and the managed packaged default
+  avatar contract are covered by the current repair set. The supplied four
+  screenshots are recorded as `ERR-001` through `ERR-004` evidence.
 - Schema 7 baseline-plus-delta geometry migration with eight independent role
   offsets and Assistant ordinary-prose width; geometry baseline v2 now resolves
   a 35px avatar and -4px User avatar Y at zero while source-compatible
@@ -108,23 +112,25 @@ historical evidence only.
 ## Current validation for the local 0.99.2 incremental development
 
 - `npm.cmd ci`: passed with 0 vulnerabilities; Runtime `npm.cmd run check`:
-  lint, 57/57 tests, and generated bundle rebuild passed.
+  lint, 58/58 tests, and generated bundle rebuild passed.
 - The official .NET 8.0.423 SDK was installed to a user-local tool directory
   because the machine image did not include an SDK. `dotnet build .\MyCO.sln
   -c Release --no-restore`: 0 warnings, 0 errors. `dotnet test .\MyCO.sln
-  -c Release --no-build`: 238/238 passed.
-- `scripts\build-release.ps1` completed after those checks and replaced the
-  old local publish output with a new self-contained `artifacts\MyCO-win-x64`
-  directory and ZIP containing 499 verified manifest entries; the generated
-  `.sha256` sidecar is the source of truth for the archive hash. The current
-  archive SHA-256 is
-  `df20625ccb5066fd9c2ca70adfd47801c18a222ba51becec7c412c8c8ba1012d`.
-  `MyCO.exe` reports `0.99.2.0` and product version
-  `0.99.2+705219c86ac38cc94a61544247854d8568b2fe5c`.
+  -c Release --no-build`: 242/242 passed.
+- `scripts\build-release.ps1` completed against the repository release output.
+  The synchronized package is at
+  `C:\Users\crikok\Documents\MyCO\artifacts\MyCO-win-x64`,
+  contains 501 files, and its ZIP SHA-256 is
+  `2a298253931b9556174ea48aa9e1832f1091827d47e0827ccd5b3b1bc5e0cee5`.
+  Reflection over the packaged `MyCO.g.resources` confirmed
+  `assets/myco-logo.png`; `MyCO.exe` reports `0.99.2.0` and product version
+  `0.99.2+da71bfb4b0bf51b6c00b8eb2f60ba92ea538e2b9`.
 - Real Windows visual acceptance, notification rendering, DPI checks, and the
   eight-combination startup matrix remain pending. The executable was not
-  launched against the active user/Codex profile.
+  launched during this release synchronization.
 - No commit, push, tag, published release, or PR was created.
+- The release synchronization found no running MyCO process at the final build
+  step; no Codex process or active user profile was changed.
 
 ## Next recommended steps
 

@@ -133,7 +133,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string _darkNicknameColor = "#9A9A9A";
     private string _darkAvatarBackground = "#303030";
     private string _darkAvatarBorder = "#FFFFFF14";
-    private string _lightAssistantBubble = "#F1F3F5";
+    private string _lightAssistantBubble = "#E5EBE8";
     private string _lightAssistantText = "#202124";
     private string _lightNicknameColor = "#5F6672";
     private string _lightAvatarBackground = "#E5E7EB";
@@ -1655,22 +1655,18 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         try
         {
             var resource = System.Windows.Application.GetResourceStream(
-                new Uri("pack://application:,,,/Assets/MyCO-logo.png", UriKind.Absolute));
+                new Uri(DefaultAvatarAsset.ResourceUri, UriKind.Absolute));
             if (resource?.Stream is null)
             {
                 throw new FileNotFoundException("The packaged MyCO logo was not found.");
             }
             using (resource.Stream)
             {
-                var imported = await _avatarService.ImportAsync(resource.Stream)
+                var seeded = await DefaultAvatarAsset.SeedAsync(
+                        config,
+                        _avatarService,
+                        resource.Stream)
                     .ConfigureAwait(true);
-                var seeded = config with
-                {
-                    Assistant = config.Assistant with
-                    {
-                        Avatar = imported.StoredPath
-                    }
-                };
                 await _configStore.SaveAsync(seeded).ConfigureAwait(true);
                 return seeded;
             }

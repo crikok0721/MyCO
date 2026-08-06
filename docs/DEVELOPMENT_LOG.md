@@ -1338,3 +1338,95 @@ Testing:
   `MyCO-win-x64.zip.sha256` sidecar records the archive hash.
 - Real visual/system acceptance, including Windows 10/11 DPI and startup
   matrix, remains unverified; no published release was created.
+
+## 2026-08-06 — Whole shell fallback, adaptive bubbles and managed default avatar
+
+Change:
+
+- Added `ERR-001` through `ERR-004` to `docs/ERROR_LEDGER.md` and registered
+  `DEF-001`, `PRE-003`, `BUB-004`, `BUB-005`, and `MEM-004` in the requirements
+  ledger.
+- Whole segmentation now rejects semantic Markdown candidates that are also
+  flex/grid/stretch layout shells and falls back to safe semantic blocks.
+- Assistant prose markers now use shrink-to-content `max-content` width with an
+  available percentage cap, auto height, and explicit auto flex sizing.
+- Home and Appearance preview bubbles share one dynamic width cap while keeping
+  role-specific brushes; the default light Assistant surface has enough neutral
+  contrast against the preview canvas to remain visibly a bubble.
+- Added the Core `DefaultAvatarAsset` contract. New configuration and factory
+  reset continue to import the packaged Logo through `AvatarService`, preserve
+  `菲叶子` and custom avatars, and fail safely when the pack resource is absent
+  or invalid.
+- Updated AGENTS/CLAUDE to execute after planning and failing tests without a
+  confirmation gate; the old rule is recorded as Superseded by `MEM-004`.
+- Added optional `-ArtifactsRoot` support to `scripts/build-release.ps1` so
+  validation packages can be generated without touching a locked local output.
+
+Reason:
+
+- Supplied screenshots reproduced a bare-looking Assistant preview, a Whole
+  long-Markdown page-height blank bubble, and fixed-width short replies. The
+  existing default-logo path had no reusable Core contract or managed-storage
+  unit test.
+
+Impact:
+
+- Protected DOM boundaries, private CDP, confidence gating, native User/tool
+  surfaces, atomic configuration, and generated-bundle rules are unchanged.
+- The generated Runtime bundle was rebuilt from TypeScript; no generated file
+  was hand-edited.
+
+Modified Files:
+
+- `AGENTS.md`, `CLAUDE.md`, `docs/{REQUIREMENTS,ERROR_LEDGER,REQUIREMENTS_AUDIT,
+  CONTEXT,PROJECT_CONTEXT,TASK_LIST,DECISIONS,architecture,DEVELOPMENT_LOG}.md`.
+- `scripts/build-release.ps1`, `src/MyCO.Core/Avatars/DefaultAvatarAsset.cs`,
+  `src/MyCO.Core/Configuration/AppConfig.cs`, Manager preview and ViewModel,
+  Runtime segmenter/style/types and regenerated `dist/MyCO.runtime.js`.
+- Runtime, Manager UI, avatar, and requirements-ledger tests.
+
+Testing:
+
+- `npm.cmd ci`: passed with 0 vulnerabilities; `npm.cmd run check`: lint,
+  58/58 Runtime tests, and bundle rebuild passed.
+- `dotnet build .\MyCO.sln -c Release --no-restore`: 0 warnings/0 errors;
+  `dotnet test .\MyCO.sln -c Release --no-build`: 242/242 passed, including
+  the corrupt packaged-avatar no-write regression.
+- Isolated `scripts\build-release.ps1 -ArtifactsRoot` passed. The package has
+  501 files, `MyCO.exe` 0.99.2.0, and `MyCO.g.resources` contains
+  `assets/myco-logo.png`; ZIP SHA-256 is recorded in `docs/CONTEXT.md`.
+- `git diff --check` passed.
+
+Visual / system evidence:
+
+- The four supplied screenshots were opened and indexed as defect evidence.
+- Real Codex long Markdown, short replies, WPF themes/DPI, fresh-profile first
+  run, and Windows 10/11 shell acceptance remain unverified. The validation
+  executable was not launched and no active user profile was modified.
+
+## 2026-08-06 — Repository release package synchronization
+
+Change:
+
+- Rebuilt the current working tree with `scripts\build-release.ps1` into the
+  repository-owned `artifacts\MyCO-win-x64` directory.
+- The release archive and `.sha256` sidecar were replaced atomically by the
+  guarded release script; the package contains the regenerated Runtime and
+  packaged `MyCO-logo.png` resource.
+
+Impact:
+
+- This is a local, unsigned validation package only. No publish, tag, commit,
+  or PR was created.
+- If a future build is blocked by a running MyCO executable, close only the
+  exact verified MyCO process after explicit user authorization; never stop
+  Codex by name or terminate an unverified process.
+
+Testing:
+
+- Runtime 58/58, .NET 242/242, package resource enumeration, executable
+  version, ZIP SHA-256 and sidecar equality all passed.
+- Current archive SHA-256:
+  `2a298253931b9556174ea48aa9e1832f1091827d47e0827ccd5b3b1bc5e0cee5`.
+- The synchronized executable was not launched; real visual/system acceptance
+  remains a separate gate.
