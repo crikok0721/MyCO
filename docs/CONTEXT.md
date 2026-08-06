@@ -106,9 +106,14 @@ Full task list: `docs/TASK_LIST.md`.
   rebuild passed.
 - Full .NET SDK 8.0.423 build: 0 warnings and 0 errors.
 - .NET test suite: 229/229 passed, 0 failed, 0 skipped.
-- `git diff --check` passed. No self-contained package or public release was
-  generated in this cleanup pass. The source Release output has not been
-  launched for visual acceptance.
+- `git diff --check` passed. `scripts/build-release.ps1` generated a fresh
+  self-contained local directory at
+  `artifacts/MyCO-win-x64/` and `MyCO-win-x64.zip`; the directory contains
+  `MyCO.exe`, `MyCO.Updater.exe`, 496 verified SHA-256 entries, and no manifest
+  mismatches. The archive SHA-256 is
+  `879f97a46fbcfe0cb2311c58fe1f2edaa891cea2ccbd4e508761f13e5456bdd4` and is
+  recorded beside the ZIP. It is not signed,
+  publicly released, or visually launched in this pass.
 - Real Windows visual acceptance, taskbar/notification rendering, DPI checks,
   and the eight-combination startup matrix remain pending.
 - No commit, push, tag, PR, or release was created.

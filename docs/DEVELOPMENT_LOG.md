@@ -1,5 +1,38 @@
 # Development Log
 
+## 2026-08-06 — Fresh self-contained local release directory
+
+Date:
+
+2026-08-06
+
+Change:
+
+- Ran `scripts/build-release.ps1` from the current `0.99.2` source tree with
+  the bundled .NET SDK and generated `artifacts\MyCO-win-x64\` plus its ZIP.
+- The directory contains `MyCO.exe`, `MyCO.Updater.exe`, runtime configuration,
+  documentation and 496 SHA-256 manifest entries; all entries match.
+- The ZIP SHA-256 is recorded in `MyCO-win-x64.zip.sha256` and matches the
+  independently calculated archive hash.
+- Archive SHA-256:
+  `879f97a46fbcfe0cb2311c58fe1f2edaa891cea2ccbd4e508761f13e5456bdd4`.
+
+Reason:
+
+Provide a fresh directly launchable self-contained directory after removing
+all previous local release outputs.
+
+Impact:
+
+This is a local unsigned, unreleased build. No public release, signing,
+registry association or program launch was performed.
+
+Testing:
+
+Runtime 52/52, .NET 229/229, Release build 0 warnings/0 errors, manifest
+verification 0 mismatches, and archive hash verification passed. Visual and
+real-user launch acceptance remains pending.
+
 ## 2026-08-06 — Repository housekeeping
 
 Date:
@@ -9,10 +42,11 @@ Date:
 Change:
 
 - Removed obsolete ignored build outputs: pre-incremental MyCO packages,
-  legacy MyCodex ZIPs, the SBOM tool cache, the superseded 0.99.2 directory and
-  the empty icon-preview file.
-- Preserved the exact artifact directory owned by the currently running local
-  MyCO process; no process was terminated and no executable was replaced.
+  legacy MyCodex ZIPs, the SBOM tool cache, both superseded 0.99.2 directories,
+  the empty icon-preview file, and re-creatable node/.NET build/test caches.
+- Waited for the previously running local MyCO process to exit normally before
+  removing its final artifact directory; no process was terminated and no
+  executable was replaced.
 - Marked `docs/HANDOFF.md` historical, made `docs/CONTEXT.md` the current
   validation handoff, and aligned repository instructions on the local 0.99.2
   unreleased state.
@@ -20,18 +54,18 @@ Change:
 Reason:
 
 Remove stale local outputs and prevent future agents from launching an old
-ignored package while retaining the active process's files for safe shutdown.
+ignored package while leaving a clean source checkout.
 
 Impact:
 
-Only ignored local artifacts and current-document wording changed. Source,
-official Codex files, user data and credentials were not removed.
+Only ignored local artifacts/caches and current-document wording changed.
+Source, official Codex files, user data and credentials were not removed.
 
 Testing:
 
-Verified the active process path remained present, obsolete artifact targets
-were absent, and `git diff --check` passed. Source build/test results remain in
-the preceding 0.99.2 implementation entry.
+Verified no MyCO process remained, obsolete artifact/cache targets were absent,
+and `git diff --check` passed. Source build/test results remain in the preceding
+0.99.2 implementation entry; a fresh build is required before launch.
 
 ## 2026-08-06 — V0.99.2 realtime appearance, startup and onboarding repair
 
