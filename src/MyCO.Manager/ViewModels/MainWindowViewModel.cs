@@ -111,13 +111,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string _assistantAvatar = string.Empty;
     private string _userAvatar = string.Empty;
     private double _avatarSize = 40;
-    private double _avatarOffsetX;
-    private double _avatarOffsetY = 11;
+    private double _assistantAvatarOffsetX;
+    private double _assistantAvatarOffsetY = 11;
+    private double _userAvatarOffsetX;
+    private double _userAvatarOffsetY = 11;
+    private double _assistantNicknameOffsetX;
+    private double _assistantNicknameOffsetY;
+    private double _userNicknameOffsetX;
+    private double _userNicknameOffsetY;
     private double _bubbleRadius = 14;
     private double _bubblePaddingX = 14;
     private double _bubblePaddingY = 10;
     private double _messageGap = 28;
-    private double _messageMaxWidth = 66;
+    private double _assistantBubbleMaxWidth = 66;
     private bool _nicknameVisible = true;
     private string _userBubble = "#242424";
     private string _assistantBubble = "#222222";
@@ -149,6 +155,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private bool _diagnosticsGenerated;
     private bool _initialized;
     private int _desktopOperationInProgress;
+    private int _associatedLaunchQueued;
     private DesktopSessionState _sessionState =
         new(false, false, false, null, 0, "Not connected", null, null);
 
@@ -458,29 +465,98 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    public double AvatarOffsetX
+    public double AssistantAvatarOffsetX
     {
-        get => _avatarOffsetX;
+        get => _assistantAvatarOffsetX;
         set
         {
-            if (Set(ref _avatarOffsetX, value))
+            if (Set(ref _assistantAvatarOffsetX, value))
             {
-                Raise(nameof(AvatarOffsetXLabel));
-                Raise(nameof(UserAvatarOffsetX));
+                Raise(nameof(AssistantAvatarOffsetXLabel));
             }
         }
     }
 
-    public double UserAvatarOffsetX => -AvatarOffsetX;
-
-    public double AvatarOffsetY
+    public double AssistantAvatarOffsetY
     {
-        get => _avatarOffsetY;
+        get => _assistantAvatarOffsetY;
         set
         {
-            if (Set(ref _avatarOffsetY, value))
+            if (Set(ref _assistantAvatarOffsetY, value))
             {
-                Raise(nameof(AvatarOffsetYLabel));
+                Raise(nameof(AssistantAvatarOffsetYLabel));
+            }
+        }
+    }
+
+    public double UserAvatarOffsetX
+    {
+        get => _userAvatarOffsetX;
+        set
+        {
+            if (Set(ref _userAvatarOffsetX, value))
+            {
+                Raise(nameof(UserAvatarOffsetXLabel));
+            }
+        }
+    }
+
+    public double UserAvatarOffsetY
+    {
+        get => _userAvatarOffsetY;
+        set
+        {
+            if (Set(ref _userAvatarOffsetY, value))
+            {
+                Raise(nameof(UserAvatarOffsetYLabel));
+            }
+        }
+    }
+
+    public double AssistantNicknameOffsetX
+    {
+        get => _assistantNicknameOffsetX;
+        set
+        {
+            if (Set(ref _assistantNicknameOffsetX, value))
+            {
+                Raise(nameof(AssistantNicknameOffsetXLabel));
+            }
+        }
+    }
+
+    public double AssistantNicknameOffsetY
+    {
+        get => _assistantNicknameOffsetY;
+        set
+        {
+            if (Set(ref _assistantNicknameOffsetY, value))
+            {
+                Raise(nameof(AssistantNicknameOffsetYLabel));
+            }
+        }
+    }
+
+    public double UserNicknameOffsetX
+    {
+        get => _userNicknameOffsetX;
+        set
+        {
+            if (Set(ref _userNicknameOffsetX, value))
+            {
+                Raise(nameof(UserNicknameOffsetXLabel));
+            }
+        }
+    }
+
+    public double UserNicknameOffsetY
+    {
+        get => _userNicknameOffsetY;
+        set
+        {
+            if (Set(ref _userNicknameOffsetY, value))
+            {
+                Raise(nameof(UserNicknameOffsetYLabel));
             }
         }
     }
@@ -533,14 +609,14 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    public double MessageMaxWidth
+    public double AssistantBubbleMaxWidth
     {
-        get => _messageMaxWidth;
+        get => _assistantBubbleMaxWidth;
         set
         {
-            if (Set(ref _messageMaxWidth, value))
+            if (Set(ref _assistantBubbleMaxWidth, value))
             {
-                Raise(nameof(MessageMaxWidthLabel));
+                Raise(nameof(AssistantBubbleMaxWidthLabel));
             }
         }
     }
@@ -748,10 +824,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     : "HomeAppearanceOff");
     public string AvatarSizeLabel =>
         LocalizationService.Format("AvatarSizeFormat", AvatarSize);
-    public string AvatarOffsetXLabel =>
-        LocalizationService.Format("AvatarOffsetXFormat", AvatarOffsetX);
-    public string AvatarOffsetYLabel =>
-        LocalizationService.Format("AvatarOffsetYFormat", AvatarOffsetY);
+    public string AssistantAvatarOffsetXLabel =>
+        LocalizationService.Format("AvatarOffsetXFormat", AssistantAvatarOffsetX);
+    public string AssistantAvatarOffsetYLabel =>
+        LocalizationService.Format("AvatarOffsetYFormat", AssistantAvatarOffsetY);
+    public string UserAvatarOffsetXLabel =>
+        LocalizationService.Format("AvatarOffsetXFormat", UserAvatarOffsetX);
+    public string UserAvatarOffsetYLabel =>
+        LocalizationService.Format("AvatarOffsetYFormat", UserAvatarOffsetY);
+    public string AssistantNicknameOffsetXLabel =>
+        LocalizationService.Format("NicknameOffsetXFormat", AssistantNicknameOffsetX);
+    public string AssistantNicknameOffsetYLabel =>
+        LocalizationService.Format("NicknameOffsetYFormat", AssistantNicknameOffsetY);
+    public string UserNicknameOffsetXLabel =>
+        LocalizationService.Format("NicknameOffsetXFormat", UserNicknameOffsetX);
+    public string UserNicknameOffsetYLabel =>
+        LocalizationService.Format("NicknameOffsetYFormat", UserNicknameOffsetY);
     public string BubbleRadiusLabel =>
         LocalizationService.Format("BubbleRadiusFormat", BubbleRadius);
     public string BubblePaddingXLabel =>
@@ -760,8 +848,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         LocalizationService.Format("VerticalPaddingFormat", BubblePaddingY);
     public string MessageGapLabel =>
         LocalizationService.Format("MessageGapFormat", MessageGap);
-    public string MessageMaxWidthLabel =>
-        LocalizationService.Format("MaxWidthFormat", MessageMaxWidth);
+    public string AssistantBubbleMaxWidthLabel =>
+        LocalizationService.Format("AssistantBubbleMaxWidthFormat", AssistantBubbleMaxWidth);
 
     public bool WasFirstRun { get; private set; }
     public string VersionLabel => BuildInfo.Version;
@@ -803,7 +891,9 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         RunDesktopOperationAsync(() => StartAutomaticallyCoreAsync(force: false));
 
     public Task StartFromAssociatedLaunchAsync() =>
-        RunDesktopOperationAsync(() => StartAutomaticallyCoreAsync(force: true));
+        RunDesktopOperationAsync(
+            () => StartAutomaticallyCoreAsync(force: true),
+            queueWhenBusy: true);
 
     private async Task StartAutomaticallyCoreAsync(bool force)
     {
@@ -814,7 +904,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             var decision = AutomaticCodexLaunchPolicy.Decide(
                 force || _persistedConfig.LaunchCodexOnMycoStart,
                 candidate is not null,
-                candidate?.IsRunning == true,
+                Candidates.Any(candidate => candidate.IsRunning),
                 SessionState.IsConnected);
             if (decision is AutomaticCodexLaunchDecision.Disabled or
                 AutomaticCodexLaunchDecision.AlreadyControlled)
@@ -961,6 +1051,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var candidate = SelectedCandidate
                         ?? throw new InvalidOperationException("No Desktop candidate is selected.");
         candidate = await RefreshCandidateAsync(candidate).ConfigureAwait(true);
+        if (!candidate.IsRunning && Candidates.Any(current => current.IsRunning))
+        {
+            SetStatus("StatusAutoStartSkippedRunning");
+            _logger.Info("start_codex_skipped_other_running_candidate");
+            return;
+        }
         // Chromium reads CDP flags only at launch, so an ordinary running instance must restart.
         if (candidate.IsRunning)
         {
@@ -1196,11 +1292,29 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     {
         var config = BuildConfig();
         await SaveConfigAsync(config).ConfigureAwait(true);
+        RuntimeConfigApplyResult applyResult = new(0, 0, 0);
         if (_controller.State.IsConnected)
         {
-            await _controller.ApplyConfigAsync(config).ConfigureAwait(true);
+            applyResult = await _controller.ApplyConfigAsync(config).ConfigureAwait(true);
         }
-        SetStatus("StatusAppearanceSaved");
+        if (applyResult.SessionCount == 0)
+        {
+            SetStatus("StatusAppearanceSavedNoSessions");
+        }
+        else if (applyResult.IsFullyApplied)
+        {
+            SetStatus(
+                "StatusAppearanceSavedAndAppliedFormat",
+                applyResult.AppliedCount);
+        }
+        else
+        {
+            SetStatus(
+                "StatusAppearancePartiallyAppliedFormat",
+                applyResult.AppliedCount,
+                applyResult.SessionCount,
+                applyResult.FailedCount);
+        }
     }
 
     private async Task SaveSettingsAsync()
@@ -1210,11 +1324,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                              "The MyCO executable path is unavailable.");
         var previousConfig = _persistedConfig;
         var previousRegistration = _startupRegistration.GetStatus(executable);
-        var previousAssociation = _codexLaunchAssociation.GetStatus(executable);
+        var previousAssociation =
+            _codexLaunchAssociation.CaptureSnapshot(executable);
         try
         {
             _startupRegistration.SetEnabled(executable, LaunchAtLogin);
-            _codexLaunchAssociation.SetEnabled(executable, AssociateCodexLaunches);
+            _codexLaunchAssociation.SetEnabled(
+                executable,
+                AssociateCodexLaunches,
+                previousAssociation);
             var config = BuildConfig();
             await SaveConfigAsync(config).ConfigureAwait(true);
             _themeService.ApplyMode(config.ManagerThemeMode);
@@ -1232,9 +1350,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
             try
             {
-                _codexLaunchAssociation.SetEnabled(
-                    executable,
-                    previousAssociation.IsEnabled);
+                _codexLaunchAssociation.Restore(previousAssociation);
             }
             catch (Exception rollbackException)
             {
@@ -1396,7 +1512,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         var previousConfig = _persistedConfig;
         var previousWasFirstRun = WasFirstRun;
         var previousRegistration = _startupRegistration.GetStatus(executable);
-        var previousAssociation = _codexLaunchAssociation.GetStatus(executable);
+        var previousAssociation =
+            _codexLaunchAssociation.CaptureSnapshot(executable);
         var restoreSkin = SessionState.IsConnected && SessionState.IsSkinRequested;
         FactoryResetTransaction? transaction = null;
 
@@ -1408,7 +1525,10 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
 
             _startupRegistration.SetEnabled(executable, enabled: false);
-            _codexLaunchAssociation.SetEnabled(executable, enabled: false);
+            _codexLaunchAssociation.SetEnabled(
+                executable,
+                enabled: false,
+                previousAssociation);
             transaction = _factoryResetService.Stage();
 
             var load = await _configStore.LoadAsync().ConfigureAwait(true);
@@ -1475,9 +1595,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             }
             try
             {
-                _codexLaunchAssociation.SetEnabled(
-                    executable,
-                    previousAssociation.IsEnabled);
+                _codexLaunchAssociation.Restore(previousAssociation);
             }
             catch (Exception rollbackException)
             {
@@ -1660,14 +1778,20 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     SelectedBubbleDisplayModeOption?.Mode ??
                     BubbleDisplayMode.Automatic,
                 AvatarSize = (int)Math.Round(AvatarSize),
-                AvatarOffsetX = (int)Math.Round(AvatarOffsetX),
-                AvatarOffsetY = (int)Math.Round(AvatarOffsetY),
+                AssistantAvatarOffsetX = (int)Math.Round(AssistantAvatarOffsetX),
+                AssistantAvatarOffsetY = (int)Math.Round(AssistantAvatarOffsetY),
+                UserAvatarOffsetX = (int)Math.Round(UserAvatarOffsetX),
+                UserAvatarOffsetY = (int)Math.Round(UserAvatarOffsetY),
+                AssistantNicknameOffsetX = (int)Math.Round(AssistantNicknameOffsetX),
+                AssistantNicknameOffsetY = (int)Math.Round(AssistantNicknameOffsetY),
+                UserNicknameOffsetX = (int)Math.Round(UserNicknameOffsetX),
+                UserNicknameOffsetY = (int)Math.Round(UserNicknameOffsetY),
                 BubbleRadius = (int)Math.Round(BubbleRadius),
                 BubblePaddingX = (int)Math.Round(BubblePaddingX),
                 BubblePaddingY = (int)Math.Round(BubblePaddingY),
                 NicknameVisible = NicknameVisible,
                 MessageGap = (int)Math.Round(MessageGap),
-                MessageMaxWidth = (int)Math.Round(MessageMaxWidth),
+                AssistantBubbleMaxWidth = (int)Math.Round(AssistantBubbleMaxWidth),
                 UserBubble = _persistedConfig.Appearance.UserBubble,
                 UserText = _persistedConfig.Appearance.UserText,
                 DarkBubblePalette = new BubblePalette
@@ -1715,13 +1839,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         AssistantAvatar = config.Assistant.Avatar;
         UserAvatar = config.User.Avatar;
         AvatarSize = config.Appearance.AvatarSize;
-        AvatarOffsetX = config.Appearance.AvatarOffsetX;
-        AvatarOffsetY = config.Appearance.AvatarOffsetY;
+        AssistantAvatarOffsetX = config.Appearance.AssistantAvatarOffsetX;
+        AssistantAvatarOffsetY = config.Appearance.AssistantAvatarOffsetY;
+        UserAvatarOffsetX = config.Appearance.UserAvatarOffsetX;
+        UserAvatarOffsetY = config.Appearance.UserAvatarOffsetY;
+        AssistantNicknameOffsetX = config.Appearance.AssistantNicknameOffsetX;
+        AssistantNicknameOffsetY = config.Appearance.AssistantNicknameOffsetY;
+        UserNicknameOffsetX = config.Appearance.UserNicknameOffsetX;
+        UserNicknameOffsetY = config.Appearance.UserNicknameOffsetY;
         BubbleRadius = config.Appearance.BubbleRadius;
         BubblePaddingX = config.Appearance.BubblePaddingX;
         BubblePaddingY = config.Appearance.BubblePaddingY;
         MessageGap = config.Appearance.MessageGap;
-        MessageMaxWidth = config.Appearance.MessageMaxWidth;
+        AssistantBubbleMaxWidth = config.Appearance.AssistantBubbleMaxWidth;
         NicknameVisible = config.Appearance.NicknameVisible;
         AssistantBubble = config.Appearance.DarkBubblePalette.AssistantBubble;
         DarkAssistantText = config.Appearance.DarkBubblePalette.AssistantText;
@@ -2123,13 +2253,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Raise(nameof(SessionStatus));
         Raise(nameof(AppearanceStatus));
         Raise(nameof(AvatarSizeLabel));
-        Raise(nameof(AvatarOffsetXLabel));
-        Raise(nameof(AvatarOffsetYLabel));
+        Raise(nameof(AssistantAvatarOffsetXLabel));
+        Raise(nameof(AssistantAvatarOffsetYLabel));
+        Raise(nameof(UserAvatarOffsetXLabel));
+        Raise(nameof(UserAvatarOffsetYLabel));
+        Raise(nameof(AssistantNicknameOffsetXLabel));
+        Raise(nameof(AssistantNicknameOffsetYLabel));
+        Raise(nameof(UserNicknameOffsetXLabel));
+        Raise(nameof(UserNicknameOffsetYLabel));
         Raise(nameof(BubbleRadiusLabel));
         Raise(nameof(BubblePaddingXLabel));
         Raise(nameof(BubblePaddingYLabel));
         Raise(nameof(MessageGapLabel));
-        Raise(nameof(MessageMaxWidthLabel));
+        Raise(nameof(AssistantBubbleMaxWidthLabel));
         Raise(nameof(CurrentVersionLabel));
         UpdateStatusText = LocalizationService.Format(
             _updateStatusKey,
@@ -2155,13 +2291,19 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         Raise(nameof(ShowRestartAction));
     }
 
-    private async Task RunDesktopOperationAsync(Func<Task> operation)
+    private async Task RunDesktopOperationAsync(
+        Func<Task> operation,
+        bool queueWhenBusy = false)
     {
         if (Interlocked.CompareExchange(
                 ref _desktopOperationInProgress,
                 1,
                 0) != 0)
         {
+            if (queueWhenBusy)
+            {
+                Interlocked.Exchange(ref _associatedLaunchQueued, 1);
+            }
             return;
         }
         RaiseCommandCanExecute();
@@ -2173,6 +2315,12 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             Volatile.Write(ref _desktopOperationInProgress, 0);
             RaiseCommandCanExecute();
+            if (Interlocked.Exchange(ref _associatedLaunchQueued, 0) != 0)
+            {
+                await RunDesktopOperationAsync(
+                    () => StartAutomaticallyCoreAsync(force: true),
+                    queueWhenBusy: true).ConfigureAwait(true);
+            }
         }
     }
 

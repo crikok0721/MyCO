@@ -39,6 +39,30 @@ public sealed partial class LocalizationResourceTests
     }
 
     [Fact]
+    public void AppearanceApplyOutcomesAndGeometryLabelsExistInEveryLocale()
+    {
+        var root = FindRepositoryRoot();
+        var resources = Path.Combine(root, "src", "MyCO.Manager", "Resources");
+        foreach (var path in Directory.GetFiles(resources, "Strings.*.xaml"))
+        {
+            var entries = ReadEntries(path);
+            foreach (var key in new[]
+                     {
+                         "AppearanceAssistantGeometry", "AppearanceUserGeometry",
+                         "AvatarPosition", "NicknamePosition",
+                         "NicknameOffsetXFormat", "NicknameOffsetYFormat",
+                         "AssistantBubbleMaxWidthFormat",
+                         "StatusAppearanceSavedNoSessions",
+                         "StatusAppearancePartiallyAppliedFormat",
+                         "StatusAppearanceSavedAndAppliedFormat"
+                     })
+            {
+                Assert.True(entries.ContainsKey(key), $"{Path.GetFileName(path)} is missing {key}.");
+            }
+        }
+    }
+
+    [Fact]
     public void JapaneseHasItsOwnLocaleFontProfile()
     {
         var root = FindRepositoryRoot();

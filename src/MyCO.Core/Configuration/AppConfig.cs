@@ -1,4 +1,5 @@
 using MyCO.Compatibility;
+using System.Text.Json.Serialization;
 
 // Defines the versioned settings shared by the WPF manager and browser runtime.
 namespace MyCO.Configuration;
@@ -42,18 +43,38 @@ public sealed record BubblePalette
 
 public sealed record AppearanceConfig
 {
+    private readonly int _assistantBubbleMaxWidth = 66;
+
     public string Preset { get; init; } = "ReferenceDark";
     public BubbleDisplayMode BubbleDisplayMode { get; init; } =
         BubbleDisplayMode.Automatic;
     public int AvatarSize { get; init; } = 40;
-    public int AvatarOffsetX { get; init; }
-    public int AvatarOffsetY { get; init; } = 11;
+    public int AssistantAvatarOffsetX { get; init; }
+    public int AssistantAvatarOffsetY { get; init; } = 11;
+    public int UserAvatarOffsetX { get; init; }
+    public int UserAvatarOffsetY { get; init; } = 11;
+    public int AssistantNicknameOffsetX { get; init; }
+    public int AssistantNicknameOffsetY { get; init; }
+    public int UserNicknameOffsetX { get; init; }
+    public int UserNicknameOffsetY { get; init; }
     public int BubbleRadius { get; init; } = 14;
     public int BubblePaddingX { get; init; } = 14;
     public int BubblePaddingY { get; init; } = 10;
     public bool NicknameVisible { get; init; } = true;
     public int MessageGap { get; init; } = 28;
-    public int MessageMaxWidth { get; init; } = 66;
+    public int AssistantBubbleMaxWidth
+    {
+        get => _assistantBubbleMaxWidth;
+        init => _assistantBubbleMaxWidth = value;
+    }
+    // Source-compatible for out-of-tree preview tools; schema-6 JSON uses only
+    // AssistantBubbleMaxWidth and migration removes the legacy key.
+    [JsonIgnore]
+    public int MessageMaxWidth
+    {
+        get => _assistantBubbleMaxWidth;
+        init => _assistantBubbleMaxWidth = value;
+    }
     // Retained only so schema migration never discards legacy user colors.
     // Runtime deliberately ignores both fields and leaves the native User bubble untouched.
     public string UserBubble { get; init; } = "#242424";

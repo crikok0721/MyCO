@@ -42,6 +42,156 @@ public sealed class ManagerUiRegressionTests
     }
 
     [Fact]
+    public void AppearanceExposesRoleSpecificAvatarAndNicknameGeometry()
+    {
+        var appearance = ReadManagerXaml("Views", "AppearancePage.xaml");
+        var sliders = Elements(appearance, "Slider").ToArray();
+        var bindings = sliders
+            .Select(element => Attribute(element, "Value"))
+            .Where(value => value is not null)
+            .ToArray();
+
+        foreach (var property in new[]
+                 {
+                     "AssistantAvatarOffsetX", "AssistantAvatarOffsetY",
+                     "AssistantNicknameOffsetX", "AssistantNicknameOffsetY",
+                     "UserAvatarOffsetX", "UserAvatarOffsetY",
+                     "UserNicknameOffsetX", "UserNicknameOffsetY"
+                 })
+        {
+            Assert.Single(
+                bindings,
+                value => value!.Contains(property, StringComparison.Ordinal));
+        }
+        Assert.Single(
+            bindings,
+            value => value!.Contains("AssistantBubbleMaxWidth", StringComparison.Ordinal));
+        Assert.DoesNotContain(bindings, value =>
+            value!.Contains("MessageMaxWidth", StringComparison.Ordinal) ||
+            value.Contains("{Binding AvatarOffset", StringComparison.Ordinal));
+
+        Assert.Equal(
+            4,
+            sliders.Count(slider =>
+                Attribute(slider, "Minimum") == "-32" &&
+                Attribute(slider, "Maximum") == "32"));
+        Assert.Equal(
+            2,
+            sliders.Count(slider =>
+                Attribute(slider, "Minimum") == "-20" &&
+                Attribute(slider, "Maximum") == "40"));
+        Assert.Equal(
+            2,
+            sliders.Count(slider =>
+                Attribute(slider, "Minimum") == "-12" &&
+                Attribute(slider, "Maximum") == "28"));
+        Assert.Single(
+            sliders,
+            slider => Attribute(slider, "Minimum") == "45" &&
+                      Attribute(slider, "Maximum") == "80");
+    }
+
+    [Fact]
+    public void PreviewBindsAllRoleGeometryAndLimitsOnlyAssistantBubbleWidth()
+    {
+        var preview = ReadManagerXaml("Controls", "ChatPreviewControl.xaml");
+        var source = preview.ToString(SaveOptions.DisableFormatting);
+
+        foreach (var property in new[]
+                 {
+                     "AssistantAvatarOffsetX", "AssistantAvatarOffsetY",
+                     "AssistantNicknameOffsetX", "AssistantNicknameOffsetY",
+                     "UserAvatarOffsetX", "UserAvatarOffsetY",
+                     "UserNicknameOffsetX", "UserNicknameOffsetY",
+                     "MessageGap", "AssistantBubbleMaxWidth"
+                 })
+        {
+            Assert.Contains(property, source, StringComparison.Ordinal);
+        }
+
+        var assistantBubble = Elements(preview, "Border")
+            .Single(element => Attribute(element, "Name") == "AssistantPreviewBubble");
+        var userBubble = Elements(preview, "Border")
+            .Single(element => Attribute(element, "Name") == "UserPreviewBubble");
+        Assert.Contains(
+            "AssistantBubbleMaxWidth",
+            Attribute(assistantBubble, "MaxWidth"),
+            StringComparison.Ordinal);
+        Assert.Null(Attribute(userBubble, "MaxWidth"));
+    }
+
+    [Fact]
+    public void OnboardingUsesOnlyTheConciseLocalizedHeadingAndStableFooter()
+    {
+        var expectedHeadings = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["en-US"] = "Let's get started!",
+            ["zh-CN"] = "让我们从这里开始！",
+            ["zh-TW"] = "讓我們從這裡開始！",
+            ["ja-JP"] = "ここから始めましょう！"
+        };
+
+        foreach (var (culture, expected) in expectedHeadings)
+        {
+            var resources = ReadManagerXaml("Resources", $"Strings.{culture}.xaml");
+            var entries = Elements(resources, "String")
+                .ToDictionary(element => Attribute(element, "Key")!, element => element.Value);
+            Assert.Equal(expected, entries["OnboardingHeading"]);
+            Assert.DoesNotContain("OnboardingDescription", entries.Keys);
+            Assert.DoesNotContain("OnboardingPrivacy", entries.Keys);
+        }
+
+        var onboarding = ReadManagerXaml("Views", "OnboardingWindow.xaml");
+        var source = onboarding.ToString(SaveOptions.DisableFormatting);
+        Assert.DoesNotContain("OnboardingDescription", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("OnboardingPrivacy", source, StringComparison.Ordinal);
+        Assert.Empty(Elements(onboarding, "Ellipse"));
+        var footer = Elements(onboarding, "Border")
+            .Single(element => Attribute(element, "Grid.Row") == "2");
+        Assert.Equal("82", Attribute(
+            footer.Parent!.Elements().First().Elements().ElementAt(2),
+            "Height"));
+    }
+
+    [Fact]
+    public void SaveAndApplyReportsZeroPartialAndCompleteRuntimeOutcomes()
+    {
+        var root = FindRepositoryRoot();
+        var viewModel = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "ViewModels",
+            "MainWindowViewModel.cs"));
+
+        Assert.Contains("RuntimeConfigApplyResult", viewModel, StringComparison.Ordinal);
+        Assert.Contains("applyResult.SessionCount == 0", viewModel, StringComparison.Ordinal);
+        Assert.Contains("applyResult.IsFullyApplied", viewModel, StringComparison.Ordinal);
+        Assert.Contains("applyResult.AppliedCount", viewModel, StringComparison.Ordinal);
+        Assert.Contains("applyResult.FailedCount", viewModel, StringComparison.Ordinal);
+        Assert.Contains("StatusAppearanceSavedNoSessions", viewModel, StringComparison.Ordinal);
+        Assert.Contains("StatusAppearancePartiallyAppliedFormat", viewModel, StringComparison.Ordinal);
+        Assert.Contains("StatusAppearanceSavedAndAppliedFormat", viewModel, StringComparison.Ordinal);
+        Assert.DoesNotContain("SetStatus(\"StatusAppearanceSaved\")", viewModel, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AssociatedLaunchQueuesOnceAndChecksEveryRunningCandidate()
+    {
+        var root = FindRepositoryRoot();
+        var viewModel = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "ViewModels",
+            "MainWindowViewModel.cs"));
+
+        Assert.Contains("_associatedLaunchQueued", viewModel, StringComparison.Ordinal);
+        Assert.Contains("queueWhenBusy: true", viewModel, StringComparison.Ordinal);
+        Assert.Contains("Candidates.Any(candidate => candidate.IsRunning)", viewModel, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HomeRemovesOnlyThePageHeaderAppearanceButton()
     {
         var home = ReadManagerXaml("Views", "HomePage.xaml");
@@ -249,7 +399,7 @@ public sealed class ManagerUiRegressionTests
 
         Assert.Contains("<MyCOVersion>0.99.2</MyCOVersion>", version);
         Assert.Contains("<MyCOProtocolVersion>1</MyCOProtocolVersion>", version);
-        Assert.Contains("<MyCOConfigSchemaVersion>5</MyCOConfigSchemaVersion>", version);
+        Assert.Contains("<MyCOConfigSchemaVersion>6</MyCOConfigSchemaVersion>", version);
         Assert.Contains("<MyCOCalibrationSchemaVersion>1</MyCOCalibrationSchemaVersion>", version);
     }
 

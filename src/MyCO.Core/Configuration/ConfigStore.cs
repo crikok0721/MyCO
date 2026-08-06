@@ -160,13 +160,19 @@ public sealed class ConfigStore
             throw new InvalidOperationException("Unsupported configuration schema.");
         }
         if (config.Appearance.AvatarSize is < 24 or > 96 ||
-            config.Appearance.AvatarOffsetX is < -32 or > 32 ||
-            config.Appearance.AvatarOffsetY is < -20 or > 40 ||
+            config.Appearance.AssistantAvatarOffsetX is < -32 or > 32 ||
+            config.Appearance.UserAvatarOffsetX is < -32 or > 32 ||
+            config.Appearance.AssistantAvatarOffsetY is < -20 or > 40 ||
+            config.Appearance.UserAvatarOffsetY is < -20 or > 40 ||
+            config.Appearance.AssistantNicknameOffsetX is < -32 or > 32 ||
+            config.Appearance.UserNicknameOffsetX is < -32 or > 32 ||
+            config.Appearance.AssistantNicknameOffsetY is < -12 or > 28 ||
+            config.Appearance.UserNicknameOffsetY is < -12 or > 28 ||
             config.Appearance.BubbleRadius is < 0 or > 36 ||
             config.Appearance.BubblePaddingX is < 4 or > 40 ||
             config.Appearance.BubblePaddingY is < 4 or > 32 ||
             config.Appearance.MessageGap is < 4 or > 80 ||
-            config.Appearance.MessageMaxWidth is < 35 or > 90)
+            config.Appearance.AssistantBubbleMaxWidth is < 45 or > 80)
         {
             throw new ArgumentException("Appearance values are outside supported ranges.");
         }
@@ -394,6 +400,58 @@ internal static class ConfigMigration
             "bubbleDisplayMode",
             JsonValue.Create(BubbleDisplayMode.Automatic.ToString()));
 
+        var legacyAvatarOffsetX = schemaVersion <= 5
+            ? appearance["avatarOffsetX"]?.GetValue<int>() ?? 0
+            : 0;
+        var legacyAvatarOffsetY = schemaVersion <= 5
+            ? appearance["avatarOffsetY"]?.GetValue<int>() ?? 11
+            : 11;
+        var legacyMessageMaxWidth = schemaVersion <= 5
+            ? Math.Clamp(
+                appearance["messageMaxWidth"]?.GetValue<int>() ?? 66,
+                45,
+                80)
+            : 66;
+        changed |= EnsureValue(
+            appearance,
+            "assistantAvatarOffsetX",
+            JsonValue.Create(legacyAvatarOffsetX));
+        changed |= EnsureValue(
+            appearance,
+            "assistantAvatarOffsetY",
+            JsonValue.Create(legacyAvatarOffsetY));
+        changed |= EnsureValue(
+            appearance,
+            "userAvatarOffsetX",
+            JsonValue.Create(legacyAvatarOffsetX));
+        changed |= EnsureValue(
+            appearance,
+            "userAvatarOffsetY",
+            JsonValue.Create(legacyAvatarOffsetY));
+        changed |= EnsureValue(
+            appearance,
+            "assistantNicknameOffsetX",
+            JsonValue.Create(0));
+        changed |= EnsureValue(
+            appearance,
+            "assistantNicknameOffsetY",
+            JsonValue.Create(0));
+        changed |= EnsureValue(
+            appearance,
+            "userNicknameOffsetX",
+            JsonValue.Create(0));
+        changed |= EnsureValue(
+            appearance,
+            "userNicknameOffsetY",
+            JsonValue.Create(0));
+        changed |= EnsureValue(
+            appearance,
+            "assistantBubbleMaxWidth",
+            JsonValue.Create(legacyMessageMaxWidth));
+        changed |= RemoveValue(appearance, "avatarOffsetX");
+        changed |= RemoveValue(appearance, "avatarOffsetY");
+        changed |= RemoveValue(appearance, "messageMaxWidth");
+
         changed |= EnsureValue(
             migrated,
             "managerThemeMode",
@@ -502,6 +560,9 @@ internal static class ConfigMigration
         target[property] = value;
         return true;
     }
+
+    private static bool RemoveValue(JsonObject target, string property) =>
+        target.Remove(property);
 }
 
 internal sealed record ConfigMigrationResult(AppConfig Config, bool WasMigrated);

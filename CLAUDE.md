@@ -18,10 +18,11 @@ Add `-UseChinaMirrors` for slow mainland routes; never commit regional sources.
 
 1. `CLAUDE.md` (this file)
 2. `docs/CONTEXT.md` — current state, blockers, validation
-3. `docs/architecture.md` — architecture, data flow
-4. `docs/DECISIONS.md` — design decisions
-5. `docs/TASK_LIST.md` — current priorities
-6. `docs/TECH_STACK.md` — technical stack details
+3. `docs/PROJECT_CONTEXT.md` — product goals and long-term constraints
+4. `docs/architecture.md` — architecture, data flow
+5. `docs/DECISIONS.md` — design decisions
+6. `docs/TASK_LIST.md` — current priorities
+7. `docs/TECH_STACK.md` — technical stack details
 
 Historical: `docs/archive/CODEX_HANDOFF.md`, `docs/archive/development-notes.md`
 

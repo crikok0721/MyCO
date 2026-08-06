@@ -44,4 +44,24 @@ internal static class StartupPresentation
         arguments.Any(argument => argument.Equals(
             "--codex-launch",
             StringComparison.OrdinalIgnoreCase));
+
+    public static DuplicateInstanceAction RouteDuplicateInstance(
+        IEnumerable<string> arguments)
+    {
+        var values = arguments as IReadOnlyCollection<string> ?? arguments.ToArray();
+        if (IsCodexLaunch(values))
+        {
+            return DuplicateInstanceAction.ForwardCodexLaunch;
+        }
+        return StartsInBackground(values)
+            ? DuplicateInstanceAction.Ignore
+            : DuplicateInstanceAction.Activate;
+    }
+}
+
+internal enum DuplicateInstanceAction
+{
+    Ignore,
+    Activate,
+    ForwardCodexLaunch
 }

@@ -664,6 +664,20 @@ public sealed partial class ManagerThemeAndTrayTests
         Assert.DoesNotContain("Process.GetProcessesByName", app);
     }
 
+    [Theory]
+    [InlineData(new[] { "--background" }, 0)]
+    [InlineData(new[] { "--codex-launch" }, 2)]
+    [InlineData(new[] { "--background", "--codex-launch" }, 2)]
+    [InlineData(new string[0], 1)]
+    public void DuplicateInstanceArgumentsRouteWithoutWakingBackgroundLaunches(
+        string[] arguments,
+        int expected)
+    {
+        Assert.Equal(
+            (DuplicateInstanceAction)expected,
+            StartupPresentation.RouteDuplicateInstance(arguments));
+    }
+
     [Fact]
     public void TrayNotificationUsesOneBalloonEventAndLocalizedText()
     {
@@ -677,6 +691,9 @@ public sealed partial class ManagerThemeAndTrayTests
         Assert.Single(Regex.Matches(tray, "ShowBalloonTip").Cast<Match>());
         Assert.Contains("TrayMinimizedNotification", tray);
         Assert.Contains("UserMinimizedToTray", tray);
+        Assert.Contains("It's MyCO!!!!!", tray);
+        Assert.Contains("BalloonTipClicked", tray);
+        Assert.Contains("HandleBalloonTipClicked", tray);
     }
 
     [Fact]

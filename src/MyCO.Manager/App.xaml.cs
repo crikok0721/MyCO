@@ -59,17 +59,28 @@ public partial class App : System.Windows.Application
             CodexLaunchEventName);
         if (!_ownsMutex)
         {
-            if (StartupPresentation.IsCodexLaunch(eventArgs.Args))
+            switch (StartupPresentation.RouteDuplicateInstance(eventArgs.Args))
             {
-                _codexLaunchEvent.Set();
+                case DuplicateInstanceAction.Activate:
+                    _activationEvent.Set();
+                    break;
+                case DuplicateInstanceAction.ForwardCodexLaunch:
+                    _codexLaunchEvent.Set();
+                    break;
+                case DuplicateInstanceAction.Ignore:
+                    break;
             }
-            _activationEvent.Set();
             Shutdown();
             return;
         }
 
         try
         {
+            if (Environment.ProcessPath is { } executablePath)
+            {
+                _ = new CodexLaunchAssociationService()
+                    .TryEnsureAppIdentityShortcut(executablePath);
+            }
             var viewModel = new MainWindowViewModel();
             await viewModel.InitializeAsync();
             var background = StartupPresentation.StartsInBackground(eventArgs.Args);

@@ -76,6 +76,7 @@ internal sealed class TrayService : IDisposable
             Visible = true
         };
         _icon.DoubleClick += HandleDoubleClick;
+        _icon.BalloonTipClicked += HandleBalloonTipClicked;
         _window.UserMinimizedToTray += HandleUserMinimizedToTray;
         _viewModel.PropertyChanged += HandleViewModelPropertyChanged;
         _viewModel.StartCommand.CanExecuteChanged += HandleCommandCanExecuteChanged;
@@ -109,6 +110,7 @@ internal sealed class TrayService : IDisposable
         LocalizationService.LanguageChanged -= HandleLanguageChanged;
         _themeService.ThemeChanged -= HandleThemeChanged;
         _icon.DoubleClick -= HandleDoubleClick;
+        _icon.BalloonTipClicked -= HandleBalloonTipClicked;
         _window.UserMinimizedToTray -= HandleUserMinimizedToTray;
         _icon.Visible = false;
         _menuFont?.Dispose();
@@ -120,6 +122,9 @@ internal sealed class TrayService : IDisposable
 
     private void HandleDoubleClick(object? sender, EventArgs eventArgs) => ShowWindow();
 
+    private void HandleBalloonTipClicked(object? sender, EventArgs eventArgs) =>
+        ShowWindow();
+
     private void HandleUserMinimizedToTray(object? sender, EventArgs eventArgs)
     {
         if (_disposed)
@@ -129,7 +134,7 @@ internal sealed class TrayService : IDisposable
 
         _icon.ShowBalloonTip(
             5000,
-            "MyCO",
+            "It's MyCO!!!!!",
             LocalizationService.Get("TrayMinimizedNotification"),
             Forms.ToolTipIcon.Info);
     }

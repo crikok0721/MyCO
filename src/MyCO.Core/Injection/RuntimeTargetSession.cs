@@ -1,5 +1,6 @@
-using System.Text.Json;
+using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 using MyCO.Cdp;
 using MyCO.Configuration;
 
@@ -25,8 +26,10 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
     private readonly SemaphoreSlim _operationGate = new(1, 1);
     private readonly Queue<DateTimeOffset> _recentEvents = new();
     private readonly Queue<DateTimeOffset> _recentCalibrationEvents = new();
+    private readonly List<string> _newDocumentScriptIds = [];
     private readonly object _eventGate = new();
     private string _configJson;
+    private string? _newDocumentScriptId;
     private bool _disposed;
 
     internal RuntimeTargetSession(
@@ -44,7 +47,19 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
     }
 
     public CdpTarget Target { get; }
-    public string? NewDocumentScriptId { get; internal set; }
+    public string? NewDocumentScriptId
+    {
+        get => _newDocumentScriptId;
+        internal set
+        {
+            _newDocumentScriptId = value;
+            if (!string.IsNullOrWhiteSpace(value) &&
+                !_newDocumentScriptIds.Contains(value, StringComparer.Ordinal))
+            {
+                _newDocumentScriptIds.Add(value);
+            }
+        }
+    }
     public event EventHandler<RuntimeHostEvent>? HostEventReceived;
 
     public async Task ApplyConfigAsync(
@@ -89,23 +104,42 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
     private async Task ReplaceNewDocumentScriptAsync(
         CancellationToken cancellationToken)
     {
-        // Replace the registered source so the latest config survives future navigations.
-        if (!string.IsNullOrWhiteSpace(NewDocumentScriptId))
-        {
-            await _client.SendCommandAsync(
-                "Page.removeScriptToEvaluateOnNewDocument",
-                new { identifier = NewDocumentScriptId },
-                cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
+        // Register first so add failures and cancellation never remove the last
+        // known-good source for future navigations.
         var source = BuildReloadSource();
         var registration = await _client.SendCommandAsync(
             "Page.addScriptToEvaluateOnNewDocument",
             new { source },
             cancellationToken: cancellationToken).ConfigureAwait(false);
-        NewDocumentScriptId = registration
+        var replacementScriptId = registration
             .GetProperty("result")
             .GetProperty("identifier")
             .GetString();
+        if (string.IsNullOrWhiteSpace(replacementScriptId))
+        {
+            throw new InvalidOperationException(
+                "Runtime new-document registration did not return an identifier.");
+        }
+
+        // Publish the recoverable registration before best-effort cleanup. If
+        // cleanup fails, both sources may run once, but the newer registration
+        // runs last and remains available for later teardown or replacement.
+        NewDocumentScriptId = replacementScriptId;
+        foreach (var registeredScriptId in _newDocumentScriptIds
+                     .Where(identifier => !string.Equals(
+                         identifier,
+                         replacementScriptId,
+                         StringComparison.Ordinal))
+                     .ToArray())
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+            await TryRemoveNewDocumentScriptAsync(
+                registeredScriptId,
+                cancellationToken).ConfigureAwait(false);
+        }
     }
 
     public async Task StartCalibrationAsync(
@@ -201,24 +235,28 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
         }
         try
         {
-            await _client.SendCommandAsync(
-                "Runtime.evaluate",
-                new
-                {
-                    expression = "window.__MYCO_RUNTIME__?.destroy?.()"
-                },
-                cancellationToken: cancellationToken).ConfigureAwait(false);
-            if (!string.IsNullOrWhiteSpace(NewDocumentScriptId))
+            try
             {
                 await _client.SendCommandAsync(
-                    "Page.removeScriptToEvaluateOnNewDocument",
-                    new { identifier = NewDocumentScriptId },
+                    "Runtime.evaluate",
+                    new
+                    {
+                        expression = "window.__MYCO_RUNTIME__?.destroy?.()"
+                    },
                     cancellationToken: cancellationToken).ConfigureAwait(false);
             }
-        }
-        catch (Exception)
-        {
-            // Target may already be gone; local teardown must still complete.
+            catch (Exception exception)
+            {
+                // Target may already be gone; registered-source cleanup must
+                // still be attempted independently.
+                TraceCleanupFailure(exception);
+            }
+            foreach (var registeredScriptId in _newDocumentScriptIds.ToArray())
+            {
+                await TryRemoveNewDocumentScriptAsync(
+                    registeredScriptId,
+                    cancellationToken).ConfigureAwait(false);
+            }
         }
         finally
         {
@@ -357,16 +395,70 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
                 returnByValue = true
             },
             cancellationToken: cancellationToken).ConfigureAwait(false);
-        if (response.TryGetProperty("result", out var result) &&
-            result.TryGetProperty("exceptionDetails", out var exception))
+        if (!response.TryGetProperty("result", out var result))
+        {
+            throw new InvalidOperationException(
+                "Runtime evaluation did not return diagnostics.");
+        }
+        if (result.TryGetProperty("exceptionDetails", out _))
         {
             throw new InvalidOperationException("Runtime evaluation failed.");
+        }
+        if (!result.TryGetProperty("result", out var remote) ||
+            !remote.TryGetProperty("value", out var payload) ||
+            payload.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidOperationException(
+                "Runtime evaluation did not return diagnostics.");
+        }
+        var diagnostics = RuntimeDiagnosticsValidator.Normalize(payload);
+        if (diagnostics.TryGetProperty("errors", out var errors) &&
+            errors.ValueKind == JsonValueKind.Array &&
+            errors.GetArrayLength() > 0)
+        {
+            throw new InvalidOperationException(
+                "Runtime diagnostics reported errors.");
         }
     }
 
     private void ThrowIfDisposed()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+    }
+
+    private async Task<bool> TryRemoveNewDocumentScriptAsync(
+        string identifier,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _client.SendCommandAsync(
+                "Page.removeScriptToEvaluateOnNewDocument",
+                new { identifier },
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            _newDocumentScriptIds.Remove(identifier);
+            if (string.Equals(
+                _newDocumentScriptId,
+                identifier,
+                StringComparison.Ordinal))
+            {
+                _newDocumentScriptId = null;
+            }
+            return true;
+        }
+        catch (Exception exception)
+        {
+            // Log only the exception type; renderer data and source are excluded.
+            TraceCleanupFailure(exception);
+            return false;
+        }
+    }
+
+    private static void TraceCleanupFailure(Exception exception)
+    {
+        Trace.TraceWarning(
+            "MyCO runtime script cleanup failed: {0}.",
+            exception.GetType().Name);
     }
 
     private string BuildReloadSource()
@@ -376,10 +468,11 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
             ;(()=>{
               const apply=()=>window.__MYCO_RUNTIME__?.applyConfig({{_configJson}});
               if(document.readyState==="loading"){
-                document.addEventListener("DOMContentLoaded",apply,{once:true});
-              } else {
-                apply();
+                return new Promise((resolve)=>{
+                  document.addEventListener("DOMContentLoaded",()=>resolve(apply()),{once:true});
+                });
               }
+              return apply();
             })()
             //# sourceURL=MyCO.runtime.js
             """;

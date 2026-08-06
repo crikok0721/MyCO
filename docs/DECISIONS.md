@@ -1,6 +1,6 @@
 # Technical Decisions
 
-Last updated: 2026-08-02
+Last updated: 2026-08-06
 
 This file records current decisions. Historical detail remains in
 `docs/development-notes.md` and `docs/CODEX_HANDOFF.md`.
@@ -247,8 +247,11 @@ the existing mutex, activation event, private CDP pipe, and exact running-state
 policy. Existing shortcuts, official Codex files, pinned taskbar entries,
 Codex protocols, AUMIDs, profiles, credentials, and configuration are never
 rewritten. If a requested path is occupied by another owner, the operation
-fails closed and leaves it unchanged. Disabling or factory reset removes only
-entries whose target and arguments exactly match the current MyCO executable.
+fails closed and leaves it unchanged. Every existing path component below the
+trusted special-folder root must be non-reparse. Mutations and rollback use
+sealed generation comparisons, and settings/reset restore an opaque snapshot;
+therefore concurrent foreign replacements and partial path-drift state are left
+safe or restored exactly.
 
 Reason: Windows does not provide a safe standard-user API to redirect an
 already pinned official taskbar item. A reversible MyCO-owned entry gives
@@ -289,3 +292,37 @@ prose shell being selected around a Markdown child. Host flex sizing then made
 the shell a narrow, page-height surface. Choosing the child fixes ownership at
 the boundary; the bounded width rule prevents the same layout combination from
 collapsing a valid surface.
+
+## D-019 — Treat appearance apply as a verified all-renderer transaction
+
+Decision: serialize consecutive config transactions, fan each transaction out
+to every current renderer, require valid Runtime diagnostics, and report zero
+sessions or partial failure explicitly. Register the replacement navigation
+script before best-effort removal of the prior registration.
+
+Reason: saving configuration is not evidence that the visible renderer applied
+it. Explicit counts and diagnostics prevent false success, while ordering makes
+the latest save deterministic.
+
+## D-020 — Migrate shared placement to schema 6 role-specific controls
+
+Decision: store independent X/Y offsets for Assistant avatar, Assistant name,
+User avatar and User name. Rename the legacy width to
+`assistantBubbleMaxWidth`; migrate valid old offsets to both roles, start name
+offsets at zero, and clamp width to the safe new range.
+
+Reason: role identity elements must move independently without resetting older
+appearance, calibration or startup preferences. The width remains limited to
+Assistant ordinary prose so protected native surfaces keep their own layout.
+
+## D-021 — Keep NotifyIcon BalloonTip as the notification compatibility route
+
+Decision: keep the existing one-per-boot BalloonTip, use the invariant title
+`It's MyCO!!!!!`, localize the body, and maintain a project-owned Start-menu
+identity shortcut with the packaged icon and AUMID. Do not add Windows App SDK
+or a self-drawn notification window.
+
+Reason: BalloonTip is already available on the supported desktop stack and is
+the smallest dependency-free route. Toast APIs can provide richer templates but
+add identity, packaging or runtime-deployment obligations that are unnecessary
+for this incremental change.

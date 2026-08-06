@@ -55,9 +55,15 @@
     <sys:String x:Key="ChooseAssistantAvatar">アシスタントのアバターを選択…</sys:String>
     <sys:String x:Key="ChooseUserAvatar">ユーザーのアバターを選択…</sys:String>
     <sys:String x:Key="Geometry">配置</sys:String>
+    <sys:String x:Key="AppearanceAssistantGeometry">アシスタントの位置</sys:String>
+    <sys:String x:Key="AppearanceUserGeometry">ユーザーの位置</sys:String>
+    <sys:String x:Key="AvatarPosition">アバターの位置</sys:String>
+    <sys:String x:Key="NicknamePosition">表示名の位置</sys:String>
     <sys:String x:Key="AvatarSizeFormat">アバターサイズ・{0:F0}px</sys:String>
     <sys:String x:Key="AvatarOffsetXFormat">アバターの横位置・{0:+0;-0;0}px</sys:String>
     <sys:String x:Key="AvatarOffsetYFormat">アバターの縦位置・{0:+0;-0;0}px</sys:String>
+    <sys:String x:Key="NicknameOffsetXFormat">表示名の横位置・{0:+0;-0;0}px</sys:String>
+    <sys:String x:Key="NicknameOffsetYFormat">表示名の縦位置・{0:+0;-0;0}px</sys:String>
     <sys:String x:Key="BubbleRadiusFormat">吹き出しの丸み・{0:F0}px</sys:String>
     <sys:String x:Key="MessageGapFormat">メッセージ間隔・{0:F0}px</sys:String>
     <sys:String x:Key="BubbleBehavior">吹き出しの動作</sys:String>
@@ -67,7 +73,7 @@
     <sys:String x:Key="BubbleDisplayModeDescription">自動グループ化は Markdown 構造に従います。「返信全体」では連続する安全な本文をまとめます。コード、表、数式、ツール、操作部品には触れません。</sys:String>
     <sys:String x:Key="HorizontalPaddingFormat">左右の余白・{0:F0}px</sys:String>
     <sys:String x:Key="VerticalPaddingFormat">上下の余白・{0:F0}px</sys:String>
-    <sys:String x:Key="MaxWidthFormat">最大幅・{0:F0}%</sys:String>
+    <sys:String x:Key="AssistantBubbleMaxWidthFormat">アシスタントの吹き出し幅・{0:F0}%</sys:String>
     <sys:String x:Key="ShowNicknames">表示名を表示</sys:String>
 
     <sys:String x:Key="CalibrationTitle">調整</sys:String>
@@ -108,12 +114,10 @@
     <sys:String x:Key="DisclaimerParagraph">MyCO は独立したオープンソースプロジェクトであり、OpenAI との提携、承認、後援関係はありません。公式の Codex / ChatGPT Desktop が必要です。</sys:String>
 
     <sys:String x:Key="OnboardingWindowTitle">MyCOへようこそ</sys:String>
-    <sys:String x:Key="OnboardingHeading">Codex を自分らしいチャットに</sys:String>
-    <sys:String x:Key="OnboardingDescription">MyCO は、標準のコード、Diff、ツール、承認、ツールバー UI を保ちながら、ローカルのアバター、表示名、コンパクトな吹き出しを追加します。</sys:String>
+    <sys:String x:Key="OnboardingHeading">ここから始めましょう！</sys:String>
     <sys:String x:Key="OnboardingStepOne">1   検出された公式 Desktop アプリを選択</sys:String>
     <sys:String x:Key="OnboardingStepTwo">2   「外観」でアバターと表示名を設定</sys:String>
     <sys:String x:Key="OnboardingStepThree">3   MyCO から Codex を起動し、ユーザーとアシスタントのメッセージを各 3 件調整</sys:String>
-    <sys:String x:Key="OnboardingPrivacy">すべてローカルで動作します。テレメトリ、認証情報、Cookie、通信の傍受はありません。</sys:String>
     <sys:String x:Key="OnboardingContinue">MyCO を始める</sys:String>
 
     <sys:String x:Key="AlreadyRunningMessage">MyCO はすでに実行中です。</sys:String>
@@ -147,7 +151,9 @@
     <sys:String x:Key="StatusStartingTcpFallback">許可されたループバック TCP フォールバックを起動しています…</sys:String>
     <sys:String x:Key="StatusTcpFallbackDeclined">TCP フォールバックを使用しません。Codex は MyCO 機能なしで利用できます。</sys:String>
     <sys:String x:Key="StatusRefreshingDesktopEntry">Desktop が更新されたため、登録済み起動パスを更新しています…</sys:String>
-    <sys:String x:Key="StatusAppearanceSaved">外観をローカルに保存して適用しました。</sys:String>
+    <sys:String x:Key="StatusAppearanceSavedNoSessions">外観をローカルに保存しました。現在、更新できる会話ウィンドウはありません。</sys:String>
+    <sys:String x:Key="StatusAppearancePartiallyAppliedFormat">外観をローカルに保存しました。{0} 個の会話ウィンドウを更新し（対象 {1} 個）、{2} 個は失敗しました。</sys:String>
+    <sys:String x:Key="StatusAppearanceSavedAndAppliedFormat">外観を保存し、{0} 個の会話ウィンドウに適用しました。</sys:String>
     <sys:String x:Key="ChooseAssistantAvatarTitle">アシスタントのアバターを選択</sys:String>
     <sys:String x:Key="ChooseUserAvatarTitle">ユーザーのアバターを選択</sys:String>
     <sys:String x:Key="ImageFilter">画像 (*.png;*.jpg;*.jpeg;*.gif;*.bmp)|*.png;*.jpg;*.jpeg;*.gif;*.bmp</sys:String>

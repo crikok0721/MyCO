@@ -22,6 +22,17 @@ public sealed record DesktopSessionState(
     DesktopSessionPhase Phase = DesktopSessionPhase.Disconnected,
     string? LastErrorCode = null);
 
+public sealed record RuntimeConfigApplyResult(
+    int SessionCount,
+    int AppliedCount,
+    int FailedCount)
+{
+    public bool IsFullyApplied =>
+        SessionCount > 0 &&
+        AppliedCount == SessionCount &&
+        FailedCount == 0;
+}
+
 public enum DesktopSessionPhase
 {
     Disconnected,
@@ -250,27 +261,63 @@ public sealed class DesktopSessionController : IAsyncDisposable
         }
     }
 
-    public async Task ApplyConfigAsync(
+    public async Task<RuntimeConfigApplyResult> ApplyConfigAsync(
         AppConfig config,
         CancellationToken cancellationToken = default)
     {
-        _config = config;
-        RuntimeTargetSession[] sessions;
-        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await _refreshGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            sessions = _sessions.Values.ToArray();
+            _config = config;
+            RuntimeTargetSession[] sessions;
+            await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                sessions = _sessions.Values.ToArray();
+            }
+            finally
+            {
+                _gate.Release();
+            }
+
+            var outcomes = await Task.WhenAll(
+                sessions.Select(session => ApplyConfigToSessionAsync(
+                    session,
+                    config,
+                    cancellationToken))).ConfigureAwait(false);
+            var applied = outcomes.Count(outcome => outcome);
+            var failed = sessions.Length - applied;
+            UpdateState(StatusFromEvidence());
+            return new RuntimeConfigApplyResult(sessions.Length, applied, failed);
         }
         finally
         {
-            _gate.Release();
+            _refreshGate.Release();
         }
-        foreach (var session in sessions)
+    }
+
+    private async Task<bool> ApplyConfigToSessionAsync(
+        RuntimeTargetSession session,
+        AppConfig config,
+        CancellationToken cancellationToken)
+    {
+        try
         {
-            await session.ApplyConfigAsync(config, cancellationToken).ConfigureAwait(false);
-            await UpdateEvidenceAsync(session, cancellationToken).ConfigureAwait(false);
+            await session.ApplyConfigAsync(config, cancellationToken)
+                .ConfigureAwait(false);
+            await UpdateEvidenceAsync(session, cancellationToken)
+                .ConfigureAwait(false);
+            return true;
         }
-        UpdateState(StatusFromEvidence());
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            _logger.Error("config_apply_target_failed", exception);
+            return false;
+        }
     }
 
     public async Task StartCalibrationAsync(

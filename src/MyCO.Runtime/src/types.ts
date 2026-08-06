@@ -43,14 +43,20 @@ export interface AppearanceConfig {
   preset: "ReferenceDark" | "Minimal";
   bubbleDisplayMode: "Automatic" | "Whole";
   avatarSize: number;
-  avatarOffsetX: number;
-  avatarOffsetY: number;
+  assistantAvatarOffsetX: number;
+  assistantAvatarOffsetY: number;
+  userAvatarOffsetX: number;
+  userAvatarOffsetY: number;
+  assistantNicknameOffsetX: number;
+  assistantNicknameOffsetY: number;
+  userNicknameOffsetX: number;
+  userNicknameOffsetY: number;
   bubbleRadius: number;
   bubblePaddingX: number;
   bubblePaddingY: number;
   nicknameVisible: boolean;
   messageGap: number;
-  messageMaxWidth: number;
+  assistantBubbleMaxWidth: number;
   darkBubblePalette: BubblePalette;
   lightBubblePalette: BubblePalette;
 }
@@ -155,14 +161,20 @@ export function defaultConfig(): RuntimeConfig {
       preset: "ReferenceDark",
       bubbleDisplayMode: "Automatic",
       avatarSize: 40,
-      avatarOffsetX: 0,
-      avatarOffsetY: 11,
+      assistantAvatarOffsetX: 0,
+      assistantAvatarOffsetY: 11,
+      userAvatarOffsetX: 0,
+      userAvatarOffsetY: 11,
+      assistantNicknameOffsetX: 0,
+      assistantNicknameOffsetY: 0,
+      userNicknameOffsetX: 0,
+      userNicknameOffsetY: 0,
       bubbleRadius: 14,
       bubblePaddingX: 14,
       bubblePaddingY: 10,
       nicknameVisible: true,
       messageGap: 28,
-      messageMaxWidth: 66,
+      assistantBubbleMaxWidth: 66,
       darkBubblePalette: {
         assistantBubble: "#222222",
         assistantText: "#f2f2f2",

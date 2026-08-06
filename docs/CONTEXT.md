@@ -1,6 +1,6 @@
 # Project Context
 
-Last updated: 2026-08-03
+Last updated: 2026-08-06
 
 ## Project goal
 
@@ -24,7 +24,7 @@ Core constraints:
 - **Phase:** Phase 3 — Beta testing and pre-release stability remediation
 - **Version:** `0.99.2` (local UI repair; not released)
 - **Branch:** `main`
-- **Base HEAD:** `e52f21a` (existing local commit preserved)
+- **Base HEAD:** `fce27ee` (existing local commit preserved)
 - **GitHub:** https://github.com/crikok0721/MyCO
 
 The active controlling Codex session was never restarted or closed. Production
@@ -59,6 +59,14 @@ restart was exercised only against isolated official Desktop process trees.
   state, and shows one persisted balloon per Windows boot.
 - Runtime Whole-mode shell regression fix and protected mixed-Markdown
   boundary fixtures.
+- Schema 6 independent role/identity placement controls and Assistant prose
+  width, with backward-compatible migration.
+- Verified all-renderer appearance application with zero/partial failure status,
+  latest-save ordering, and complete new-document registration cleanup.
+- Transactional MyCO-owned startup associations with parent reparse rejection,
+  generation-aware rollback, and exact partial-state snapshots.
+- Four-language onboarding copy/layout cleanup and invariant tray title
+  `It's MyCO!!!!!` with MyCO-owned notification identity.
 
 ## Public Beta gap
 
@@ -70,7 +78,7 @@ Fix the following blockers before public testing:
 
 Full task list: `docs/TASK_LIST.md`.
 
-## Validation baseline (0.99.1)
+## Historical validation baseline (0.99.1)
 
 - `npm ci`: passed, 0 vulnerabilities.
 - `npm run check`: passed, 42/42 Runtime tests.
@@ -78,9 +86,11 @@ Full task list: `docs/TASK_LIST.md`.
 - `dotnet test -c Release --no-build`: 131/131; the icon alpha regression test
   now uses the repository's pure .NET PNG decoder and does not depend on a
   machine-specific GDI runtime assembly.
-- `scripts/build-release.ps1 -GenerateSbom`: passed end to end and produced the
-  local unsigned `artifacts/MyCO-win-x64.zip`, SPDX SBOM, per-file SHA-256
-  manifest, and archive hash. Archive SHA-256:
+- `scripts/build-release.ps1 -GenerateSbom`: passed end to end in the historical
+  0.99.1 release pass and produced the local unsigned package, SPDX SBOM,
+  per-file SHA-256 manifest, and archive hash. The obsolete artifact path is
+  intentionally omitted from the current checkout.
+  Archive SHA-256:
   `2ad6b4a144dfdb40a912c1ab8eedc4bb80d72926328daf47d8a281ad36dffa09`.
 - The local validation package is unsigned; the tag-gated GitHub workflow
   created the signed public package, attestation, and Release for `v0.99.1`.
@@ -90,31 +100,22 @@ Full task list: `docs/TASK_LIST.md`.
 - Real Manager/Codex visual acceptance for the August 1 UI changes remains a
   disposable-session/VM gate; automated XAML/DOM tests are supporting evidence only.
 
-## Validation for the local 0.99.2 incremental development
+## Current validation for the local 0.99.2 incremental development
 
-- Runtime `npm ci`/`npm run check`: 0 vulnerabilities, lint, 51/51 tests, and
-  generated bundle rebuild passed after the long-content boundary fix.
+- Runtime `npm ci`/`npm run check`: lint, 52/52 tests, and generated bundle
+  rebuild passed.
 - Full .NET SDK 8.0.423 build: 0 warnings and 0 errors.
-- .NET test suite: 173/173 passed, 0 failed, 0 skipped.
-- Isolated self-contained publish completed at
-  `artifacts/MyCO-current-0.99.2-win-x64-20260803/`, containing `MyCO.exe` and
-  the single-file `MyCO.Updater.exe`. Starting the updater without arguments
-  safely exits with code 2.
-- `scripts/build-release.ps1` completed in an isolated temporary worktree, so
-  it did not overwrite the pre-incremental `artifacts/MyCO-win-x64` package.
-  The validation ZIP contained `MyCO.exe`, `MyCO.Updater.exe`,
-  `MyCO.runtimeconfig.json`, and `SHA256SUMS.txt`; the embedded Runtime bundle
-  was rebuilt and included in `MyCO.exe`. The registry audit endpoint was
-  unavailable, so the script was completed with the one-shot local npm audit
-  cache, which reported 0 vulnerabilities.
-- Public release packaging remains intentionally unperformed.
-- Real Windows visual acceptance, taskbar-entry verification, and isolated
-  updater replacement tests remain pending.
+- .NET test suite: 229/229 passed, 0 failed, 0 skipped.
+- `git diff --check` passed. No self-contained package or public release was
+  generated in this cleanup pass. The source Release output has not been
+  launched for visual acceptance.
+- Real Windows visual acceptance, taskbar/notification rendering, DPI checks,
+  and the eight-combination startup matrix remain pending.
 - No commit, push, tag, PR, or release was created.
 
 ## Next recommended steps
 
-1. Move ZIP to a disposable Windows session/VM; execute the restart and visual matrix.
-2. Verify fresh config, disable/recovery, removal.
-3. Recheck the published `v0.99.1` package in a disposable Windows session/VM;
-   signing, provenance, and asset checks already passed in CI.
+1. Build a fresh source or self-contained output after the current working-tree
+   edits, then use a disposable Windows session/VM for the restart and visual matrix.
+2. Verify fresh config, disable/recovery, removal and the startup combinations.
+3. Keep release packaging separate until the visual and clean-machine gates pass.

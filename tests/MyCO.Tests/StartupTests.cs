@@ -169,7 +169,7 @@ public sealed class StartupTests
     }
 
     [Fact]
-    public void CodexAssociationCreatesAndRemovesOnlyMycoOwnedEntries()
+    public void CodexAssociationRepairsStaleOwnedEntriesAndIsIdempotent()
     {
         var backend = new FakeAssociationBackend();
         var service = new CodexLaunchAssociationService(backend);
@@ -177,6 +177,12 @@ public sealed class StartupTests
             Path.GetTempPath(),
             "MyCO Association Tests",
             "MyCO.exe");
+        var paths = CodexLaunchAssociationService.AssociationPaths.For(executable);
+        var staleExecutable = Path.Combine(Path.GetTempPath(), "Old MyCO", "MyCO.exe");
+        backend.Shortcuts[paths.StartMenuShortcut] =
+            new(staleExecutable, "--codex-launch", IsOwned: true);
+        backend.Protocols[paths.ProtocolCommand] =
+            new(staleExecutable, IsOwned: true);
 
         service.SetEnabled(executable, enabled: true);
 
@@ -184,6 +190,14 @@ public sealed class StartupTests
         Assert.True(status.IsEnabled);
         Assert.Equal(2, backend.Shortcuts.Count);
         Assert.Single(backend.Protocols);
+        Assert.All(backend.Shortcuts.Values, entry =>
+            Assert.Equal(executable, entry.ExecutablePath));
+        Assert.Equal(executable, backend.Protocols[paths.ProtocolCommand].ExecutablePath);
+        var writes = backend.MutationCount;
+
+        service.SetEnabled(executable, enabled: true);
+
+        Assert.Equal(writes, backend.MutationCount);
 
         service.SetEnabled(executable, enabled: false);
 
@@ -199,17 +213,155 @@ public sealed class StartupTests
         var service = new CodexLaunchAssociationService(backend);
         var executable = Path.Combine(Path.GetTempPath(), "MyCO.exe");
         var paths = CodexLaunchAssociationService.AssociationPaths.For(executable);
-        backend.ForeignShortcuts.Add(paths.StartMenuShortcut);
-        backend.ForeignProtocols.Add(paths.ProtocolCommand);
+        backend.Shortcuts[paths.StartMenuShortcut] =
+            new(@"C:\Foreign\Other.exe", "--codex-launch", IsOwned: false);
+        backend.Protocols[paths.ProtocolCommand] =
+            new(@"C:\Foreign\Other.exe", IsOwned: false);
+        var before = backend.CloneState();
 
         Assert.Throws<IOException>(() => service.SetEnabled(executable, enabled: true));
-        Assert.Empty(backend.Writes);
-        Assert.Contains(paths.StartMenuShortcut, backend.ForeignShortcuts);
-        Assert.Contains(paths.ProtocolCommand, backend.ForeignProtocols);
+        Assert.Equal(before, backend.CloneState());
+        Assert.Equal(0, backend.MutationCount);
     }
 
     [Fact]
-    public void WindowsAssociationBackendLoadsAnExistingShortcutBeforeInspectingIt()
+    public void CodexAssociationRollsBackEveryEntryWhenEnableOrDisableFails()
+    {
+        var executable = Path.Combine(Path.GetTempPath(), "MyCO.exe");
+        var paths = CodexLaunchAssociationService.AssociationPaths.For(executable);
+        var backend = new FakeAssociationBackend { FailOnMutation = 2 };
+        var service = new CodexLaunchAssociationService(backend);
+        var missing = backend.CloneState();
+
+        Assert.Throws<IOException>(() => service.SetEnabled(executable, enabled: true));
+        Assert.Equal(missing, backend.CloneState());
+
+        backend.FailOnMutation = null;
+        service.SetEnabled(executable, enabled: true);
+        var enabled = backend.CloneState();
+        backend.MutationCount = 0;
+        backend.FailOnMutation = 2;
+
+        Assert.Throws<IOException>(() => service.SetEnabled(executable, enabled: false));
+        Assert.Equal(enabled, backend.CloneState());
+        Assert.True(backend.Shortcuts.ContainsKey(paths.StartMenuShortcut));
+        Assert.True(backend.Shortcuts.ContainsKey(paths.DesktopShortcut));
+        Assert.True(backend.Protocols.ContainsKey(paths.ProtocolCommand));
+    }
+
+    [Fact]
+    public void CodexAssociationRollbackPreservesEntryChangedByAnotherWriter()
+    {
+        var executable = Path.Combine(Path.GetTempPath(), "MyCO.exe");
+        var paths = CodexLaunchAssociationService.AssociationPaths.For(executable);
+        var backend = new FakeAssociationBackend { FailOnMutation = 2 };
+        var service = new CodexLaunchAssociationService(backend);
+        backend.OnInjectedFailure = () => backend.Shortcuts[paths.StartMenuShortcut] =
+            new(@"C:\Foreign\Other.exe", "--codex-launch", IsOwned: false);
+
+        Assert.Throws<IOException>(() => service.SetEnabled(executable, enabled: true));
+
+        Assert.Equal(
+            @"C:\Foreign\Other.exe",
+            backend.Shortcuts[paths.StartMenuShortcut].ExecutablePath);
+        Assert.False(backend.Shortcuts[paths.StartMenuShortcut].IsOwned);
+    }
+
+    [Fact]
+    public void AssociationSnapshotRestoresPartialAndPathDriftStateExactly()
+    {
+        var executable = Path.Combine(Path.GetTempPath(), "Current", "MyCO.exe");
+        var stale = Path.Combine(Path.GetTempPath(), "Old", "MyCO.exe");
+        var paths = CodexLaunchAssociationService.AssociationPaths.For(executable);
+        var backend = new FakeAssociationBackend();
+        var service = new CodexLaunchAssociationService(backend);
+        backend.Shortcuts[paths.StartMenuShortcut] =
+            new(stale, "--codex-launch", IsOwned: true);
+        backend.Shortcuts[paths.DesktopShortcut] =
+            new(executable, "--codex-launch", IsOwned: true);
+        var before = backend.CloneState();
+
+        var snapshot = service.CaptureSnapshot(executable);
+        service.SetEnabled(executable, enabled: false, snapshot);
+        Assert.Empty(backend.Shortcuts);
+
+        service.Restore(snapshot);
+
+        Assert.Equal(before, backend.CloneState());
+    }
+
+    [Fact]
+    public void AssociationSnapshotRestoreDoesNotOverwriteForeignGeneration()
+    {
+        var executable = Path.Combine(Path.GetTempPath(), "Current", "MyCO.exe");
+        var paths = CodexLaunchAssociationService.AssociationPaths.For(executable);
+        var backend = new FakeAssociationBackend();
+        var service = new CodexLaunchAssociationService(backend);
+
+        var snapshot = service.CaptureSnapshot(executable);
+        service.SetEnabled(executable, enabled: true, snapshot);
+        backend.Shortcuts[paths.DesktopShortcut] =
+            new(@"C:\Foreign\Other.exe", "--codex-launch", IsOwned: false);
+
+        service.Restore(snapshot);
+
+        Assert.False(backend.Shortcuts.ContainsKey(paths.StartMenuShortcut));
+        Assert.Equal(
+            @"C:\Foreign\Other.exe",
+            backend.Shortcuts[paths.DesktopShortcut].ExecutablePath);
+        Assert.False(backend.Protocols.ContainsKey(paths.ProtocolCommand));
+    }
+
+    [Fact]
+    public void CodexAssociationDeletesOnlyExactOwnedProtocolAndDisableIsIdempotent()
+    {
+        var executable = Path.Combine(Path.GetTempPath(), "MyCO.exe");
+        var paths = CodexLaunchAssociationService.AssociationPaths.For(executable);
+        var backend = new FakeAssociationBackend();
+        var service = new CodexLaunchAssociationService(backend);
+        backend.Protocols[paths.ProtocolCommand] =
+            new(executable, IsOwned: false);
+
+        service.SetEnabled(executable, enabled: false);
+        Assert.True(backend.Protocols.ContainsKey(paths.ProtocolCommand));
+
+        backend.Protocols[paths.ProtocolCommand] =
+            new(executable, IsOwned: true);
+        service.SetEnabled(executable, enabled: false);
+        Assert.False(backend.Protocols.ContainsKey(paths.ProtocolCommand));
+        var mutations = backend.MutationCount;
+
+        service.SetEnabled(executable, enabled: false);
+        Assert.Equal(mutations, backend.MutationCount);
+    }
+
+    [Fact]
+    public void AppIdentityShortcutRepairsPathDriftButRefusesForeignOwner()
+    {
+        var current = Path.Combine(Path.GetTempPath(), "Current", "MyCO.exe");
+        var stale = Path.Combine(Path.GetTempPath(), "Old", "MyCO.exe");
+        var paths = CodexLaunchAssociationService.AssociationPaths.For(current);
+        var backend = new FakeAssociationBackend();
+        var service = new CodexLaunchAssociationService(backend);
+        backend.Shortcuts[paths.AppIdentityShortcut] =
+            new(stale, string.Empty, IsOwned: true);
+
+        Assert.True(service.TryEnsureAppIdentityShortcut(current));
+        Assert.Equal(
+            current,
+            backend.Shortcuts[paths.AppIdentityShortcut].ExecutablePath);
+        Assert.Equal(string.Empty, backend.Shortcuts[paths.AppIdentityShortcut].Arguments);
+
+        backend.Shortcuts[paths.AppIdentityShortcut] =
+            new(@"C:\Foreign\Other.exe", string.Empty, IsOwned: false);
+        var before = backend.CloneState();
+
+        Assert.False(service.TryEnsureAppIdentityShortcut(current));
+        Assert.Equal(before, backend.CloneState());
+    }
+
+    [Fact]
+    public void WindowsAssociationBackendWritesAndReloadsShellLinkMetadata()
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -221,21 +373,169 @@ public sealed class StartupTests
         var shortcut = Path.Combine(directory.Path, "MyCO.lnk");
         File.WriteAllBytes(executable, []);
 
-        var backendType = typeof(CodexLaunchAssociationService).GetNestedType(
-                               "WindowsAssociationBackend",
-                               System.Reflection.BindingFlags.NonPublic)
-                           ?? throw new InvalidOperationException(
-                               "The Windows association backend is unavailable.");
-        var backend = (CodexLaunchAssociationService.IAssociationBackend)
-            Activator.CreateInstance(backendType, nonPublic: true)!;
+        var backend = new CodexLaunchAssociationService.WindowsAssociationBackend(
+            [directory.Path]);
 
         backend.WriteShortcut(
             shortcut,
             executable,
             "--codex-launch",
-            CodexLaunchAssociationService.AppUserModelId);
+            CodexLaunchAssociationService.AppUserModelId,
+            replaceExisting: false);
 
-        Assert.True(backend.IsOwnedShortcut(shortcut, executable));
+        var metadata = backend.ReadShortcutMetadata(shortcut);
+        Assert.NotNull(metadata);
+        Assert.Equal(
+            Path.GetFullPath(executable),
+            Path.GetFullPath(metadata.ExecutablePath),
+            StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("--codex-launch", metadata.Arguments);
+        Assert.Equal(CodexLaunchAssociationService.AppUserModelId, metadata.AppUserModelId);
+        Assert.Equal(
+            Path.GetFullPath(executable),
+            Path.GetFullPath(metadata.IconPath),
+            StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(
+            CodexLaunchAssociationService.AssociationEntryState.CurrentOwned,
+            backend.InspectShortcut(shortcut, executable, "--codex-launch"));
+    }
+
+    [Fact]
+    public void WindowsAssociationBackendLeavesMalformedAndReparseShortcutsForeign()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var directory = new TempDirectory();
+        var executable = Path.Combine(directory.Path, "MyCO.exe");
+        var malformed = Path.Combine(directory.Path, "Malformed.lnk");
+        var target = Path.Combine(directory.Path, "Target.lnk");
+        var reparse = Path.Combine(directory.Path, "Reparse.lnk");
+        File.WriteAllBytes(executable, []);
+        File.WriteAllText(malformed, "not a shell link");
+        var backend = new CodexLaunchAssociationService.WindowsAssociationBackend(
+            [directory.Path]);
+        backend.WriteShortcut(
+            target,
+            executable,
+            "--codex-launch",
+            CodexLaunchAssociationService.AppUserModelId,
+            replaceExisting: false);
+
+        Assert.Equal(
+            CodexLaunchAssociationService.AssociationEntryState.Foreign,
+            backend.InspectShortcut(malformed, executable, "--codex-launch"));
+
+        try
+        {
+            File.CreateSymbolicLink(reparse, target);
+        }
+        catch (Exception exception) when (
+            exception is UnauthorizedAccessException or IOException)
+        {
+            return;
+        }
+        Assert.Equal(
+            CodexLaunchAssociationService.AssociationEntryState.Foreign,
+            backend.InspectShortcut(reparse, executable, "--codex-launch"));
+    }
+
+    [Fact]
+    public void WindowsAssociationBackendRejectsReparsePointInTrustedPathAncestor()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var directory = new TempDirectory();
+        var trustedRoot = Path.Combine(directory.Path, "Trusted");
+        var targetDirectory = Path.Combine(directory.Path, "Target");
+        var linkedDirectory = Path.Combine(trustedRoot, "Linked");
+        Directory.CreateDirectory(trustedRoot);
+        Directory.CreateDirectory(targetDirectory);
+        try
+        {
+            Directory.CreateSymbolicLink(linkedDirectory, targetDirectory);
+        }
+        catch (Exception exception) when (
+            exception is UnauthorizedAccessException or IOException)
+        {
+            return;
+        }
+
+        var executable = Path.Combine(directory.Path, "MyCO.exe");
+        File.WriteAllBytes(executable, []);
+        var shortcut = Path.Combine(linkedDirectory, "MyCO.lnk");
+        var backend = new CodexLaunchAssociationService.WindowsAssociationBackend(
+            [trustedRoot, targetDirectory]);
+
+        var targetShortcut = Path.Combine(targetDirectory, "MyCO.lnk");
+        backend.WriteShortcut(
+            targetShortcut,
+            executable,
+            "--codex-launch",
+            CodexLaunchAssociationService.AppUserModelId,
+            replaceExisting: false);
+
+        Assert.Throws<IOException>(() => backend.WriteShortcut(
+            shortcut,
+            executable,
+            "--codex-launch",
+            CodexLaunchAssociationService.AppUserModelId,
+            replaceExisting: false));
+        Assert.Throws<IOException>(() =>
+            backend.CaptureShortcutRollback(shortcut));
+        Assert.Throws<IOException>(() => backend.DeleteShortcut(
+            shortcut,
+            executable,
+            "--codex-launch"));
+        Assert.True(File.Exists(targetShortcut));
+    }
+
+    [Fact]
+    public void ShortcutRollbackRejectsAncestorChangedToReparsePoint()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var directory = new TempDirectory();
+        var trustedRoot = Path.Combine(directory.Path, "Trusted");
+        var ownedDirectory = Path.Combine(trustedRoot, "Owned");
+        var targetDirectory = Path.Combine(directory.Path, "Target");
+        Directory.CreateDirectory(ownedDirectory);
+        Directory.CreateDirectory(targetDirectory);
+        var executable = Path.Combine(directory.Path, "MyCO.exe");
+        File.WriteAllBytes(executable, []);
+        var shortcut = Path.Combine(ownedDirectory, "MyCO.lnk");
+        var backend = new CodexLaunchAssociationService.WindowsAssociationBackend(
+            [trustedRoot]);
+        backend.WriteShortcut(
+            shortcut,
+            executable,
+            "--codex-launch",
+            CodexLaunchAssociationService.AppUserModelId,
+            replaceExisting: false);
+        var rollback = backend.CaptureShortcutRollback(shortcut);
+        backend.DeleteShortcut(shortcut, executable, "--codex-launch");
+        rollback.SealExpectedGeneration();
+        Directory.Delete(ownedDirectory);
+        try
+        {
+            Directory.CreateSymbolicLink(ownedDirectory, targetDirectory);
+        }
+        catch (Exception exception) when (
+            exception is UnauthorizedAccessException or IOException)
+        {
+            return;
+        }
+
+        Assert.Throws<IOException>(() => rollback.RestoreIfExpected());
+        Assert.False(File.Exists(Path.Combine(targetDirectory, "MyCO.lnk")));
     }
 
     private sealed class FakeRunKeyBackend :
@@ -259,54 +559,175 @@ public sealed class StartupTests
     private sealed class FakeAssociationBackend :
         CodexLaunchAssociationService.IAssociationBackend
     {
-        public HashSet<string> Shortcuts { get; } = new(StringComparer.OrdinalIgnoreCase);
-        public HashSet<string> ForeignShortcuts { get; } = new(StringComparer.OrdinalIgnoreCase);
-        public HashSet<string> Protocols { get; } = new(StringComparer.Ordinal);
-        public HashSet<string> ForeignProtocols { get; } = new(StringComparer.Ordinal);
-        public List<string> Writes { get; } = [];
+        public Dictionary<string, ShortcutEntry> Shortcuts { get; } =
+            new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, ProtocolEntry> Protocols { get; } =
+            new(StringComparer.Ordinal);
+        public int MutationCount { get; set; }
+        public int? FailOnMutation { get; set; }
+        public Action? OnInjectedFailure { get; set; }
 
-        public bool IsOwnedShortcut(string path, string executablePath) =>
-            Shortcuts.Contains(path);
-
-        public void EnsureShortcutAvailable(string path)
+        public CodexLaunchAssociationService.AssociationEntryState InspectShortcut(
+            string path,
+            string executablePath,
+            string arguments)
         {
-            if (ForeignShortcuts.Contains(path))
+            if (!Shortcuts.TryGetValue(path, out var entry))
             {
-                throw new IOException("foreign shortcut");
+                return CodexLaunchAssociationService.AssociationEntryState.Missing;
             }
+            if (!entry.IsOwned || !string.Equals(entry.Arguments, arguments, StringComparison.Ordinal))
+            {
+                return CodexLaunchAssociationService.AssociationEntryState.Foreign;
+            }
+            return string.Equals(
+                entry.ExecutablePath,
+                executablePath,
+                StringComparison.OrdinalIgnoreCase)
+                ? CodexLaunchAssociationService.AssociationEntryState.CurrentOwned
+                : CodexLaunchAssociationService.AssociationEntryState.StaleOwned;
         }
 
         public void WriteShortcut(
             string path,
             string executablePath,
             string arguments,
-            string appUserModelId)
+            string appUserModelId,
+            bool replaceExisting)
         {
-            Writes.Add(path);
-            Shortcuts.Add(path);
+            ThrowIfRequested();
+            Shortcuts[path] = new(executablePath, arguments, IsOwned: true);
         }
 
-        public void RemoveOwnedShortcut(string path, string executablePath) =>
-            Shortcuts.Remove(path);
-
-        public bool IsOwnedProtocol(string commandKey, string executablePath) =>
-            Protocols.Contains(commandKey);
-
-        public void EnsureProtocolAvailable(string commandKey, string executablePath)
+        public void DeleteShortcut(
+            string path,
+            string executablePath,
+            string arguments)
         {
-            if (ForeignProtocols.Contains(commandKey))
+            ThrowIfRequested();
+            Shortcuts.Remove(path);
+        }
+
+        public CodexLaunchAssociationService.AssociationEntryState InspectProtocol(
+            string commandKey,
+            string executablePath)
+        {
+            if (!Protocols.TryGetValue(commandKey, out var entry))
             {
-                throw new IOException("foreign protocol");
+                return CodexLaunchAssociationService.AssociationEntryState.Missing;
             }
+            if (!entry.IsOwned)
+            {
+                return CodexLaunchAssociationService.AssociationEntryState.Foreign;
+            }
+            return string.Equals(
+                entry.ExecutablePath,
+                executablePath,
+                StringComparison.OrdinalIgnoreCase)
+                ? CodexLaunchAssociationService.AssociationEntryState.CurrentOwned
+                : CodexLaunchAssociationService.AssociationEntryState.StaleOwned;
         }
 
         public void WriteProtocol(string commandKey, string executablePath)
         {
-            Writes.Add(commandKey);
-            Protocols.Add(commandKey);
+            ThrowIfRequested();
+            Protocols[commandKey] = new(executablePath, IsOwned: true);
         }
 
-        public void RemoveOwnedProtocol(string commandKey, string executablePath) =>
+        public void DeleteProtocol(string commandKey, string executablePath)
+        {
+            ThrowIfRequested();
             Protocols.Remove(commandKey);
+        }
+
+        public CodexLaunchAssociationService.IAssociationEntrySnapshot
+            CaptureShortcutRollback(string path)
+        {
+            var existed = Shortcuts.TryGetValue(path, out var entry);
+            return new FakeEntrySnapshot<ShortcutEntry>(
+                () => Shortcuts.GetValueOrDefault(path),
+                value => SetOrRemove(Shortcuts, path, value),
+                existed ? entry : null);
+        }
+
+        public CodexLaunchAssociationService.IAssociationEntrySnapshot
+            CaptureProtocolRollback(string commandKey)
+        {
+            var existed = Protocols.TryGetValue(commandKey, out var entry);
+            return new FakeEntrySnapshot<ProtocolEntry>(
+                () => Protocols.GetValueOrDefault(commandKey),
+                value => SetOrRemove(Protocols, commandKey, value),
+                existed ? entry : null);
+        }
+
+        public string CloneState() => string.Join(
+            "|",
+            Shortcuts.OrderBy(pair => pair.Key).Select(pair =>
+                $"S:{pair.Key}:{pair.Value}")
+                .Concat(Protocols.OrderBy(pair => pair.Key).Select(pair =>
+                    $"P:{pair.Key}:{pair.Value}")));
+
+        private void ThrowIfRequested()
+        {
+            MutationCount++;
+            if (MutationCount == FailOnMutation)
+            {
+                OnInjectedFailure?.Invoke();
+                throw new IOException("injected transaction failure");
+            }
+        }
+
+        public sealed record ShortcutEntry(
+            string ExecutablePath,
+            string Arguments,
+            bool IsOwned);
+
+        public sealed record ProtocolEntry(string ExecutablePath, bool IsOwned);
+
+        private static void SetOrRemove<T>(
+            IDictionary<string, T> entries,
+            string key,
+            T? value) where T : class
+        {
+            if (value is null)
+            {
+                entries.Remove(key);
+            }
+            else
+            {
+                entries[key] = value;
+            }
+        }
+
+        private sealed class FakeEntrySnapshot<T> :
+            CodexLaunchAssociationService.IAssociationEntrySnapshot
+            where T : class
+        {
+            private readonly Func<T?> _read;
+            private readonly Action<T?> _write;
+            private readonly T? _original;
+            private T? _expected;
+
+            public FakeEntrySnapshot(
+                Func<T?> read,
+                Action<T?> write,
+                T? original)
+            {
+                _read = read;
+                _write = write;
+                _original = original;
+                _expected = original;
+            }
+
+            public void SealExpectedGeneration() => _expected = _read();
+
+            public void RestoreIfExpected()
+            {
+                if (Equals(_read(), _expected))
+                {
+                    _write(_original);
+                }
+            }
+        }
     }
 }

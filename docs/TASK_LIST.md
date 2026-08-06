@@ -1,6 +1,6 @@
 # Task List
 
-Last updated: 2026-08-02
+Last updated: 2026-08-06
 
 ## Current release gate
 
@@ -52,6 +52,20 @@ readiness is still blocked by the environment-dependent items below.
 - [ ] Add optional release signing verification in local tooling.
 
 ## Completed in the current repair
+
+- [x] Schema 6 independent Assistant/User avatar and nickname offsets plus the
+  Assistant-only ordinary-prose maximum width, including migration, validation,
+  preview, Runtime CSS variables, serialization and destroy coverage.
+- [x] Immediate all-renderer config application with latest-request ordering,
+  Runtime diagnostic validation, partial-failure reporting and zero-session
+  fail-closed status.
+- [x] Three independent startup semantics, the eight-combination automated
+  matrix, single-instance associated launch routing, and transactional MyCO-only
+  shortcut/protocol repair with reparse and concurrent-generation protection.
+- [x] One-per-boot localized tray BalloonTip with invariant
+  `It's MyCO!!!!!` title, MyCO AUMID/icon identity shortcut, and legacy fallback.
+- [x] Four-language onboarding title update and removal of the description,
+  privacy line and green-dot elements/resources with compact responsive layout.
 
 - [x] 0.99.2 incremental scope: filled titlebar icon, two-tone brand title and
   subtitle, one-per-Windows-boot tray minimize balloon, default-off MyCO-owned

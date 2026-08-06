@@ -6,17 +6,18 @@ MyCO 是 Windows 10/11 x64 上的 .NET 8 WPF 启动器 + 嵌入式 TypeScript Ru
 用于美化官方 Codex/ChatGPT Desktop 渲染器。本地、可逆、隐私安全、失败安全。
 
 **GitHub:** https://github.com/crikok0721/MyCO
-**当前版本:** `0.99.1`
+**当前版本:** `0.99.2`（本地增量开发，尚未发布）
 **阶段:** Phase 3 — Beta 测试与公开测试前稳定性整改
 
 ## Source of truth（阅读顺序）
 
 1. `CLAUDE.md` — 主入口（Claude Code 使用）
 2. `docs/CONTEXT.md` — 当前状态、Blockers、验证结果
-3. `docs/architecture.md` — 架构与数据流
-4. `docs/DECISIONS.md` — 设计决策
-5. `docs/TASK_LIST.md` — 当前优先级
-6. `docs/TECH_STACK.md` — 技术栈细节
+3. `docs/PROJECT_CONTEXT.md` — 产品目标与长期约束
+4. `docs/architecture.md` — 架构与数据流
+5. `docs/DECISIONS.md` — 设计决策
+6. `docs/TASK_LIST.md` — 当前优先级
+7. `docs/TECH_STACK.md` — 技术栈细节
 
 历史文档：`docs/archive/CODEX_HANDOFF.md`、`docs/archive/development-notes.md`
 

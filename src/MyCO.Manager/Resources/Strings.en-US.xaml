@@ -55,9 +55,15 @@
     <sys:String x:Key="ChooseAssistantAvatar">Choose assistant avatar…</sys:String>
     <sys:String x:Key="ChooseUserAvatar">Choose user avatar…</sys:String>
     <sys:String x:Key="Geometry">Geometry</sys:String>
+    <sys:String x:Key="AppearanceAssistantGeometry">Assistant positioning</sys:String>
+    <sys:String x:Key="AppearanceUserGeometry">User positioning</sys:String>
+    <sys:String x:Key="AvatarPosition">Avatar position</sys:String>
+    <sys:String x:Key="NicknamePosition">Nickname position</sys:String>
     <sys:String x:Key="AvatarSizeFormat">Avatar size · {0:F0}px</sys:String>
     <sys:String x:Key="AvatarOffsetXFormat">Avatar horizontal position · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="AvatarOffsetYFormat">Avatar vertical position · {0:+0;-0;0}px</sys:String>
+    <sys:String x:Key="NicknameOffsetXFormat">Nickname horizontal position · {0:+0;-0;0}px</sys:String>
+    <sys:String x:Key="NicknameOffsetYFormat">Nickname vertical position · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="BubbleRadiusFormat">Bubble radius · {0:F0}px</sys:String>
     <sys:String x:Key="MessageGapFormat">Message gap · {0:F0}px</sys:String>
     <sys:String x:Key="BubbleBehavior">Bubble behavior</sys:String>
@@ -67,7 +73,7 @@
     <sys:String x:Key="BubbleDisplayModeDescription">Automatic grouping follows Markdown structure. Whole response keeps contiguous safe prose together; native code, tables, math, tools, and controls remain untouched.</sys:String>
     <sys:String x:Key="HorizontalPaddingFormat">Horizontal padding · {0:F0}px</sys:String>
     <sys:String x:Key="VerticalPaddingFormat">Vertical padding · {0:F0}px</sys:String>
-    <sys:String x:Key="MaxWidthFormat">Max width · {0:F0}%</sys:String>
+    <sys:String x:Key="AssistantBubbleMaxWidthFormat">Assistant bubble width · {0:F0}%</sys:String>
     <sys:String x:Key="ShowNicknames">Show nicknames</sys:String>
 
     <sys:String x:Key="CalibrationTitle">Calibration</sys:String>
@@ -108,12 +114,10 @@
     <sys:String x:Key="DisclaimerParagraph">MyCO is an independent open-source project. It is not affiliated with, endorsed by, or sponsored by OpenAI. An official Codex / ChatGPT Desktop installation is required.</sys:String>
 
     <sys:String x:Key="OnboardingWindowTitle">Welcome to MyCO</sys:String>
-    <sys:String x:Key="OnboardingHeading">Make Codex feel like your chat</sys:String>
-    <sys:String x:Key="OnboardingDescription">MyCO adds local avatars, nicknames, and compact chat bubbles while preserving native code, diff, tool, approval, and toolbar UI.</sys:String>
+    <sys:String x:Key="OnboardingHeading">Let's get started!</sys:String>
     <sys:String x:Key="OnboardingStepOne">1   Select the detected official Desktop app</sys:String>
     <sys:String x:Key="OnboardingStepTwo">2   Choose avatars and nicknames in Appearance</sys:String>
     <sys:String x:Key="OnboardingStepThree">3   Start Codex with MyCO, then calibrate three user and three assistant turns</sys:String>
-    <sys:String x:Key="OnboardingPrivacy">Everything runs locally. No telemetry, credentials, cookies, or network interception.</sys:String>
     <sys:String x:Key="OnboardingContinue">Continue to MyCO</sys:String>
 
     <sys:String x:Key="AlreadyRunningMessage">MyCO is already running.</sys:String>
@@ -147,7 +151,9 @@
     <sys:String x:Key="StatusStartingTcpFallback">Starting the explicitly approved loopback TCP fallback…</sys:String>
     <sys:String x:Key="StatusTcpFallbackDeclined">TCP fallback declined; Codex remains available without MyCO features.</sys:String>
     <sys:String x:Key="StatusRefreshingDesktopEntry">Desktop was updated; refreshing its registered launch path…</sys:String>
-    <sys:String x:Key="StatusAppearanceSaved">Appearance saved locally and applied.</sys:String>
+    <sys:String x:Key="StatusAppearanceSavedNoSessions">Appearance saved locally. No active conversation window was available to update.</sys:String>
+    <sys:String x:Key="StatusAppearancePartiallyAppliedFormat">Appearance saved locally. {0} of {1} active conversation windows updated; {2} failed.</sys:String>
+    <sys:String x:Key="StatusAppearanceSavedAndAppliedFormat">Appearance saved and applied to {0} active conversation window(s).</sys:String>
     <sys:String x:Key="ChooseAssistantAvatarTitle">Choose assistant avatar</sys:String>
     <sys:String x:Key="ChooseUserAvatarTitle">Choose user avatar</sys:String>
     <sys:String x:Key="ImageFilter">Images (*.png;*.jpg;*.jpeg;*.gif;*.bmp)|*.png;*.jpg;*.jpeg;*.gif;*.bmp</sys:String>

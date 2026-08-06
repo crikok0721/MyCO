@@ -54,11 +54,17 @@ export class StyleManager {
         : appearance.darkBubblePalette;
     const values: Record<string, string> = {
       "--mc-avatar-size": `${appearance.avatarSize}px`,
-      "--mc-avatar-offset-x": `${appearance.avatarOffsetX}px`,
-      "--mc-avatar-offset-y": `${appearance.avatarOffsetY}px`,
+      "--mc-assistant-avatar-offset-x": `${appearance.assistantAvatarOffsetX}px`,
+      "--mc-assistant-avatar-offset-y": `${appearance.assistantAvatarOffsetY}px`,
+      "--mc-user-avatar-offset-x": `${appearance.userAvatarOffsetX}px`,
+      "--mc-user-avatar-offset-y": `${appearance.userAvatarOffsetY}px`,
+      "--mc-assistant-nickname-offset-x": `${appearance.assistantNicknameOffsetX}px`,
+      "--mc-assistant-nickname-offset-y": `${appearance.assistantNicknameOffsetY}px`,
+      "--mc-user-nickname-offset-x": `${appearance.userNicknameOffsetX}px`,
+      "--mc-user-nickname-offset-y": `${appearance.userNicknameOffsetY}px`,
       "--mc-bubble-radius": `${appearance.bubbleRadius}px`,
       ...paletteVariables(palette),
-      "--mc-message-max-width": `${appearance.messageMaxWidth}%`,
+      "--mc-assistant-bubble-max-width": `${appearance.assistantBubbleMaxWidth}%`,
       "--mc-message-gap": `${appearance.messageGap}px`,
       "--mc-bubble-padding-x": `${appearance.bubblePaddingX}px`,
       "--mc-bubble-padding-y": `${appearance.bubblePaddingY}px`,
@@ -101,15 +107,21 @@ export class StyleManager {
     this.styleElement = null;
     for (const property of [
       "--mc-avatar-size",
-      "--mc-avatar-offset-x",
-      "--mc-avatar-offset-y",
+      "--mc-assistant-avatar-offset-x",
+      "--mc-assistant-avatar-offset-y",
+      "--mc-user-avatar-offset-x",
+      "--mc-user-avatar-offset-y",
+      "--mc-assistant-nickname-offset-x",
+      "--mc-assistant-nickname-offset-y",
+      "--mc-user-nickname-offset-x",
+      "--mc-user-nickname-offset-y",
       "--mc-bubble-radius",
       "--mc-assistant-bubble",
       "--mc-assistant-text",
       "--mc-nickname-color",
       "--mc-avatar-background",
       "--mc-avatar-border",
-      "--mc-message-max-width",
+      "--mc-assistant-bubble-max-width",
       "--mc-message-gap",
       "--mc-bubble-padding-x",
       "--mc-bubble-padding-y",
@@ -146,15 +158,21 @@ function runtimeCss(): string {
   return `
 :root {
   --mc-avatar-size: 40px;
-  --mc-avatar-offset-x: 0px;
-  --mc-avatar-offset-y: 11px;
+  --mc-assistant-avatar-offset-x: 0px;
+  --mc-assistant-avatar-offset-y: 11px;
+  --mc-user-avatar-offset-x: 0px;
+  --mc-user-avatar-offset-y: 11px;
+  --mc-assistant-nickname-offset-x: 0px;
+  --mc-assistant-nickname-offset-y: 0px;
+  --mc-user-nickname-offset-x: 0px;
+  --mc-user-nickname-offset-y: 0px;
   --mc-bubble-radius: 14px;
   --mc-assistant-bubble: #222222;
   --mc-assistant-text: #f2f2f2;
   --mc-nickname-color: #9a9a9a;
   --mc-avatar-background: #303030;
   --mc-avatar-border: #FFFFFF14;
-  --mc-message-max-width: 66%;
+  --mc-assistant-bubble-max-width: 66%;
   --mc-message-gap: 28px;
   --mc-bubble-padding-x: 14px;
   --mc-bubble-padding-y: 10px;
@@ -165,20 +183,44 @@ function runtimeCss(): string {
   position: relative !important;
   box-sizing: border-box !important;
   overflow: visible !important;
+  margin-block-end: var(--mc-message-gap) !important;
 }
 [data-myco-identity-owner="true"] {
   min-height: calc(var(--mc-avatar-size) + 22px) !important;
   padding-top: 22px !important;
 }
 [data-myco-role="assistant"] {
-  padding-left: calc(var(--mc-avatar-size) + 12px) !important;
+  padding-left: calc(
+    var(--mc-avatar-size) + 12px +
+    max(0px, var(--mc-assistant-avatar-offset-x), var(--mc-assistant-nickname-offset-x))
+  ) !important;
 }
 [data-myco-role="user"] {
-  padding-right: calc(var(--mc-avatar-size) + 12px) !important;
+  padding-right: calc(
+    var(--mc-avatar-size) + 12px +
+    max(0px, var(--mc-user-avatar-offset-x), var(--mc-user-nickname-offset-x))
+  ) !important;
+}
+[data-myco-role="assistant"][data-myco-identity-owner="true"] {
+  min-height: calc(
+    var(--mc-avatar-size) + max(22px, var(--mc-assistant-avatar-offset-y))
+  ) !important;
+  padding-top: max(
+    22px,
+    calc(18px + max(0px, var(--mc-assistant-nickname-offset-y)))
+  ) !important;
+}
+[data-myco-role="user"][data-myco-identity-owner="true"] {
+  min-height: calc(
+    var(--mc-avatar-size) + max(22px, var(--mc-user-avatar-offset-y))
+  ) !important;
+  padding-top: max(
+    22px,
+    calc(18px + max(0px, var(--mc-user-nickname-offset-y)))
+  ) !important;
 }
 .mc-avatar {
   position: absolute !important;
-  top: var(--mc-avatar-offset-y) !important;
   width: var(--mc-avatar-size) !important;
   height: var(--mc-avatar-size) !important;
   border-radius: 50% !important;
@@ -190,10 +232,12 @@ function runtimeCss(): string {
   z-index: 2 !important;
 }
 [data-myco-role="assistant"] > .mc-avatar {
-  left: var(--mc-avatar-offset-x) !important;
+  top: var(--mc-assistant-avatar-offset-y) !important;
+  left: var(--mc-assistant-avatar-offset-x) !important;
 }
 [data-myco-role="user"] > .mc-avatar {
-  right: var(--mc-avatar-offset-x) !important;
+  top: var(--mc-user-avatar-offset-y) !important;
+  right: var(--mc-user-avatar-offset-x) !important;
 }
 .mc-nickname {
   display: var(--mc-nickname-display) !important;
@@ -205,21 +249,35 @@ function runtimeCss(): string {
   pointer-events: none !important;
   user-select: none !important;
   white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
   z-index: 2 !important;
 }
 [data-myco-role="assistant"] > .mc-nickname {
-  left: calc(var(--mc-avatar-size) + 12px) !important;
-  top: 0 !important;
+  left: calc(
+    var(--mc-avatar-size) + 12px + var(--mc-assistant-nickname-offset-x)
+  ) !important;
+  top: var(--mc-assistant-nickname-offset-y) !important;
+  max-width: calc(
+    100% - var(--mc-avatar-size) - 12px -
+    max(0px, var(--mc-assistant-nickname-offset-x))
+  ) !important;
 }
 [data-myco-role="user"] > .mc-nickname {
-  right: calc(var(--mc-avatar-size) + 12px) !important;
-  top: 0 !important;
+  right: calc(
+    var(--mc-avatar-size) + 12px + var(--mc-user-nickname-offset-x)
+  ) !important;
+  top: var(--mc-user-nickname-offset-y) !important;
+  max-width: calc(
+    100% - var(--mc-avatar-size) - 12px -
+    max(0px, var(--mc-user-nickname-offset-x))
+  ) !important;
 }
 [data-myco-prose="assistant"] {
   display: block !important;
   width: fit-content(100%) !important;
   min-width: 0 !important;
-  max-width: min(var(--mc-message-max-width), 100%) !important;
+  max-width: min(var(--mc-assistant-bubble-max-width), 100%) !important;
   box-sizing: border-box !important;
   margin-left: 0 !important;
   margin-right: auto !important;

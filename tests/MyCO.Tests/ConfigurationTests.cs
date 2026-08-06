@@ -49,7 +49,7 @@ public sealed class ConfigurationTests
         var result = await new ConfigStore(paths).LoadAsync();
 
         Assert.True(result.WasMigrated);
-        Assert.Equal(5, result.Config.SchemaVersion);
+        Assert.Equal(6, result.Config.SchemaVersion);
         Assert.Equal(
             BubbleDisplayMode.Automatic,
             result.Config.Appearance.BubbleDisplayMode);
@@ -70,8 +70,8 @@ public sealed class ConfigurationTests
             Appearance = AppConfig.Default.Appearance with
             {
                 AvatarSize = 52,
-                AvatarOffsetX = 7,
-                AvatarOffsetY = 13
+                AssistantAvatarOffsetX = 7,
+                AssistantAvatarOffsetY = 13
             }
         };
 
@@ -81,9 +81,224 @@ public sealed class ConfigurationTests
         Assert.Equal(LanguageCodes.TraditionalChinese, loaded.Config.Language);
         Assert.Equal("Luna", loaded.Config.Assistant.Name);
         Assert.Equal(52, loaded.Config.Appearance.AvatarSize);
-        Assert.Equal(7, loaded.Config.Appearance.AvatarOffsetX);
-        Assert.Equal(13, loaded.Config.Appearance.AvatarOffsetY);
+        Assert.Equal(7, loaded.Config.Appearance.AssistantAvatarOffsetX);
+        Assert.Equal(13, loaded.Config.Appearance.AssistantAvatarOffsetY);
         Assert.Equal(1, loaded.Config.Calibration.SchemaVersion);
+    }
+
+    [Fact]
+    public async Task RoleSpecificAvatarNicknameOffsetsAndAssistantWidthRoundTrip()
+    {
+        using var directory = new TempDirectory();
+        var store = new ConfigStore(new ConfigPaths(directory.Path));
+        var expected = AppConfig.Default with
+        {
+            Appearance = AppConfig.Default.Appearance with
+            {
+                AssistantAvatarOffsetX = -31,
+                AssistantAvatarOffsetY = -19,
+                UserAvatarOffsetX = 32,
+                UserAvatarOffsetY = 40,
+                AssistantNicknameOffsetX = -30,
+                AssistantNicknameOffsetY = -11,
+                UserNicknameOffsetX = 31,
+                UserNicknameOffsetY = 28,
+                AssistantBubbleMaxWidth = 79
+            }
+        };
+
+        await store.SaveAsync(expected);
+        var loaded = await store.LoadAsync();
+
+        Assert.Equal(expected.Appearance, loaded.Config.Appearance);
+    }
+
+    [Fact]
+    public async Task SchemaFiveMigratesSharedGeometryWithoutLosingOtherSettings()
+    {
+        using var directory = new TempDirectory();
+        var paths = new ConfigPaths(directory.Path);
+        var store = new ConfigStore(paths);
+        await store.SaveAsync(
+            AppConfig.Default with
+            {
+                Language = LanguageCodes.Japanese,
+                ManagerThemeMode = ManagerThemeMode.Light,
+                LaunchAtLogin = true,
+                LaunchCodexOnMycoStart = true,
+                AssociateCodexLaunches = true,
+                Assistant = new PersonConfig { Name = "Luna", Avatar = "luna.png" },
+                User = new PersonConfig { Name = "Avery", Avatar = "avery.png" },
+                Appearance = AppConfig.Default.Appearance with
+                {
+                    NicknameVisible = false
+                }
+            });
+        var root = JsonNode.Parse(await File.ReadAllTextAsync(paths.ConfigFile))!
+            .AsObject();
+        root["schemaVersion"] = 5;
+        var appearance = root["appearance"]!.AsObject();
+        foreach (var key in new[]
+                 {
+                     "assistantAvatarOffsetX", "assistantAvatarOffsetY",
+                     "userAvatarOffsetX", "userAvatarOffsetY",
+                     "assistantNicknameOffsetX", "assistantNicknameOffsetY",
+                     "userNicknameOffsetX", "userNicknameOffsetY",
+                     "assistantBubbleMaxWidth"
+                 })
+        {
+            appearance.Remove(key);
+        }
+        appearance["avatarOffsetX"] = 7;
+        appearance["avatarOffsetY"] = 13;
+        appearance["messageMaxWidth"] = 72;
+        await File.WriteAllTextAsync(paths.ConfigFile, root.ToJsonString());
+
+        var loaded = await store.LoadAsync();
+
+        Assert.True(loaded.WasMigrated);
+        Assert.Equal(6, loaded.Config.SchemaVersion);
+        Assert.Equal(7, loaded.Config.Appearance.AssistantAvatarOffsetX);
+        Assert.Equal(13, loaded.Config.Appearance.AssistantAvatarOffsetY);
+        Assert.Equal(7, loaded.Config.Appearance.UserAvatarOffsetX);
+        Assert.Equal(13, loaded.Config.Appearance.UserAvatarOffsetY);
+        Assert.Equal(0, loaded.Config.Appearance.AssistantNicknameOffsetX);
+        Assert.Equal(0, loaded.Config.Appearance.AssistantNicknameOffsetY);
+        Assert.Equal(0, loaded.Config.Appearance.UserNicknameOffsetX);
+        Assert.Equal(0, loaded.Config.Appearance.UserNicknameOffsetY);
+        Assert.Equal(72, loaded.Config.Appearance.AssistantBubbleMaxWidth);
+        Assert.Equal("Luna", loaded.Config.Assistant.Name);
+        Assert.Equal("luna.png", loaded.Config.Assistant.Avatar);
+        Assert.Equal("Avery", loaded.Config.User.Name);
+        Assert.Equal("avery.png", loaded.Config.User.Avatar);
+        Assert.Equal(LanguageCodes.Japanese, loaded.Config.Language);
+        Assert.Equal(ManagerThemeMode.Light, loaded.Config.ManagerThemeMode);
+        Assert.True(loaded.Config.LaunchAtLogin);
+        Assert.True(loaded.Config.LaunchCodexOnMycoStart);
+        Assert.True(loaded.Config.AssociateCodexLaunches);
+        Assert.False(loaded.Config.Appearance.NicknameVisible);
+
+        var persisted = JsonNode.Parse(await File.ReadAllTextAsync(paths.ConfigFile))!
+            .AsObject()["appearance"]!.AsObject();
+        Assert.False(persisted.ContainsKey("avatarOffsetX"));
+        Assert.False(persisted.ContainsKey("avatarOffsetY"));
+        Assert.False(persisted.ContainsKey("messageMaxWidth"));
+    }
+
+    [Theory]
+    [InlineData(35, 45)]
+    [InlineData(90, 80)]
+    public async Task SchemaFiveClampsLegacyWidthWithoutDiscardingConfiguration(
+        int legacyWidth,
+        int expectedWidth)
+    {
+        using var directory = new TempDirectory();
+        var paths = new ConfigPaths(directory.Path);
+        var store = new ConfigStore(paths);
+        await store.SaveAsync(AppConfig.Default with
+        {
+            Assistant = new PersonConfig { Name = "Preserved", Avatar = "assistant.png" }
+        });
+        var root = JsonNode.Parse(await File.ReadAllTextAsync(paths.ConfigFile))!
+            .AsObject();
+        root["schemaVersion"] = 5;
+        var appearance = root["appearance"]!.AsObject();
+        appearance.Remove("assistantBubbleMaxWidth");
+        appearance["messageMaxWidth"] = legacyWidth;
+        await File.WriteAllTextAsync(paths.ConfigFile, root.ToJsonString());
+
+        var loaded = await store.LoadAsync();
+
+        Assert.True(loaded.WasMigrated);
+        Assert.Null(loaded.CorruptBackupPath);
+        Assert.Equal("Preserved", loaded.Config.Assistant.Name);
+        Assert.Equal("assistant.png", loaded.Config.Assistant.Avatar);
+        Assert.Equal(expectedWidth, loaded.Config.Appearance.AssistantBubbleMaxWidth);
+    }
+
+    [Fact]
+    public async Task SchemaSixRepairsMissingGeometryFieldsWithSafeDefaults()
+    {
+        using var directory = new TempDirectory();
+        var paths = new ConfigPaths(directory.Path);
+        var store = new ConfigStore(paths);
+        await store.SaveAsync(AppConfig.Default with
+        {
+            Assistant = new PersonConfig { Name = "Preserved" }
+        });
+        var root = JsonNode.Parse(await File.ReadAllTextAsync(paths.ConfigFile))!
+            .AsObject();
+        var appearance = root["appearance"]!.AsObject();
+        foreach (var key in new[]
+                 {
+                     "assistantAvatarOffsetX", "assistantAvatarOffsetY",
+                     "userAvatarOffsetX", "userAvatarOffsetY",
+                     "assistantNicknameOffsetX", "assistantNicknameOffsetY",
+                     "userNicknameOffsetX", "userNicknameOffsetY",
+                     "assistantBubbleMaxWidth"
+                 })
+        {
+            appearance.Remove(key);
+        }
+        await File.WriteAllTextAsync(paths.ConfigFile, root.ToJsonString());
+
+        var loaded = await store.LoadAsync();
+
+        Assert.True(loaded.WasMigrated);
+        Assert.Equal("Preserved", loaded.Config.Assistant.Name);
+        Assert.Equal(0, loaded.Config.Appearance.AssistantAvatarOffsetX);
+        Assert.Equal(11, loaded.Config.Appearance.AssistantAvatarOffsetY);
+        Assert.Equal(0, loaded.Config.Appearance.UserAvatarOffsetX);
+        Assert.Equal(11, loaded.Config.Appearance.UserAvatarOffsetY);
+        Assert.Equal(0, loaded.Config.Appearance.AssistantNicknameOffsetX);
+        Assert.Equal(0, loaded.Config.Appearance.AssistantNicknameOffsetY);
+        Assert.Equal(0, loaded.Config.Appearance.UserNicknameOffsetX);
+        Assert.Equal(0, loaded.Config.Appearance.UserNicknameOffsetY);
+        Assert.Equal(66, loaded.Config.Appearance.AssistantBubbleMaxWidth);
+    }
+
+    [Theory]
+    [InlineData(nameof(AppearanceConfig.AssistantAvatarOffsetX), -33)]
+    [InlineData(nameof(AppearanceConfig.AssistantAvatarOffsetX), 33)]
+    [InlineData(nameof(AppearanceConfig.UserAvatarOffsetX), -33)]
+    [InlineData(nameof(AppearanceConfig.UserAvatarOffsetX), 33)]
+    [InlineData(nameof(AppearanceConfig.AssistantAvatarOffsetY), -21)]
+    [InlineData(nameof(AppearanceConfig.AssistantAvatarOffsetY), 41)]
+    [InlineData(nameof(AppearanceConfig.UserAvatarOffsetY), -21)]
+    [InlineData(nameof(AppearanceConfig.UserAvatarOffsetY), 41)]
+    [InlineData(nameof(AppearanceConfig.AssistantNicknameOffsetX), -33)]
+    [InlineData(nameof(AppearanceConfig.AssistantNicknameOffsetX), 33)]
+    [InlineData(nameof(AppearanceConfig.UserNicknameOffsetX), -33)]
+    [InlineData(nameof(AppearanceConfig.UserNicknameOffsetX), 33)]
+    [InlineData(nameof(AppearanceConfig.AssistantNicknameOffsetY), -13)]
+    [InlineData(nameof(AppearanceConfig.AssistantNicknameOffsetY), 29)]
+    [InlineData(nameof(AppearanceConfig.UserNicknameOffsetY), -13)]
+    [InlineData(nameof(AppearanceConfig.UserNicknameOffsetY), 29)]
+    [InlineData(nameof(AppearanceConfig.AssistantBubbleMaxWidth), 44)]
+    [InlineData(nameof(AppearanceConfig.AssistantBubbleMaxWidth), 81)]
+    public async Task RoleSpecificGeometryOutsideSliderRangesIsRejected(
+        string property,
+        int value)
+    {
+        using var directory = new TempDirectory();
+        var store = new ConfigStore(new ConfigPaths(directory.Path));
+        var appearance = AppConfig.Default.Appearance;
+        appearance = property switch
+        {
+            nameof(AppearanceConfig.AssistantAvatarOffsetX) => appearance with { AssistantAvatarOffsetX = value },
+            nameof(AppearanceConfig.AssistantAvatarOffsetY) => appearance with { AssistantAvatarOffsetY = value },
+            nameof(AppearanceConfig.UserAvatarOffsetX) => appearance with { UserAvatarOffsetX = value },
+            nameof(AppearanceConfig.UserAvatarOffsetY) => appearance with { UserAvatarOffsetY = value },
+            nameof(AppearanceConfig.AssistantNicknameOffsetX) => appearance with { AssistantNicknameOffsetX = value },
+            nameof(AppearanceConfig.AssistantNicknameOffsetY) => appearance with { AssistantNicknameOffsetY = value },
+            nameof(AppearanceConfig.UserNicknameOffsetX) => appearance with { UserNicknameOffsetX = value },
+            nameof(AppearanceConfig.UserNicknameOffsetY) => appearance with { UserNicknameOffsetY = value },
+            nameof(AppearanceConfig.AssistantBubbleMaxWidth) => appearance with { AssistantBubbleMaxWidth = value },
+            _ => throw new ArgumentOutOfRangeException(nameof(property))
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            store.SaveAsync(AppConfig.Default with { Appearance = appearance }));
     }
 
     [Fact]
@@ -113,7 +328,7 @@ public sealed class ConfigurationTests
         Assert.Equal(
             BubbleDisplayMode.Automatic,
             loaded.Config.Appearance.BubbleDisplayMode);
-        Assert.Equal(5, loaded.Config.SchemaVersion);
+        Assert.Equal(6, loaded.Config.SchemaVersion);
     }
 
     [Fact]
@@ -173,8 +388,10 @@ public sealed class ConfigurationTests
 
         var loaded = await new ConfigStore(paths).LoadAsync();
 
-        Assert.Equal(0, loaded.Config.Appearance.AvatarOffsetX);
-        Assert.Equal(11, loaded.Config.Appearance.AvatarOffsetY);
+        Assert.Equal(0, loaded.Config.Appearance.AssistantAvatarOffsetX);
+        Assert.Equal(11, loaded.Config.Appearance.AssistantAvatarOffsetY);
+        Assert.Equal(0, loaded.Config.Appearance.UserAvatarOffsetX);
+        Assert.Equal(11, loaded.Config.Appearance.UserAvatarOffsetY);
     }
 
     [Fact]
@@ -234,12 +451,14 @@ public sealed class ConfigurationTests
         var loaded = await new ConfigStore(paths).LoadAsync();
 
         Assert.True(loaded.WasMigrated);
-        Assert.Equal(5, loaded.Config.SchemaVersion);
+        Assert.Equal(6, loaded.Config.SchemaVersion);
         Assert.Equal("露娜", loaded.Config.Assistant.Name);
         Assert.Equal(@"C:\头像\assistant.png", loaded.Config.Assistant.Avatar);
         Assert.Equal(52, loaded.Config.Appearance.AvatarSize);
-        Assert.Equal(7, loaded.Config.Appearance.AvatarOffsetX);
-        Assert.Equal(13, loaded.Config.Appearance.AvatarOffsetY);
+        Assert.Equal(7, loaded.Config.Appearance.AssistantAvatarOffsetX);
+        Assert.Equal(13, loaded.Config.Appearance.AssistantAvatarOffsetY);
+        Assert.Equal(7, loaded.Config.Appearance.UserAvatarOffsetX);
+        Assert.Equal(13, loaded.Config.Appearance.UserAvatarOffsetY);
         Assert.Equal(19, loaded.Config.Appearance.BubbleRadius);
         Assert.False(loaded.Config.Appearance.NicknameVisible);
         Assert.Equal(
@@ -304,7 +523,7 @@ public sealed class ConfigurationTests
         var loaded = await new ConfigStore(paths).LoadAsync();
 
         Assert.True(loaded.WasMigrated);
-        Assert.Equal(5, loaded.Config.SchemaVersion);
+        Assert.Equal(6, loaded.Config.SchemaVersion);
         Assert.False(loaded.Config.AssociateCodexLaunches);
         Assert.Null(loaded.Config.TrayMinimizeNotificationBootId);
     }
@@ -405,7 +624,7 @@ public sealed class ConfigurationTests
         using var document = JsonDocument.Parse(json);
         var root = document.RootElement;
 
-        Assert.Equal(5, root.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(6, root.GetProperty("schemaVersion").GetInt32());
         Assert.Equal(
             LanguageCodes.TraditionalChinese,
             root.GetProperty("language").GetString());
@@ -462,7 +681,7 @@ public sealed class ConfigurationTests
                 {
                     Appearance = AppConfig.Default.Appearance with
                     {
-                        AvatarOffsetX = 33
+                        AssistantAvatarOffsetX = 33
                     }
                 }));
         await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -471,7 +690,7 @@ public sealed class ConfigurationTests
                 {
                     Appearance = AppConfig.Default.Appearance with
                     {
-                        AvatarOffsetY = 41
+                        AssistantAvatarOffsetY = 41
                     }
                 }));
     }
@@ -490,7 +709,7 @@ public sealed class ConfigurationTests
         Assert.True(File.Exists(result.CorruptBackupPath));
         Assert.Equal("菲叶子", result.Config.Assistant.Name);
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(paths.ConfigFile));
-        Assert.Equal(5, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(6, document.RootElement.GetProperty("schemaVersion").GetInt32());
     }
 
     [Fact]
@@ -716,7 +935,7 @@ public sealed class ConfigurationTests
 
         using var currentJson = JsonDocument.Parse(
             await File.ReadAllTextAsync(currentPaths.ConfigFile));
-        Assert.Equal(5, currentJson.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(6, currentJson.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.True(currentJson.RootElement.TryGetProperty(
             "launchCodexOnMycoStart",
             out _));

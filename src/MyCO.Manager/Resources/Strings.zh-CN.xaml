@@ -55,9 +55,15 @@
     <sys:String x:Key="ChooseAssistantAvatar">选择助手头像…</sys:String>
     <sys:String x:Key="ChooseUserAvatar">选择用户头像…</sys:String>
     <sys:String x:Key="Geometry">尺寸与间距</sys:String>
+    <sys:String x:Key="AppearanceAssistantGeometry">助手位置</sys:String>
+    <sys:String x:Key="AppearanceUserGeometry">用户位置</sys:String>
+    <sys:String x:Key="AvatarPosition">头像位置</sys:String>
+    <sys:String x:Key="NicknamePosition">昵称位置</sys:String>
     <sys:String x:Key="AvatarSizeFormat">头像大小 · {0:F0}px</sys:String>
     <sys:String x:Key="AvatarOffsetXFormat">头像水平位置 · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="AvatarOffsetYFormat">头像垂直位置 · {0:+0;-0;0}px</sys:String>
+    <sys:String x:Key="NicknameOffsetXFormat">昵称水平位置 · {0:+0;-0;0}px</sys:String>
+    <sys:String x:Key="NicknameOffsetYFormat">昵称垂直位置 · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="BubbleRadiusFormat">气泡圆角 · {0:F0}px</sys:String>
     <sys:String x:Key="MessageGapFormat">消息间距 · {0:F0}px</sys:String>
     <sys:String x:Key="BubbleBehavior">气泡布局</sys:String>
@@ -67,7 +73,7 @@
     <sys:String x:Key="BubbleDisplayModeDescription">自动模式按 Markdown 结构自然分组；整段模式合并连续安全正文。代码、表格、公式、工具和控件保持原生。</sys:String>
     <sys:String x:Key="HorizontalPaddingFormat">水平内边距 · {0:F0}px</sys:String>
     <sys:String x:Key="VerticalPaddingFormat">垂直内边距 · {0:F0}px</sys:String>
-    <sys:String x:Key="MaxWidthFormat">最大宽度 · {0:F0}%</sys:String>
+    <sys:String x:Key="AssistantBubbleMaxWidthFormat">助手气泡宽度 · {0:F0}%</sys:String>
     <sys:String x:Key="ShowNicknames">显示昵称</sys:String>
 
     <sys:String x:Key="CalibrationTitle">校准</sys:String>
@@ -108,12 +114,10 @@
     <sys:String x:Key="DisclaimerParagraph">MyCO 是独立开源项目，与 OpenAI 无隶属、认可或赞助关系。使用时必须安装官方 Codex / ChatGPT Desktop。</sys:String>
 
     <sys:String x:Key="OnboardingWindowTitle">欢迎使用 MyCO</sys:String>
-    <sys:String x:Key="OnboardingHeading">让 Codex 更像你的聊天应用</sys:String>
-    <sys:String x:Key="OnboardingDescription">MyCO 在保留原生代码、Diff、工具、审批和工具栏界面的同时，增加本地头像、昵称和紧凑聊天气泡。</sys:String>
+    <sys:String x:Key="OnboardingHeading">让我们从这里开始！</sys:String>
     <sys:String x:Key="OnboardingStepOne">1   选择检测到的官方 Desktop 应用</sys:String>
     <sys:String x:Key="OnboardingStepTwo">2   在“外观”中选择头像并设置昵称</sys:String>
     <sys:String x:Key="OnboardingStepThree">3   使用 MyCO 启动 Codex，然后分别校准三条用户和三条助手消息</sys:String>
-    <sys:String x:Key="OnboardingPrivacy">所有功能均在本地运行，无遥测、凭据、Cookie 或网络拦截。</sys:String>
     <sys:String x:Key="OnboardingContinue">继续进入 MyCO</sys:String>
 
     <sys:String x:Key="AlreadyRunningMessage">MyCO 已经在运行。</sys:String>
@@ -147,7 +151,9 @@
     <sys:String x:Key="StatusStartingTcpFallback">正在启动已明确允许的本机回环 TCP 备用连接…</sys:String>
     <sys:String x:Key="StatusTcpFallbackDeclined">已拒绝 TCP 备用连接；Codex 仍可使用，但未应用 MyCO 功能。</sys:String>
     <sys:String x:Key="StatusRefreshingDesktopEntry">检测到 Desktop 已更新，正在刷新当前启动路径…</sys:String>
-    <sys:String x:Key="StatusAppearanceSaved">外观已保存到本地并应用。</sys:String>
+    <sys:String x:Key="StatusAppearanceSavedNoSessions">外观已保存到本地，但当前没有可更新的活动对话窗口。</sys:String>
+    <sys:String x:Key="StatusAppearancePartiallyAppliedFormat">外观已保存到本地；已更新 {0} 个活动对话窗口（共 {1} 个），{2} 个失败。</sys:String>
+    <sys:String x:Key="StatusAppearanceSavedAndAppliedFormat">外观已保存并应用到 {0} 个活动对话窗口。</sys:String>
     <sys:String x:Key="ChooseAssistantAvatarTitle">选择助手头像</sys:String>
     <sys:String x:Key="ChooseUserAvatarTitle">选择用户头像</sys:String>
     <sys:String x:Key="ImageFilter">图片 (*.png;*.jpg;*.jpeg;*.gif;*.bmp)|*.png;*.jpg;*.jpeg;*.gif;*.bmp</sys:String>

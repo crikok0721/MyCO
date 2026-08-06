@@ -150,8 +150,9 @@
                             <Slider Minimum="6" Maximum="28" Value="{Binding BubblePaddingX}" />
                             <TextBlock Text="{Binding BubblePaddingYLabel}" Margin="0,12,0,4" />
                             <Slider Minimum="6" Maximum="22" Value="{Binding BubblePaddingY}" />
-                            <TextBlock Text="{Binding MessageMaxWidthLabel}" Margin="0,12,0,4" />
-                            <Slider Minimum="45" Maximum="80" Value="{Binding MessageMaxWidth}" />
+                            <TextBlock Text="{Binding AssistantBubbleMaxWidthLabel}" Margin="0,12,0,4" />
+                            <Slider Minimum="45" Maximum="80"
+                                    Value="{Binding AssistantBubbleMaxWidth}" />
                             <CheckBox Content="{DynamicResource ShowNicknames}"
                                       IsChecked="{Binding NicknameVisible}"
                                       Margin="0,15,0,0" />
@@ -166,12 +167,63 @@
                             <StackPanel Margin="0,16,0,0">
                                 <TextBlock Text="{Binding AvatarSizeLabel}" Margin="0,0,0,4" />
                                 <Slider Minimum="24" Maximum="72" Value="{Binding AvatarSize}" />
-                                <TextBlock Text="{Binding AvatarOffsetXLabel}" Margin="0,12,0,4" />
-                                <Slider Minimum="-32" Maximum="32" Value="{Binding AvatarOffsetX}" />
-                                <TextBlock Text="{Binding AvatarOffsetYLabel}" Margin="0,12,0,4" />
-                                <Slider Minimum="-20" Maximum="40" Value="{Binding AvatarOffsetY}" />
                                 <TextBlock Text="{Binding MessageGapLabel}" Margin="0,12,0,4" />
                                 <Slider Minimum="8" Maximum="64" Value="{Binding MessageGap}" />
+
+                                <TextBlock Text="{DynamicResource AppearanceAssistantGeometry}"
+                                           Style="{StaticResource LabelText}"
+                                           Margin="0,20,0,4" />
+                                <TextBlock Text="{DynamicResource AvatarPosition}"
+                                           Style="{StaticResource CaptionText}"
+                                           Margin="0,8,0,0" />
+                                <TextBlock Text="{Binding AssistantAvatarOffsetXLabel}"
+                                           Margin="0,8,0,4" />
+                                <Slider Minimum="-32" Maximum="32"
+                                        Value="{Binding AssistantAvatarOffsetX}" />
+                                <TextBlock Text="{Binding AssistantAvatarOffsetYLabel}"
+                                           Margin="0,12,0,4" />
+                                <Slider Minimum="-20" Maximum="40"
+                                        Value="{Binding AssistantAvatarOffsetY}" />
+                                <TextBlock Text="{DynamicResource NicknamePosition}"
+                                           Style="{StaticResource CaptionText}"
+                                           Margin="0,14,0,0" />
+                                <TextBlock Text="{Binding AssistantNicknameOffsetXLabel}"
+                                           Margin="0,8,0,4" />
+                                <Slider Minimum="-32" Maximum="32"
+                                        Value="{Binding AssistantNicknameOffsetX}" />
+                                <TextBlock Text="{Binding AssistantNicknameOffsetYLabel}"
+                                           Margin="0,12,0,4" />
+                                <Slider Minimum="-12" Maximum="28"
+                                        Value="{Binding AssistantNicknameOffsetY}" />
+
+                                <Border Height="1"
+                                        Background="{DynamicResource BorderBrush}"
+                                        Margin="0,20,0,18" />
+                                <TextBlock Text="{DynamicResource AppearanceUserGeometry}"
+                                           Style="{StaticResource LabelText}"
+                                           Margin="0,0,0,4" />
+                                <TextBlock Text="{DynamicResource AvatarPosition}"
+                                           Style="{StaticResource CaptionText}"
+                                           Margin="0,8,0,0" />
+                                <TextBlock Text="{Binding UserAvatarOffsetXLabel}"
+                                           Margin="0,8,0,4" />
+                                <Slider Minimum="-32" Maximum="32"
+                                        Value="{Binding UserAvatarOffsetX}" />
+                                <TextBlock Text="{Binding UserAvatarOffsetYLabel}"
+                                           Margin="0,12,0,4" />
+                                <Slider Minimum="-20" Maximum="40"
+                                        Value="{Binding UserAvatarOffsetY}" />
+                                <TextBlock Text="{DynamicResource NicknamePosition}"
+                                           Style="{StaticResource CaptionText}"
+                                           Margin="0,14,0,0" />
+                                <TextBlock Text="{Binding UserNicknameOffsetXLabel}"
+                                           Margin="0,8,0,4" />
+                                <Slider Minimum="-32" Maximum="32"
+                                        Value="{Binding UserNicknameOffsetX}" />
+                                <TextBlock Text="{Binding UserNicknameOffsetYLabel}"
+                                           Margin="0,12,0,4" />
+                                <Slider Minimum="-12" Maximum="28"
+                                        Value="{Binding UserNicknameOffsetY}" />
                             </StackPanel>
                         </Expander>
                     </Border>

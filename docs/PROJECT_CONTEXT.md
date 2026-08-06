@@ -1,6 +1,6 @@
 # Project Context
 
-Last updated: 2026-08-01
+Last updated: 2026-08-06
 
 ## 项目目标
 
@@ -24,10 +24,11 @@ WPF 管理器负责角色、头像、昵称、气泡、主题、预览和运行�
 
 Phase 3：Beta 测试与公开测试前稳定性整改。
 
-当前共享版本为 `0.99.1`。Beta 1 系统性故障的代码修复、自动化回归、
-本机 Manager 实机检查和隔离 Desktop 三轮重启验证已经完成。`v0.99.1` 的
-GitHub Actions 签名、SBOM、校验和与 provenance 已完成；真实登录会话中的
-端到端重启与消息视觉验收，以及干净环境验证仍未完成。
+当前增量开发目标为 `0.99.2`，尚未发布。本轮已完成配置 schema 6、当前
+renderer 实时应用结果、多 renderer 汇总、独立角色位置、Assistant 正文宽度、
+启动三选项语义与 MyCO 自有入口事务、托盘通知身份和欢迎页精简，并通过源码
+构建与自动化测试。真实登录会话中的 500ms 外观更新、Windows 10/11 通知视觉、
+八种启动组合及 100%--200% DPI 验收仍是发布前人工门禁。
 
 当前工作树已将工程与对外品牌迁移为 MyCO；旧用户目录、登录
 启动项、单实例内核名和已注入 Runtime 均有明确升级兼容路径。
@@ -49,19 +50,26 @@ Manager 第三阶段视觉重构已采用角色优先的信息架构：角色与
 - 角色优先主页、可点击身份入口、侧栏连接坞、原生圆角窗口和统一圆角图标。
 - 官方 Desktop 安装/运行发现、私有 CDP 管道、显式同意的环回 TCP 回退。
 - 多渲染器 Runtime 注入、健康修复、兼容性降级、Safe Mode 和可逆销毁。
+- 保存外观时对所有活动 renderer 并发应用并汇总结果；零活动 renderer 或部分
+  失败不会显示为应用成功，连续请求按事务顺序保证最新配置最终生效。
 - Assistant/User 头像昵称；仅 Assistant 正文气泡化。
+- Assistant/User 的头像和昵称各有独立水平/垂直位置；Assistant 普通正文宽度
+  独立可调，不改变 User、表格、代码、Diff、工具或状态区域。
 - 默认主题跟随 Windows，头像支持 Manager 内圆形遮罩裁剪；新用户 Assistant
   默认昵称为“菲叶子”并使用打包 Logo。
 - Automatic 与 Whole 气泡模式；代码、Diff、工具和交互面保持原生。
 - 精确身份重启、进程树静默期、自动安全强制兜底和 readiness 检测。
 - 开发专用 CdpProbe 与隔离 VisualAcceptance 工具。
 - 自包含 `win-x64` ZIP 构建与 SHA-256 输出。
+- 三个独立启动设置、单实例 `--codex-launch` 转发，以及带 reparse、ownership、
+  generation 与精确快照保护的当前用户 MyCO 自有快捷方式/协议事务。
 
 ## 资料优先级
 
-1. `docs/HANDOFF.md`：当前工作树与下一步。
+1. `docs/CONTEXT.md`：当前状态、验证结果与未完成门禁。
 2. `docs/architecture.md`：架构边界与数据流。
 3. `docs/DECISIONS.md`：已确认设计选择。
 4. `docs/TASK_LIST.md`：当前优先级。
 5. `docs/DEVELOPMENT_LOG.md`：变更与验证记录。
-6. `docs/CODEX_HANDOFF.md`、`docs/development-notes.md`：历史证据。
+6. `docs/PROJECT_CONTEXT.md`：产品目标与长期约束。
+7. `docs/HANDOFF.md` 与 `docs/archive/`：历史交接，不作为当前产物路径来源。

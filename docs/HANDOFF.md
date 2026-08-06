@@ -1,21 +1,21 @@
-# Project Handoff
+# Project Handoff (historical)
 
-Last updated: 2026-08-03 (Asia/Hong_Kong)
+Last updated: 2026-08-06 (Asia/Hong_Kong)
+
+This file is retained as historical handoff evidence. It is not the current
+source of truth and its old artifact paths, test counts and continuation notes
+must not be used as a launch instruction. Current state is maintained in
+`docs/CONTEXT.md`, `docs/PROJECT_CONTEXT.md`, `docs/TASK_LIST.md` and the latest
+entry in `docs/DEVELOPMENT_LOG.md`.
 
 Repository: `C:\Users\crikok\Documents\MyCO`
 
-The outer-folder rename is now verified. The old `MyCodex` path is not the active
-checkout; use the `MyCO` path above for all commands.
+The current working tree has no verified handoff executable. Build the source
+tree after any further edits; do not launch an old ignored artifact. The active
+local MyCO process, if present, must never be terminated by process name.
 
-GitHub: `https://github.com/crikok0721/MyCO`
-
-Current local incremental executable (not a public release):
-
-`C:\Users\crikok\Documents\MyCO\artifacts\MyCO-current-0.99.2-win-x64-20260803\MyCO.exe`
-
-The matching single-file updater is in the same directory as
-`MyCO.Updater.exe`. Launch the Manager from the path above; do not use the
-older `artifacts\MyCO-win-x64` package or the temporary updater experiments.
+The sections below are historical records kept for traceability only. They are
+not current validation claims.
 
 ## 1. Current status
 
@@ -215,7 +215,8 @@ From the final source state:
 - `dotnet test .\MyCO.sln -c Release --no-build`: 102/102 passed, including
   legacy data, persisted-field, and login-startup migration.
 - `scripts\build-release.ps1`: passed end to end and produced
-  `artifacts\MyCO-win-x64\MyCO.exe` plus `artifacts\MyCO-win-x64.zip`.
+  the historical unsigned package plus its executable (obsolete local paths
+  intentionally omitted).
 - The release script emitted the final ZIP SHA-256; record it with the
   distributed artifact rather than embedding a self-referential hash here.
 - Published EXE metadata reports Product/File Description `MyCO`, Company
@@ -337,11 +338,12 @@ The Runtime check completed with 51/51 tests and regenerated the bundle.
 
 The isolated self-contained executable is:
 
-`C:\Users\crikok\Documents\MyCO\artifacts\MyCO-current-0.99.2-win-x64-20260803\MyCO.exe`
+the historical 0.99.2 local executable (obsolete local path intentionally
+omitted)
 
 The matching updater is beside it as `MyCO.Updater.exe`. The release script was
 run only in an isolated temporary worktree because running it in this checkout
-would overwrite the retained pre-incremental `artifacts\MyCO-win-x64` package.
+would overwrite a retained pre-incremental package.
 It produced and inspected a ZIP containing `MyCO.exe`, `MyCO.Updater.exe`,
 `MyCO.runtimeconfig.json`, and `SHA256SUMS.txt`; no public package was created.
 
@@ -405,7 +407,7 @@ How the next Agent should continue:
    & (Join-Path $sdkRoot 'dotnet.exe') test .\MyCO.sln -c Release --no-build
    ```
 
-4. The current published `artifacts\MyCO-win-x64\MyCO.exe` may already be
+4. A historical published local executable may already be
    running and owns the single-instance mutex. Never close it by process name;
    use an isolated disposable session for visual crop/theme checks.
 5. If a later Agent changes this flow, update this section and
@@ -487,7 +489,7 @@ Validation:
 - Full Release .NET suite: 131/131. The icon alpha regression test uses a pure
   .NET PNG decoder, so it is independent of the test host's GDI assemblies.
 - `scripts\build-release.ps1 -GenerateSbom`: passed end to end and produced
-  `artifacts\MyCO-win-x64.zip`, `SHA256SUMS.txt`, and an SPDX 2.2 SBOM.
+  a `MyCO-win-x64.zip`, `SHA256SUMS.txt`, and an SPDX 2.2 SBOM.
 - Archive SHA-256:
   `9850a8edca40d8068347901302c264389a38c5ea5fe80e333073eafa93df102c`.
 - `git diff --check`: passed.

@@ -1,5 +1,86 @@
 # Development Log
 
+## 2026-08-06 — Repository housekeeping
+
+Date:
+
+2026-08-06
+
+Change:
+
+- Removed obsolete ignored build outputs: pre-incremental MyCO packages,
+  legacy MyCodex ZIPs, the SBOM tool cache, the superseded 0.99.2 directory and
+  the empty icon-preview file.
+- Preserved the exact artifact directory owned by the currently running local
+  MyCO process; no process was terminated and no executable was replaced.
+- Marked `docs/HANDOFF.md` historical, made `docs/CONTEXT.md` the current
+  validation handoff, and aligned repository instructions on the local 0.99.2
+  unreleased state.
+
+Reason:
+
+Remove stale local outputs and prevent future agents from launching an old
+ignored package while retaining the active process's files for safe shutdown.
+
+Impact:
+
+Only ignored local artifacts and current-document wording changed. Source,
+official Codex files, user data and credentials were not removed.
+
+Testing:
+
+Verified the active process path remained present, obsolete artifact targets
+were absent, and `git diff --check` passed. Source build/test results remain in
+the preceding 0.99.2 implementation entry.
+
+## 2026-08-06 — V0.99.2 realtime appearance, startup and onboarding repair
+
+Date:
+
+2026-08-06
+
+Change:
+
+- Added schema 6 independent Assistant/User avatar and nickname offsets and an
+  Assistant-only ordinary-prose width, with legacy migration and validation.
+- Made config application a serialized, all-renderer transaction with Runtime
+  diagnostics, latest-save ordering, accurate zero/partial-session status and
+  navigation-script replacement that preserves the last known-good source.
+- Separated the three startup options, hardened MyCO-owned shortcuts/protocol
+  with full-path reparse checks, generation-aware rollback and opaque snapshots,
+  and retained single-instance associated launch routing.
+- Kept the dependency-free one-per-boot BalloonTip, changed its title to
+  `It's MyCO!!!!!`, and supplied MyCO AUMID/icon identity through a project-owned
+  Start-menu shortcut.
+- Updated the four-language onboarding heading and removed the obsolete
+  description, privacy line, green dot and unused resources.
+
+Reason:
+
+Remove false-success appearance updates, make role placement independent, fix
+startup association failures without touching official Codex entries, and
+align the tray/onboarding experience with the 0.99.2 specification.
+
+Impact:
+
+Manager, Core configuration/injection/startup, Runtime source/generated bundle,
+tests and project memory changed. No official Codex files, credentials, network
+traffic or machine-wide settings were changed; no commit, release or PR was
+created.
+
+Modified Files:
+
+See the current working-tree diff. The generated Runtime bundle was rebuilt only
+through `npm run check`.
+
+Testing:
+
+Runtime `npm ci` and `npm run check` passed with lint, 52/52 tests and 0 known
+package vulnerabilities. Release solution build passed with 0 warnings and 0
+errors; .NET tests passed 229/229; `git diff --check` passed. Real signed-in
+Codex visual response, Windows 10/11 notification rendering, DPI coverage and
+the live eight-combination Windows startup matrix remain unverified.
+
 ## 2026-08-06 — Repair startup failure when inspecting existing MyCO shortcuts
 
 Date:

@@ -68,6 +68,15 @@ current Windows theme. While following the Manager, a Windows theme change
 updates the preview; an explicit preview selection is respected for the rest
 of that session.
 
+`SaveAndApplyAsync` first atomically persists schema 6, then asks
+`DesktopSessionController` to apply one serialized config transaction to every
+current renderer. Renderer calls fan out concurrently, but consecutive save
+transactions are serialized so the latest call wins. Each renderer must return
+valid Runtime diagnostics before it counts as applied; zero sessions and
+partial failures are surfaced distinctly. A replacement new-document script is
+registered before the prior registration is removed, so navigation coverage is
+not lost when registration or cleanup fails.
+
 ### Core
 
 `MyCO.Core` contains:
@@ -222,6 +231,11 @@ single-instance activation event restores/focuses it without creating another
 window. The one-per-Windows-boot balloon is backed by a persisted uptime-derived
 identity. Close presents Exit, Minimize, and Cancel. Tray Exit invokes the same
 orderly self-only close path; tray Restart uses the verified restart transaction.
+The balloon title is the invariant product phrase `It's MyCO!!!!!`; its body is
+localized. MyCO also maintains its own per-user Start-menu identity shortcut
+with the packaged icon and `Crikok.MyCO` AUMID. The existing BalloonTip remains
+the dependency-free Windows 10/11 compatibility route; no self-drawn popup or
+Windows App SDK runtime is introduced.
 
 ### Codex launch association feasibility matrix
 
@@ -241,6 +255,12 @@ protocols are left unchanged; therefore there is no foreign shortcut backup to
 restore. MyCO-created entries are removed only after exact ownership checks.
 Associated launches signal the existing single instance when one is already
 running; they never start a second MyCO or duplicate a running Codex session.
+Shortcut operations validate every existing component below the trusted
+special-folder root and reject reparse points. File and protocol transactions
+seal the observed generation, recheck ownership immediately before mutation,
+and compare before rollback; a concurrent foreign replacement is never deleted
+or overwritten. Settings save and factory reset retain an opaque three-entry
+snapshot so partial or path-drifted MyCO state can be restored precisely.
 
 ### Update route
 
@@ -313,8 +333,13 @@ shell, filesystem, process, credential, or networking capability.
 exist, the legacy `%APPDATA%\MyCodex` tree is copied through a same-parent
 staging directory and atomically adopted. Existing new data is never
 overwritten and legacy data is never deleted. Writes use a unique temporary
-file followed by an atomic move. Config schema 5 adds the optional Codex
-association and persisted boot-scoped tray-notification fields; schema 4
+file followed by an atomic move. Config schema 6 replaces the shared position
+and `messageMaxWidth` values with eight independent role/identity offsets and
+`assistantBubbleMaxWidth`. The schema 5-to-6 migration copies avatar offsets to
+both roles, initializes nickname offsets to zero, and clamps the legacy width into the new
+Assistant-safe range; unrelated identity, palette, calibration and startup data
+is retained. Schema 5 adds the optional Codex association and persisted
+boot-scoped tray-notification fields; schema 4
 migrates the renamed startup field; schema 3 adds `bubbleDisplayMode`; schema 2 separates
 Manager theme/startup options and Dark/Light bubble palettes. Schema 0/1 names,
 avatar paths, layout, language,

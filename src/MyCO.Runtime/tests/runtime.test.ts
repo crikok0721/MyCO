@@ -323,26 +323,81 @@ test("runtime rejects an unreadable bubble palette", () => {
   );
 });
 
-test("assistant and user avatars use circular crop and configurable offsets", () => {
+test("role placement variables reapply independently and destroy removes them", () => {
   const dom = fixture();
   const runtime = new MyCORuntime(dom.window.document);
-  const config = defaultConfig();
-  config.assistant.avatar = "data:image/png;base64,AA==";
-  config.user.avatar = "data:image/png;base64,AA==";
-  config.appearance.avatarOffsetX = 7;
-  config.appearance.avatarOffsetY = 13;
+  const first = defaultConfig();
+  first.assistant.avatar = "data:image/png;base64,AA==";
+  first.user.avatar = "data:image/png;base64,AA==";
+  first.assistant.name = "Assistant nickname that must truncate before prose";
+  first.user.name = "User nickname that must truncate before prose";
+  first.appearance.assistantAvatarOffsetX = 5;
+  first.appearance.assistantAvatarOffsetY = 7;
+  first.appearance.userAvatarOffsetX = 11;
+  first.appearance.userAvatarOffsetY = 13;
+  first.appearance.assistantNicknameOffsetX = 17;
+  first.appearance.assistantNicknameOffsetY = 19;
+  first.appearance.userNicknameOffsetX = 23;
+  first.appearance.userNicknameOffsetY = 29;
+  first.appearance.assistantBubbleMaxWidth = 72;
+  first.appearance.messageGap = 31;
 
-  runtime.applyConfig(config);
+  runtime.applyConfig(first);
 
   const rootStyle = dom.window.document.documentElement.style;
-  assert.equal(rootStyle.getPropertyValue("--mc-avatar-offset-x"), "7px");
-  assert.equal(rootStyle.getPropertyValue("--mc-avatar-offset-y"), "13px");
+  assert.equal(rootStyle.getPropertyValue("--mc-assistant-avatar-offset-x"), "5px");
+  assert.equal(rootStyle.getPropertyValue("--mc-assistant-avatar-offset-y"), "7px");
+  assert.equal(rootStyle.getPropertyValue("--mc-user-avatar-offset-x"), "11px");
+  assert.equal(rootStyle.getPropertyValue("--mc-user-avatar-offset-y"), "13px");
+  assert.equal(rootStyle.getPropertyValue("--mc-assistant-nickname-offset-x"), "17px");
+  assert.equal(rootStyle.getPropertyValue("--mc-assistant-nickname-offset-y"), "19px");
+  assert.equal(rootStyle.getPropertyValue("--mc-user-nickname-offset-x"), "23px");
+  assert.equal(rootStyle.getPropertyValue("--mc-user-nickname-offset-y"), "29px");
+  assert.equal(rootStyle.getPropertyValue("--mc-assistant-bubble-max-width"), "72%");
+  assert.equal(rootStyle.getPropertyValue("--mc-message-gap"), "31px");
+
+  const second = structuredClone(first);
+  second.appearance.assistantAvatarOffsetX = -1;
+  second.appearance.assistantAvatarOffsetY = 2;
+  second.appearance.userAvatarOffsetX = -3;
+  second.appearance.userAvatarOffsetY = 4;
+  second.appearance.assistantNicknameOffsetX = -5;
+  second.appearance.assistantNicknameOffsetY = 6;
+  second.appearance.userNicknameOffsetX = -7;
+  second.appearance.userNicknameOffsetY = 8;
+  second.appearance.assistantBubbleMaxWidth = 55;
+  second.appearance.messageGap = 24;
+  runtime.applyConfig(second);
+
+  assert.equal(rootStyle.getPropertyValue("--mc-assistant-avatar-offset-x"), "-1px");
+  assert.equal(rootStyle.getPropertyValue("--mc-assistant-avatar-offset-y"), "2px");
+  assert.equal(rootStyle.getPropertyValue("--mc-user-avatar-offset-x"), "-3px");
+  assert.equal(rootStyle.getPropertyValue("--mc-user-avatar-offset-y"), "4px");
+  assert.equal(rootStyle.getPropertyValue("--mc-assistant-nickname-offset-x"), "-5px");
+  assert.equal(rootStyle.getPropertyValue("--mc-assistant-nickname-offset-y"), "6px");
+  assert.equal(rootStyle.getPropertyValue("--mc-user-nickname-offset-x"), "-7px");
+  assert.equal(rootStyle.getPropertyValue("--mc-user-nickname-offset-y"), "8px");
+  assert.equal(rootStyle.getPropertyValue("--mc-assistant-bubble-max-width"), "55%");
+  assert.equal(rootStyle.getPropertyValue("--mc-message-gap"), "24px");
+
   const runtimeStyle = dom.window.document.querySelector<HTMLStyleElement>(
     "#myco-runtime-style"
   )!.textContent!;
-  assert.match(runtimeStyle, /top: var\(--mc-avatar-offset-y\)/);
-  assert.match(runtimeStyle, /left: var\(--mc-avatar-offset-x\)/);
-  assert.match(runtimeStyle, /right: var\(--mc-avatar-offset-x\)/);
+  assert.match(runtimeStyle, /top: var\(--mc-assistant-avatar-offset-y\)/);
+  assert.match(runtimeStyle, /top: var\(--mc-user-avatar-offset-y\)/);
+  assert.match(runtimeStyle, /left: var\(--mc-assistant-avatar-offset-x\)/);
+  assert.match(runtimeStyle, /right: var\(--mc-user-avatar-offset-x\)/);
+  assert.match(runtimeStyle, /var\(--mc-message-gap\)/);
+  assert.match(
+    runtimeStyle,
+    /var\(--mc-avatar-size\) \+ max\(22px, var\(--mc-assistant-avatar-offset-y\)\)/
+  );
+  assert.match(
+    runtimeStyle,
+    /var\(--mc-avatar-size\) \+ max\(22px, var\(--mc-user-avatar-offset-y\)\)/
+  );
+  assert.match(runtimeStyle, /max-width: min\(var\(--mc-assistant-bubble-max-width\), 100%\)/);
+  assert.match(runtimeStyle, /text-overflow: ellipsis/);
   const avatars = Array.from(
     dom.window.document.querySelectorAll<HTMLImageElement>(".mc-avatar")
   );
@@ -353,7 +408,82 @@ test("assistant and user avatars use circular crop and configurable offsets", ()
     assert.equal(style.objectFit, "cover");
     assert.equal(avatar.hidden, false);
   }
+  for (const nickname of Array.from(
+    dom.window.document.querySelectorAll<HTMLElement>(".mc-nickname")
+  )) {
+    const style = dom.window.getComputedStyle(nickname);
+    assert.equal(style.whiteSpace, "nowrap");
+    assert.equal(style.overflow, "hidden");
+    assert.equal(style.textOverflow, "ellipsis");
+  }
   runtime.destroy();
+  for (const property of [
+    "--mc-assistant-avatar-offset-x",
+    "--mc-assistant-avatar-offset-y",
+    "--mc-user-avatar-offset-x",
+    "--mc-user-avatar-offset-y",
+    "--mc-assistant-nickname-offset-x",
+    "--mc-assistant-nickname-offset-y",
+    "--mc-user-nickname-offset-x",
+    "--mc-user-nickname-offset-y",
+    "--mc-assistant-bubble-max-width"
+  ]) {
+    assert.equal(rootStyle.getPropertyValue(property), "");
+  }
+});
+
+test("second apply immediately wins on existing streaming and virtualized turns in both modes", () => {
+  for (const finalMode of ["Automatic", "Whole"] as const) {
+    const dom = new JSDOM(
+      `<!doctype html><html><head></head><body><main>
+        <article data-message-author-role="assistant"><p id="stream">Opening.</p><p>Detail.</p></article>
+        <article data-message-author-role="user"><div data-user-message-bubble><p>Question</p></div></article>
+      </main></body></html>`,
+      { url: "app://-/index.html", pretendToBeVisual: true }
+    );
+    const runtime = new MyCORuntime(dom.window.document);
+    const first = defaultConfig();
+    first.assistant.name = "First assistant";
+    first.user.name = "First user";
+    first.appearance.bubbleDisplayMode =
+      finalMode === "Automatic" ? "Whole" : "Automatic";
+    runtime.applyConfig(first);
+
+    dom.window.document.querySelector("#stream")!.textContent =
+      "Streaming response expanded. ".repeat(20);
+    dom.window.document.querySelector("main")!.innerHTML = `
+      <article data-message-author-role="assistant">
+        <div class="markdownContent-current"><p>Virtualized final response.</p></div>
+      </article>
+      <article data-message-author-role="user"><div data-user-message-bubble><p>Virtualized question</p></div></article>`;
+
+    const second = defaultConfig();
+    second.assistant.name = "Second assistant";
+    second.user.name = "Second user";
+    second.appearance.bubbleDisplayMode = finalMode;
+    second.appearance.assistantBubbleMaxWidth = 58;
+    const diagnostics = runtime.applyConfig(second);
+
+    const assistant = dom.window.document.querySelector(
+      '[data-message-author-role="assistant"]'
+    )!;
+    const user = dom.window.document.querySelector(
+      '[data-message-author-role="user"]'
+    )!;
+    assert.equal(assistant.querySelector(".mc-nickname")!.textContent, "Second assistant");
+    assert.equal(user.querySelector(".mc-nickname")!.textContent, "Second user");
+    assert.ok(assistant.querySelector('[data-myco-prose="assistant"]'));
+    assert.equal(user.querySelector("[data-myco-prose]"), null);
+    assert.equal(diagnostics.decoratedAssistantTurns, 1);
+    assert.equal(diagnostics.decoratedUserTurns, 1);
+    assert.equal(
+      dom.window.document.documentElement.style.getPropertyValue(
+        "--mc-assistant-bubble-max-width"
+      ),
+      "58%"
+    );
+    runtime.destroy();
+  }
 });
 
 test("mutation observer decorates newly appended turns", async () => {
