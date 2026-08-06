@@ -1,5 +1,38 @@
 # Development Log
 
+## 2026-08-06 — Published MyCO 0.99.2
+
+Date:
+
+2026-08-06
+
+Change:
+
+- Committed the 0.99.2 release notes and synchronized current project status.
+- Created annotated tag `v0.99.2` at `db3f5d65217f16e7a5a4cbda7ac1810d1705feeb`
+  and pushed `main` plus the tag to GitHub.
+- GitHub Actions run `31107302898` rebuilt, tested, signed, attested, and
+  published the official Windows x64 package.
+
+Impact:
+
+- The public release is available at
+  `https://github.com/crikok0721/MyCO/releases/tag/v0.99.2`.
+- ZIP asset SHA-256 is
+  `e501e401e5cd9c4fae07ace34e1f1594694a42049241da778042bd58545ca353`;
+  the sidecar and GitHub asset digest agree.
+- The release remains honest about real Codex, Windows Shell, DPI and fresh
+  machine acceptance gates that automated CI cannot observe.
+
+Testing:
+
+- Local Runtime check: 58/58; local .NET Release build: 0 warnings/errors;
+  local .NET tests: 247/247.
+- GitHub signed-release workflow: success, including package/signature
+  verification, SBOM, provenance attestation and Release publication.
+
+## 2026-08-06 — Per-MyCO-cycle tray minimize reminder
+
 ## 2026-08-06 — Per-MyCO-cycle tray minimize reminder
 
 Date:

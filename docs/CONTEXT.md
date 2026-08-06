@@ -22,9 +22,10 @@ Core constraints:
 ## Current status
 
 - **Phase:** Phase 3 — Beta testing and pre-release stability remediation
-- **Version:** `0.99.2` (release tag prepared; environment-dependent acceptance gates remain)
+- **Version:** `0.99.2` (published; environment-dependent acceptance gates remain)
 - **Branch:** `main`
-- **Release source:** the `v0.99.2` tag will point to the release commit on `main`.
+- **Release source:** tag `v0.99.2` at commit `db3f5d65217f16e7a5a4cbda7ac1810d1705feeb`.
+- **Release URL:** https://github.com/crikok0721/MyCO/releases/tag/v0.99.2
 - **GitHub:** https://github.com/crikok0721/MyCO
 
 The active controlling Codex session was never restarted or closed. Production
@@ -130,6 +131,10 @@ historical evidence only.
 - The tag-gated release workflow rebuilds the self-contained package from the
   `v0.99.2` source tag, signs project-owned binaries, emits the SPDX SBOM and
   SHA-256 sidecar, and publishes the GitHub Release assets.
+- GitHub Actions run `31107302898` completed successfully. The published ZIP
+  asset SHA-256 is
+  `e501e401e5cd9c4fae07ace34e1f1594694a42049241da778042bd58545ca353`, matching
+  `MyCO-win-x64.zip.sha256` and the GitHub asset digest.
 - Real Windows visual acceptance, native notification rendering, DPI checks, and the
   eight-combination startup matrix remain pending. The executable was not
   launched during this release synchronization.

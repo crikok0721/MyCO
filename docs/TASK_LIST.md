@@ -4,8 +4,8 @@ Last updated: 2026-08-06
 
 ## Current release gate
 
-Status: `0.99.2` release metadata and notes are prepared for the tag-gated
-signed publication; Windows acceptance gates remain open after publication.
+Status: `0.99.2` signed publication is available at the GitHub Release; Windows
+acceptance gates remain open after publication.
 The existing `0.99.1` signed-release route remains documented below; public
 readiness is still blocked by the environment-dependent items below.
 
