@@ -43,25 +43,41 @@ public sealed record BubblePalette
 
 public sealed record AppearanceConfig
 {
-    private readonly int _assistantBubbleMaxWidth = 66;
-
+    private int _assistantBubbleMaxWidth = 66;
     public string Preset { get; init; } = "ReferenceDark";
     public BubbleDisplayMode BubbleDisplayMode { get; init; } =
         BubbleDisplayMode.Automatic;
-    public int AvatarSize { get; init; } = 40;
+    // These effective values are intentionally ignored by the persisted schema.
+    // ConfigStore resolves them from Geometry so older callers and runtime DTO
+    // construction remain source-compatible during baseline migration.
+    [JsonIgnore]
+    public int AvatarSize { get; init; } = AppearanceGeometryResolver.AvatarSizeBaseline;
+    [JsonIgnore]
     public int AssistantAvatarOffsetX { get; init; }
+    [JsonIgnore]
     public int AssistantAvatarOffsetY { get; init; } = 11;
+    [JsonIgnore]
     public int UserAvatarOffsetX { get; init; }
-    public int UserAvatarOffsetY { get; init; } = 11;
+    [JsonIgnore]
+    public int UserAvatarOffsetY { get; init; } = AppearanceGeometryResolver.UserAvatarOffsetYBaseline;
+    [JsonIgnore]
     public int AssistantNicknameOffsetX { get; init; }
+    [JsonIgnore]
     public int AssistantNicknameOffsetY { get; init; }
+    [JsonIgnore]
     public int UserNicknameOffsetX { get; init; }
+    [JsonIgnore]
     public int UserNicknameOffsetY { get; init; }
+    [JsonIgnore]
     public int BubbleRadius { get; init; } = 14;
+    [JsonIgnore]
     public int BubblePaddingX { get; init; } = 14;
+    [JsonIgnore]
     public int BubblePaddingY { get; init; } = 10;
     public bool NicknameVisible { get; init; } = true;
+    [JsonIgnore]
     public int MessageGap { get; init; } = 28;
+    [JsonIgnore]
     public int AssistantBubbleMaxWidth
     {
         get => _assistantBubbleMaxWidth;
@@ -72,9 +88,11 @@ public sealed record AppearanceConfig
     [JsonIgnore]
     public int MessageMaxWidth
     {
-        get => _assistantBubbleMaxWidth;
+        get => AssistantBubbleMaxWidth;
         init => _assistantBubbleMaxWidth = value;
     }
+    public int GeometryBaselineVersion { get; init; } = AppearanceGeometryResolver.BaselineVersion;
+    public AppearanceGeometryDeltas Geometry { get; init; } = new();
     // Retained only so schema migration never discards legacy user colors.
     // Runtime deliberately ignores both fields and leaves the native User bubble untouched.
     public string UserBubble { get; init; } = "#242424";

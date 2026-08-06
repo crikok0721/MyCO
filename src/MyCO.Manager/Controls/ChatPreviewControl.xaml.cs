@@ -1,9 +1,95 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
+using MyCO.Configuration;
 
 // Shared Manager preview; it binds to the owning MainWindowViewModel.
 namespace MyCO.Manager.Controls;
+
+public sealed class PreviewEffectiveAvatarSizeConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        var delta = value is double number && double.IsFinite(number) ? number : 0;
+        return Math.Clamp(
+            AppearanceGeometryResolver.AvatarSizeBaseline + delta,
+            24,
+            72);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+public sealed class PreviewUserHorizontalOffsetConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        var delta = value is double number && double.IsFinite(number) ? number : 0;
+        // Runtime's right anchor grows inward for positive values; WPF's X
+        // transform grows rightward, so the preview uses the inverse sign.
+        return -delta;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+public sealed class PreviewEffectiveAvatarVerticalOffsetConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        var delta = value is double number && double.IsFinite(number) ? number : 0;
+        return Math.Clamp(
+            AppearanceGeometryResolver.AssistantAvatarOffsetYBaseline + delta,
+            -20,
+            40);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+public sealed class PreviewEffectiveUserAvatarVerticalOffsetConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        var delta = value is double number && double.IsFinite(number) ? number : 0;
+        return Math.Clamp(
+            AppearanceGeometryResolver.UserAvatarOffsetYBaseline + delta,
+            -20,
+            40);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+public sealed class PreviewEffectiveRadiusConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        var delta = value is double number && double.IsFinite(number) ? number : 0;
+        return new CornerRadius(Math.Clamp(14 + delta, 0, 36));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+public sealed class PreviewNicknameBubbleMarginConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        var delta = value is double number && double.IsFinite(number) ? number : 0;
+        // Runtime keeps a 22px identity slot and grows it only when a positive
+        // nickname offset exceeds the normal 18px line plus the 4px separation.
+        return new Thickness(0, Math.Max(0, delta - 4), 0, 0);
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
 
 public partial class ChatPreviewControl : System.Windows.Controls.UserControl
 {
@@ -26,7 +112,7 @@ public partial class ChatPreviewControl : System.Windows.Controls.UserControl
             nameof(PreviewMessageGap),
             typeof(Thickness),
             typeof(ChatPreviewControl),
-            new PropertyMetadata(new Thickness(64, 28, 0, 0)));
+            new PropertyMetadata(new Thickness(0, 28, 0, 0)));
 
     public ChatPreviewControl()
     {
@@ -52,6 +138,8 @@ public partial class ChatPreviewControl : System.Windows.Controls.UserControl
         });
         widthBinding.Bindings.Add(
             new System.Windows.Data.Binding("AssistantBubbleMaxWidth"));
+        widthBinding.Bindings.Add(
+            new System.Windows.Data.Binding("AvatarSize"));
         SetBinding(PreviewAssistantBubbleMaxWidthProperty, widthBinding);
 
         SetBinding(
@@ -91,8 +179,8 @@ public partial class ChatPreviewControl : System.Windows.Controls.UserControl
             object parameter,
             CultureInfo culture)
         {
-            var horizontal = ReadDouble(values, 0, 14);
-            var vertical = ReadDouble(values, 1, 10);
+            var horizontal = Math.Clamp(14 + ReadDouble(values, 0, 0), 4, 40);
+            var vertical = Math.Clamp(10 + ReadDouble(values, 1, 0), 4, 32);
             return new Thickness(horizontal, vertical, horizontal, vertical);
         }
 
@@ -105,7 +193,7 @@ public partial class ChatPreviewControl : System.Windows.Controls.UserControl
 
         private static double ReadDouble(object[] values, int index, double fallback) =>
             index < values.Length && values[index] is double value && double.IsFinite(value)
-                ? Math.Max(0, value)
+                ? value
                 : fallback;
     }
 
@@ -120,9 +208,16 @@ public partial class ChatPreviewControl : System.Windows.Controls.UserControl
             CultureInfo culture)
         {
             var controlWidth = ReadDouble(values, 0, 600);
-            var percentage = Math.Clamp(ReadDouble(values, 1, 66), 45, 80);
-            var usableWidth = Math.Max(180, controlWidth - 120);
-            return Math.Min(480, Math.Max(160, usableWidth * percentage / 100));
+            var percentage = Math.Clamp(66 + ReadDouble(values, 1, 0), 45, 80);
+            var avatarSize = Math.Clamp(
+                AppearanceGeometryResolver.AvatarSizeBaseline +
+                ReadDouble(values, 2, 0),
+                24,
+                72);
+            // Match the Runtime content box: outer preview padding (24px on
+            // each side), the role avatar and the shared 12px anchor gap.
+            var usableWidth = Math.Max(0, controlWidth - 48 - avatarSize - 12);
+            return Math.Min(480, Math.Max(0, usableWidth * percentage / 100));
         }
 
         public object[] ConvertBack(
@@ -148,10 +243,11 @@ public partial class ChatPreviewControl : System.Windows.Controls.UserControl
             object parameter,
             CultureInfo culture)
         {
-            var gap = value is double number && double.IsFinite(number)
-                ? Math.Max(0, number)
-                : 28;
-            return new Thickness(64, gap, 0, 0);
+            var delta = value is double number && double.IsFinite(number)
+                ? number
+                : 0;
+            var gap = Math.Clamp(28 + delta, 4, 80);
+            return new Thickness(0, gap, 0, 0);
         }
 
         public object ConvertBack(

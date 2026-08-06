@@ -60,20 +60,26 @@
     <sys:String x:Key="AvatarPosition">Avatar position</sys:String>
     <sys:String x:Key="NicknamePosition">Nickname position</sys:String>
     <sys:String x:Key="AvatarSizeFormat">Avatar size · {0:F0}px</sys:String>
+    <sys:String x:Key="AvatarSizeDeltaFormat">Avatar size adjustment · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="AvatarOffsetXFormat">Avatar horizontal position · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="AvatarOffsetYFormat">Avatar vertical position · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="NicknameOffsetXFormat">Nickname horizontal position · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="NicknameOffsetYFormat">Nickname vertical position · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="BubbleRadiusFormat">Bubble radius · {0:F0}px</sys:String>
+    <sys:String x:Key="BubbleRadiusDeltaFormat">Bubble radius adjustment · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="MessageGapFormat">Message gap · {0:F0}px</sys:String>
+    <sys:String x:Key="MessageGapDeltaFormat">Message gap adjustment · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="BubbleBehavior">Bubble behavior</sys:String>
     <sys:String x:Key="BubbleDisplayMode">Assistant bubble display</sys:String>
     <sys:String x:Key="BubbleDisplayAutomatic">Automatic grouping</sys:String>
     <sys:String x:Key="BubbleDisplayWhole">Whole response</sys:String>
     <sys:String x:Key="BubbleDisplayModeDescription">Automatic grouping follows Markdown structure. Whole response keeps contiguous safe prose together; native code, tables, math, tools, and controls remain untouched.</sys:String>
     <sys:String x:Key="HorizontalPaddingFormat">Horizontal padding · {0:F0}px</sys:String>
+    <sys:String x:Key="HorizontalPaddingDeltaFormat">Horizontal padding adjustment · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="VerticalPaddingFormat">Vertical padding · {0:F0}px</sys:String>
+    <sys:String x:Key="VerticalPaddingDeltaFormat">Vertical padding adjustment · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="AssistantBubbleMaxWidthFormat">Assistant bubble width · {0:F0}%</sys:String>
+    <sys:String x:Key="AssistantBubbleMaxWidthDeltaFormat">Assistant bubble width adjustment · {0:+0;-0;0}%</sys:String>
     <sys:String x:Key="ShowNicknames">Show nicknames</sys:String>
 
     <sys:String x:Key="CalibrationTitle">Calibration</sys:String>

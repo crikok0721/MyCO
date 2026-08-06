@@ -13,7 +13,7 @@ public sealed class SecurityBoundaryTests
     {
         Assert.Equal("0.99.2", BuildInfo.Version);
         Assert.Equal(1, BuildInfo.ProtocolVersion);
-        Assert.Equal(6, BuildInfo.ConfigSchemaVersion);
+        Assert.Equal(7, BuildInfo.ConfigSchemaVersion);
         Assert.Equal(1, BuildInfo.CalibrationSchemaVersion);
     }
 

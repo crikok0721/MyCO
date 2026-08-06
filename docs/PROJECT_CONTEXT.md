@@ -24,8 +24,9 @@ WPF 管理器负责角色、头像、昵称、气泡、主题、预览和运行�
 
 Phase 3：Beta 测试与公开测试前稳定性整改。
 
-当前增量开发目标为 `0.99.2`，尚未发布。本轮已完成配置 schema 6、当前
-renderer 实时应用结果、多 renderer 汇总、独立角色位置、Assistant 正文宽度、
+当前增量开发目标为 `0.99.2`，尚未发布。本轮代码已切换到配置 schema 7、几何
+基线版本 2（头像 35px、User 头像垂直基线 -4px）、当前 renderer 实时应用结果、
+多 renderer 汇总、独立角色位置、Assistant 正文宽度、
 启动三选项语义与 MyCO 自有入口事务、托盘通知身份和欢迎页精简，并通过源码
 构建与自动化测试。真实登录会话中的 500ms 外观更新、Windows 10/11 通知视觉、
 八种启动组合及 100%--200% DPI 验收仍是发布前人工门禁。
@@ -73,3 +74,6 @@ Manager 第三阶段视觉重构已采用角色优先的信息架构：角色与
 5. `docs/DEVELOPMENT_LOG.md`：变更与验证记录。
 6. `docs/PROJECT_CONTEXT.md`：产品目标与长期约束。
 7. `docs/HANDOFF.md` 与 `docs/archive/`：历史交接，不作为当前产物路径来源。
+需求状态以 `docs/REQUIREMENTS.md` 为唯一事实来源；审计证据和恢复批次见
+`docs/REQUIREMENTS_AUDIT.md`。自动化测试不替代真实 Codex、WPF、Windows
+通知和启动矩阵验收。

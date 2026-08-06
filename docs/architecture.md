@@ -68,7 +68,7 @@ current Windows theme. While following the Manager, a Windows theme change
 updates the preview; an explicit preview selection is respected for the rest
 of that session.
 
-`SaveAndApplyAsync` first atomically persists schema 6, then asks
+`SaveAndApplyAsync` first atomically persists schema 7, then asks
 `DesktopSessionController` to apply one serialized config transaction to every
 current renderer. Renderer calls fan out concurrently, but consecutive save
 transactions are serialized so the latest call wins. Each renderer must return
@@ -333,9 +333,10 @@ shell, filesystem, process, credential, or networking capability.
 exist, the legacy `%APPDATA%\MyCodex` tree is copied through a same-parent
 staging directory and atomically adopted. Existing new data is never
 overwritten and legacy data is never deleted. Writes use a unique temporary
-file followed by an atomic move. Config schema 6 replaces the shared position
+file followed by an atomic move. Config schema 7 replaces the shared position
 and `messageMaxWidth` values with eight independent role/identity offsets and
-`assistantBubbleMaxWidth`. The schema 5-to-6 migration copies avatar offsets to
+`assistantBubbleMaxWidth`. The schema 0-to-7 migration converts legacy absolute
+values to centered deltas and copies shared avatar offsets to
 both roles, initializes nickname offsets to zero, and clamps the legacy width into the new
 Assistant-safe range; unrelated identity, palette, calibration and startup data
 is retained. Schema 5 adds the optional Codex association and persisted
@@ -385,3 +386,26 @@ traffic, or falls back to patching.
 
 The complete development acceptance command chain is documented in
 [`visual-acceptance.md`](visual-acceptance.md).
+# Current geometry and bubble contract (2026-08-06)
+
+`docs/REQUIREMENTS.md` is the current requirement source. Appearance geometry is
+persisted as schema-7 `AppearanceGeometryDeltas`; `AppearanceGeometryResolver`
+computes effective values from the versioned baseline (avatar 35px, message gap
+28px, Assistant avatar Y 11px, User avatar Y -4px, and the existing safe
+palette/shape baselines). Baseline version 2 replaces the previous 40px/11px
+neutral values; schema-7 baseline-1 deltas are converted through their
+effective values before validation. The
+Manager sliders expose symmetric deltas centered on zero. `ConfigMigration`
+converts schema-0..6 absolute/shared fields once, clamps only during migration,
+and keeps effective compatibility views for the Runtime serializer. Preview and
+Runtime consume the same effective values; real WPF/Chromium pixel parity remains
+a visual acceptance gate.
+
+Automatic and Whole segmentation share the hard-protected barrier set. Inline
+code is protected from receiving a marker but does not hide its safe paragraph;
+code blocks, tables, math, tool/command/terminal/Diff/approval/status surfaces
+remain barriers. Whole mode prefers an innermost safe Markdown surface and falls
+back to safe semantic blocks around barriers. Decorator structure fingerprints
+exclude text length (streaming remains stable) but include protected-node count
+and marker ancestry so structural changes invalidate stale positions. `destroy()`
+continues to remove all markers, identity nodes, CSS variables and observers.

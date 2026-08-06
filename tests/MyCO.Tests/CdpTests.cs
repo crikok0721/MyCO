@@ -121,6 +121,25 @@ public sealed class CdpTests
     }
 
     [Fact]
+    public async Task RuntimeSessionRejectsApplyConfigWhenRuntimeIsNotInstalled()
+    {
+        var client = new FakeCdpClient(
+            """
+            {"result":{"result":{"type":"object","value":{
+              "version":"0.99.2","protocolVersion":1,"installed":false,
+              "compatibility":"safeMode","errors":[]
+            }}}}
+            """);
+        var session = CreateRuntimeSession(client);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => session.ApplyConfigAsync(AppConfig.Default));
+
+        Assert.Contains("not attached", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(session.NewDocumentScriptId);
+    }
+
+    [Fact]
     public async Task RuntimeSessionRegistersReplacementBeforeRemovingPreviousNewDocumentSource()
     {
         var client = new FakeCdpClient(

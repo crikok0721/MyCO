@@ -41,6 +41,10 @@ public static class RuntimeConfigSerializer
         var userAvatar = await avatarService.ToDataUrlAsync(
             config.User.Avatar,
             cancellationToken).ConfigureAwait(false);
+        var geometry = config.Appearance.Geometry.IsZero
+            ? AppearanceGeometryResolver.FromAbsolute(config.Appearance)
+            : config.Appearance.Geometry;
+        var effective = AppearanceGeometryResolver.Resolve(geometry);
         return JsonSerializer.Serialize(new
         {
             schemaVersion = BuildInfo.ConfigSchemaVersion,
@@ -56,7 +60,30 @@ public static class RuntimeConfigSerializer
                 name = config.User.Name,
                 avatar = userAvatar
             },
-            appearance = config.Appearance,
+            appearance = new
+            {
+                preset = config.Appearance.Preset,
+                bubbleDisplayMode = config.Appearance.BubbleDisplayMode,
+                avatarSize = effective.AvatarSize,
+                assistantAvatarOffsetX = effective.AssistantAvatarOffsetX,
+                assistantAvatarOffsetY = effective.AssistantAvatarOffsetY,
+                userAvatarOffsetX = effective.UserAvatarOffsetX,
+                userAvatarOffsetY = effective.UserAvatarOffsetY,
+                assistantNicknameOffsetX = effective.AssistantNicknameOffsetX,
+                assistantNicknameOffsetY = effective.AssistantNicknameOffsetY,
+                userNicknameOffsetX = effective.UserNicknameOffsetX,
+                userNicknameOffsetY = effective.UserNicknameOffsetY,
+                bubbleRadius = effective.BubbleRadius,
+                bubblePaddingX = effective.BubblePaddingX,
+                bubblePaddingY = effective.BubblePaddingY,
+                nicknameVisible = config.Appearance.NicknameVisible,
+                messageGap = effective.MessageGap,
+                assistantBubbleMaxWidth = effective.AssistantBubbleMaxWidth,
+                geometryBaselineVersion = AppearanceGeometryResolver.BaselineVersion,
+                geometry,
+                darkBubblePalette = config.Appearance.DarkBubblePalette,
+                lightBubblePalette = config.Appearance.LightBubblePalette
+            },
             calibration = config.Calibration,
             bridgeBindingName = bindingName
         }, JsonOptions);

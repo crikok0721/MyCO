@@ -46,9 +46,17 @@ calibration are preserved.
   barriers and remain native in both modes.
 
 The selection is stored in the versioned configuration and applies immediately
-after **Save & apply**. Config schema 5 preserves prior schema 0/1/2/3/4
+after **Save & apply**. Config schema 7 preserves prior schema 0/1/2/3/4/5/6
 settings and adds the optional launch-association state without losing user
 choices.
+
+## Appearance geometry / 外观几何
+
+Schema-7 geometry sliders store relative deltas from baseline version 2. A zero
+delta is the centered theoretical baseline: a 35px avatar, Assistant avatar Y
+11px, and User avatar Y -4px. Existing schema-7 baseline-1 and schema-0..6
+absolute values are migrated once through their effective geometry, so old
+layouts are not silently treated as new relative deltas.
 
 ## Tray lifecycle / 托盘生命周期
 

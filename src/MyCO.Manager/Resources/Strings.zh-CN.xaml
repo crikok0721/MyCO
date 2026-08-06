@@ -60,20 +60,26 @@
     <sys:String x:Key="AvatarPosition">头像位置</sys:String>
     <sys:String x:Key="NicknamePosition">昵称位置</sys:String>
     <sys:String x:Key="AvatarSizeFormat">头像大小 · {0:F0}px</sys:String>
+    <sys:String x:Key="AvatarSizeDeltaFormat">头像大小调整 · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="AvatarOffsetXFormat">头像水平位置 · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="AvatarOffsetYFormat">头像垂直位置 · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="NicknameOffsetXFormat">昵称水平位置 · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="NicknameOffsetYFormat">昵称垂直位置 · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="BubbleRadiusFormat">气泡圆角 · {0:F0}px</sys:String>
+    <sys:String x:Key="BubbleRadiusDeltaFormat">气泡圆角调整 · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="MessageGapFormat">消息间距 · {0:F0}px</sys:String>
+    <sys:String x:Key="MessageGapDeltaFormat">消息间距调整 · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="BubbleBehavior">气泡布局</sys:String>
     <sys:String x:Key="BubbleDisplayMode">助手气泡显示</sys:String>
     <sys:String x:Key="BubbleDisplayAutomatic">自动切割气泡</sys:String>
     <sys:String x:Key="BubbleDisplayWhole">整段完整气泡</sys:String>
     <sys:String x:Key="BubbleDisplayModeDescription">自动模式按 Markdown 结构自然分组；整段模式合并连续安全正文。代码、表格、公式、工具和控件保持原生。</sys:String>
     <sys:String x:Key="HorizontalPaddingFormat">水平内边距 · {0:F0}px</sys:String>
+    <sys:String x:Key="HorizontalPaddingDeltaFormat">水平内边距调整 · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="VerticalPaddingFormat">垂直内边距 · {0:F0}px</sys:String>
+    <sys:String x:Key="VerticalPaddingDeltaFormat">垂直内边距调整 · {0:+0;-0;0}px</sys:String>
     <sys:String x:Key="AssistantBubbleMaxWidthFormat">助手气泡宽度 · {0:F0}%</sys:String>
+    <sys:String x:Key="AssistantBubbleMaxWidthDeltaFormat">助手气泡宽度调整 · {0:+0;-0;0}%</sys:String>
     <sys:String x:Key="ShowNicknames">显示昵称</sys:String>
 
     <sys:String x:Key="CalibrationTitle">校准</sys:String>

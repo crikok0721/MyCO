@@ -412,6 +412,12 @@ public sealed class RuntimeTargetSession : IAsyncDisposable
                 "Runtime evaluation did not return diagnostics.");
         }
         var diagnostics = RuntimeDiagnosticsValidator.Normalize(payload);
+        if (!diagnostics.TryGetProperty("installed", out var installed) ||
+            installed.ValueKind != JsonValueKind.True)
+        {
+            throw new InvalidOperationException(
+                "Runtime diagnostics report that the runtime is not attached.");
+        }
         if (diagnostics.TryGetProperty("errors", out var errors) &&
             errors.ValueKind == JsonValueKind.Array &&
             errors.GetArrayLength() > 0)

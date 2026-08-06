@@ -24,7 +24,7 @@ Core constraints:
 - **Phase:** Phase 3 — Beta testing and pre-release stability remediation
 - **Version:** `0.99.2` (local UI repair; not released)
 - **Branch:** `main`
-- **Base HEAD:** `fce27ee` (existing local commit preserved)
+- **Base HEAD:** `705219c86ac38cc94a61544247854d8568b2fe5c` (existing commit preserved; current implementation is uncommitted)
 - **GitHub:** https://github.com/crikok0721/MyCO
 
 The active controlling Codex session was never restarted or closed. Production
@@ -41,8 +41,8 @@ restart was exercised only against isolated official Desktop process trees.
   and first-run `菲叶子`/packaged-logo defaults.
 - Transactional factory reset that preserves the data root and legacy source,
   safely removes Runtime/startup registration, and reopens onboarding.
-- Shared Home/Appearance preview bubbles now use one solid user-bubble surface
-  while retaining each role's avatar, name, message, and alignment.
+- Shared Home/Appearance preview now uses one anchor model with role-specific
+  Assistant/User surfaces; WPF visual parity is still an acceptance gate.
 - Manager content cards use the shared borderless card surface; reset surfaces
   retain semantic danger colors without decorative outlines.
 - Tray menu now has a local rounded WinForms renderer with theme-aware colors,
@@ -57,12 +57,14 @@ restart was exercised only against isolated official Desktop process trees.
   `MyCO.exe` and the single-file `MyCO.Updater.exe`.
 - User minimize now hides to the single tray icon, preserves Normal/Maximized
   state, and shows one persisted balloon per Windows boot.
-- Runtime Whole-mode shell regression fix and protected mixed-Markdown
-  boundary fixtures.
-- Schema 6 independent role/identity placement controls and Assistant prose
-  width, with backward-compatible migration.
-- Verified all-renderer appearance application with zero/partial failure status,
-  latest-save ordering, and complete new-document registration cleanup.
+- Runtime Automatic/Whole protected-barrier and inline-code regression repair;
+  structure fingerprints now invalidate stale bubble positions.
+- Schema 7 baseline-plus-delta geometry migration with eight independent role
+  offsets and Assistant ordinary-prose width; geometry baseline v2 now resolves
+  a 35px avatar and -4px User avatar Y at zero while source-compatible
+  absolute views are resolved but not persisted.
+- All-renderer appearance application keeps zero/partial failure status and now
+  rejects a renderer that reports `installed=false`.
 - Transactional MyCO-owned startup associations with parent reparse rejection,
   generation-aware rollback, and exact partial-state snapshots.
 - Four-language onboarding copy/layout cleanup and invariant tray title
@@ -77,6 +79,9 @@ Fix the following blockers before public testing:
 4. Verify self-signed release warning on fresh Windows environment.
 
 Full task list: `docs/TASK_LIST.md`.
+Current requirement truth and the historical evidence audit live in
+`docs/REQUIREMENTS.md` and `docs/REQUIREMENTS_AUDIT.md`; `docs/HANDOFF.md` is
+historical evidence only.
 
 ## Historical validation baseline (0.99.1)
 
@@ -102,25 +107,28 @@ Full task list: `docs/TASK_LIST.md`.
 
 ## Current validation for the local 0.99.2 incremental development
 
-- Runtime `npm ci`/`npm run check`: lint, 52/52 tests, and generated bundle
-  rebuild passed.
-- Full .NET SDK 8.0.423 build: 0 warnings and 0 errors.
-- .NET test suite: 229/229 passed, 0 failed, 0 skipped.
-- `git diff --check` passed. `scripts/build-release.ps1` generated a fresh
-  self-contained local directory at
-  `artifacts/MyCO-win-x64/` and `MyCO-win-x64.zip`; the directory contains
-  `MyCO.exe`, `MyCO.Updater.exe`, 496 verified SHA-256 entries, and no manifest
-  mismatches. The archive SHA-256 is
-  `879f97a46fbcfe0cb2311c58fe1f2edaa891cea2ccbd4e508761f13e5456bdd4` and is
-  recorded beside the ZIP. It is not signed,
-  publicly released, or visually launched in this pass.
-- Real Windows visual acceptance, taskbar/notification rendering, DPI checks,
-  and the eight-combination startup matrix remain pending.
-- No commit, push, tag, PR, or release was created.
+- `npm.cmd ci`: passed with 0 vulnerabilities; Runtime `npm.cmd run check`:
+  lint, 57/57 tests, and generated bundle rebuild passed.
+- The official .NET 8.0.423 SDK was installed to a user-local tool directory
+  because the machine image did not include an SDK. `dotnet build .\MyCO.sln
+  -c Release --no-restore`: 0 warnings, 0 errors. `dotnet test .\MyCO.sln
+  -c Release --no-build`: 238/238 passed.
+- `scripts\build-release.ps1` completed after those checks and replaced the
+  old local publish output with a new self-contained `artifacts\MyCO-win-x64`
+  directory and ZIP containing 499 verified manifest entries; the generated
+  `.sha256` sidecar is the source of truth for the archive hash. The current
+  archive SHA-256 is
+  `df20625ccb5066fd9c2ca70adfd47801c18a222ba51becec7c412c8c8ba1012d`.
+  `MyCO.exe` reports `0.99.2.0` and product version
+  `0.99.2+705219c86ac38cc94a61544247854d8568b2fe5c`.
+- Real Windows visual acceptance, notification rendering, DPI checks, and the
+  eight-combination startup matrix remain pending. The executable was not
+  launched against the active user/Codex profile.
+- No commit, push, tag, published release, or PR was created.
 
 ## Next recommended steps
 
-1. Build a fresh source or self-contained output after the current working-tree
-   edits, then use a disposable Windows session/VM for the restart and visual matrix.
+1. Use the generated package in a disposable Windows session/VM for the restart
+   and visual matrix, including the real Codex conversation and tray shell.
 2. Verify fresh config, disable/recovery, removal and the startup combinations.
-3. Keep release packaging separate until the visual and clean-machine gates pass.
+3. Keep publication/signing separate until the visual and clean-machine gates pass.

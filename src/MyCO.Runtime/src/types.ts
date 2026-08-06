@@ -9,6 +9,10 @@ export const PROTOCOL_VERSION = __MYCO_PROTOCOL_VERSION__;
 export const CONFIG_SCHEMA_VERSION = __MYCO_CONFIG_SCHEMA_VERSION__;
 export const CALIBRATION_SCHEMA_VERSION =
   __MYCO_CALIBRATION_SCHEMA_VERSION__;
+export const APPEARANCE_GEOMETRY_BASELINE_VERSION = 2;
+export const APPEARANCE_AVATAR_SIZE_BASELINE = 35;
+export const APPEARANCE_ASSISTANT_AVATAR_OFFSET_Y_BASELINE = 11;
+export const APPEARANCE_USER_AVATAR_OFFSET_Y_BASELINE = -4;
 export const RUNTIME_SYMBOL = Symbol.for("myco.runtime.protocol.1");
 // Read only during hot upgrade so an injected pre-rename runtime can clean itself up.
 export const LEGACY_RUNTIME_SYMBOL = Symbol.for("mycodex.runtime.protocol.1");
@@ -39,6 +43,23 @@ export interface BubblePalette {
   avatarBorder: string;
 }
 
+export interface AppearanceGeometryDeltas {
+  avatarSizeDelta: number;
+  assistantAvatarOffsetXDelta: number;
+  assistantAvatarOffsetYDelta: number;
+  userAvatarOffsetXDelta: number;
+  userAvatarOffsetYDelta: number;
+  assistantNicknameOffsetXDelta: number;
+  assistantNicknameOffsetYDelta: number;
+  userNicknameOffsetXDelta: number;
+  userNicknameOffsetYDelta: number;
+  bubbleRadiusDelta: number;
+  bubblePaddingXDelta: number;
+  bubblePaddingYDelta: number;
+  messageGapDelta: number;
+  assistantBubbleMaxWidthDelta: number;
+}
+
 export interface AppearanceConfig {
   preset: "ReferenceDark" | "Minimal";
   bubbleDisplayMode: "Automatic" | "Whole";
@@ -57,6 +78,8 @@ export interface AppearanceConfig {
   nicknameVisible: boolean;
   messageGap: number;
   assistantBubbleMaxWidth: number;
+  geometryBaselineVersion?: number;
+  geometry?: AppearanceGeometryDeltas;
   darkBubblePalette: BubblePalette;
   lightBubblePalette: BubblePalette;
 }
@@ -160,11 +183,11 @@ export function defaultConfig(): RuntimeConfig {
     appearance: {
       preset: "ReferenceDark",
       bubbleDisplayMode: "Automatic",
-      avatarSize: 40,
+      avatarSize: APPEARANCE_AVATAR_SIZE_BASELINE,
       assistantAvatarOffsetX: 0,
-      assistantAvatarOffsetY: 11,
+      assistantAvatarOffsetY: APPEARANCE_ASSISTANT_AVATAR_OFFSET_Y_BASELINE,
       userAvatarOffsetX: 0,
-      userAvatarOffsetY: 11,
+      userAvatarOffsetY: APPEARANCE_USER_AVATAR_OFFSET_Y_BASELINE,
       assistantNicknameOffsetX: 0,
       assistantNicknameOffsetY: 0,
       userNicknameOffsetX: 0,
@@ -175,6 +198,23 @@ export function defaultConfig(): RuntimeConfig {
       nicknameVisible: true,
       messageGap: 28,
       assistantBubbleMaxWidth: 66,
+      geometryBaselineVersion: APPEARANCE_GEOMETRY_BASELINE_VERSION,
+      geometry: {
+        avatarSizeDelta: 0,
+        assistantAvatarOffsetXDelta: 0,
+        assistantAvatarOffsetYDelta: 0,
+        userAvatarOffsetXDelta: 0,
+        userAvatarOffsetYDelta: 0,
+        assistantNicknameOffsetXDelta: 0,
+        assistantNicknameOffsetYDelta: 0,
+        userNicknameOffsetXDelta: 0,
+        userNicknameOffsetYDelta: 0,
+        bubbleRadiusDelta: 0,
+        bubblePaddingXDelta: 0,
+        bubblePaddingYDelta: 0,
+        messageGapDelta: 0,
+        assistantBubbleMaxWidthDelta: 0
+      },
       darkBubblePalette: {
         assistantBubble: "#222222",
         assistantText: "#f2f2f2",

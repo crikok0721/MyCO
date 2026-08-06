@@ -403,8 +403,12 @@ public sealed partial class ManagerThemeAndTrayTests
         Assert.Contains("DwmSetWindowAttribute", windowCode);
         Assert.Contains("PreviewAssistantMessage", preview);
         Assert.Contains("PreviewUserMessage", preview);
-        Assert.Equal(2, Regex.Matches(preview, "PreviewUserBubble").Count);
-        Assert.Equal(2, Regex.Matches(preview, "PreviewUserText").Count);
+        Assert.Single(Regex.Matches(preview, "PreviewUserBubble").Cast<Match>());
+        Assert.Single(Regex.Matches(preview, "PreviewUserText").Cast<Match>());
+        Assert.Single(Regex.Matches(
+            preview,
+            Regex.Escape("PreviewAssistantBubble}")).Cast<Match>());
+        Assert.Single(Regex.Matches(preview, "PreviewAssistantText").Cast<Match>());
         Assert.Contains("CodexPreviewThemeSelector", preview);
         Assert.DoesNotContain("<ScrollViewer", preview);
         Assert.DoesNotContain("CodeSurfaceBrush", preview);

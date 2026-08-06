@@ -60,20 +60,26 @@
     <sys:String x:Key="AvatarPosition">アバターの位置</sys:String>
     <sys:String x:Key="NicknamePosition">表示名の位置</sys:String>
     <sys:String x:Key="AvatarSizeFormat">アバターサイズ・{0:F0}px</sys:String>
+    <sys:String x:Key="AvatarSizeDeltaFormat">アバターサイズ調整・{0:+0;-0;0}px</sys:String>
     <sys:String x:Key="AvatarOffsetXFormat">アバターの横位置・{0:+0;-0;0}px</sys:String>
     <sys:String x:Key="AvatarOffsetYFormat">アバターの縦位置・{0:+0;-0;0}px</sys:String>
     <sys:String x:Key="NicknameOffsetXFormat">表示名の横位置・{0:+0;-0;0}px</sys:String>
     <sys:String x:Key="NicknameOffsetYFormat">表示名の縦位置・{0:+0;-0;0}px</sys:String>
     <sys:String x:Key="BubbleRadiusFormat">吹き出しの丸み・{0:F0}px</sys:String>
+    <sys:String x:Key="BubbleRadiusDeltaFormat">吹き出し角丸調整・{0:+0;-0;0}px</sys:String>
     <sys:String x:Key="MessageGapFormat">メッセージ間隔・{0:F0}px</sys:String>
+    <sys:String x:Key="MessageGapDeltaFormat">メッセージ間隔調整・{0:+0;-0;0}px</sys:String>
     <sys:String x:Key="BubbleBehavior">吹き出しの動作</sys:String>
     <sys:String x:Key="BubbleDisplayMode">アシスタント吹き出しの表示</sys:String>
     <sys:String x:Key="BubbleDisplayAutomatic">自動グループ化</sys:String>
     <sys:String x:Key="BubbleDisplayWhole">返信全体</sys:String>
     <sys:String x:Key="BubbleDisplayModeDescription">自動グループ化は Markdown 構造に従います。「返信全体」では連続する安全な本文をまとめます。コード、表、数式、ツール、操作部品には触れません。</sys:String>
     <sys:String x:Key="HorizontalPaddingFormat">左右の余白・{0:F0}px</sys:String>
+    <sys:String x:Key="HorizontalPaddingDeltaFormat">左右余白調整・{0:+0;-0;0}px</sys:String>
     <sys:String x:Key="VerticalPaddingFormat">上下の余白・{0:F0}px</sys:String>
+    <sys:String x:Key="VerticalPaddingDeltaFormat">上下余白調整・{0:+0;-0;0}px</sys:String>
     <sys:String x:Key="AssistantBubbleMaxWidthFormat">アシスタントの吹き出し幅・{0:F0}%</sys:String>
+    <sys:String x:Key="AssistantBubbleMaxWidthDeltaFormat">アシスタント吹き出し幅調整・{0:+0;-0;0}%</sys:String>
     <sys:String x:Key="ShowNicknames">表示名を表示</sys:String>
 
     <sys:String x:Key="CalibrationTitle">調整</sys:String>

@@ -1,3 +1,8 @@
+import {
+  APPEARANCE_ASSISTANT_AVATAR_OFFSET_Y_BASELINE,
+  APPEARANCE_AVATAR_SIZE_BASELINE,
+  APPEARANCE_USER_AVATAR_OFFSET_Y_BASELINE
+} from "./types.js";
 import type {
   AppearanceConfig,
   BubblePalette,
@@ -157,11 +162,11 @@ function runtimeCss(): string {
   // Assistant prose receives a bubble; user turns keep the desktop application's native bubble.
   return `
 :root {
-  --mc-avatar-size: 40px;
+  --mc-avatar-size: ${APPEARANCE_AVATAR_SIZE_BASELINE}px;
   --mc-assistant-avatar-offset-x: 0px;
-  --mc-assistant-avatar-offset-y: 11px;
+  --mc-assistant-avatar-offset-y: ${APPEARANCE_ASSISTANT_AVATAR_OFFSET_Y_BASELINE}px;
   --mc-user-avatar-offset-x: 0px;
-  --mc-user-avatar-offset-y: 11px;
+  --mc-user-avatar-offset-y: ${APPEARANCE_USER_AVATAR_OFFSET_Y_BASELINE}px;
   --mc-assistant-nickname-offset-x: 0px;
   --mc-assistant-nickname-offset-y: 0px;
   --mc-user-nickname-offset-x: 0px;

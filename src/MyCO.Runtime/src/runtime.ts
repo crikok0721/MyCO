@@ -313,6 +313,28 @@ function validateConfig(config: RuntimeConfig): void {
   ) {
     throw new TypeError("Bubble display mode is not supported.");
   }
+  const appearance = config.appearance;
+  if (
+    appearance.avatarSize < 24 || appearance.avatarSize > 72 ||
+    appearance.assistantAvatarOffsetX < -32 || appearance.assistantAvatarOffsetX > 32 ||
+    appearance.userAvatarOffsetX < -32 || appearance.userAvatarOffsetX > 32 ||
+    appearance.assistantAvatarOffsetY < -20 || appearance.assistantAvatarOffsetY > 40 ||
+    appearance.userAvatarOffsetY < -20 || appearance.userAvatarOffsetY > 40 ||
+    appearance.assistantNicknameOffsetX < -32 || appearance.assistantNicknameOffsetX > 32 ||
+    appearance.userNicknameOffsetX < -32 || appearance.userNicknameOffsetX > 32 ||
+    appearance.assistantNicknameOffsetY < -12 || appearance.assistantNicknameOffsetY > 28 ||
+    appearance.userNicknameOffsetY < -12 || appearance.userNicknameOffsetY > 28 ||
+    appearance.bubbleRadius < 0 || appearance.bubbleRadius > 36 ||
+    appearance.bubblePaddingX < 4 || appearance.bubblePaddingX > 40 ||
+    appearance.bubblePaddingY < 4 || appearance.bubblePaddingY > 32 ||
+    appearance.messageGap < 4 || appearance.messageGap > 80 ||
+    appearance.assistantBubbleMaxWidth < 45 || appearance.assistantBubbleMaxWidth > 80 ||
+    !Number.isFinite(appearance.avatarSize) ||
+    !Number.isFinite(appearance.messageGap) ||
+    !Number.isFinite(appearance.assistantBubbleMaxWidth)
+  ) {
+    throw new TypeError("Appearance geometry is outside supported ranges.");
+  }
   if (
     config.calibration.userTurn &&
     config.calibration.assistantTurn &&

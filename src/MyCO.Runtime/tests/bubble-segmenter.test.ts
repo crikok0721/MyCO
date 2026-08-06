@@ -154,3 +154,42 @@ test("long continuous strings remain a single safe prose surface", () => {
   assert.equal(whole.length, 1);
   assert.equal(whole[0]!.element.classList.contains("markdownContent-current"), true);
 });
+
+test("automatic mode keeps a paragraph containing inline code", () => {
+  const article = turn(
+    "<p>Use <code>npm run check</code> before saving.</p>"
+  );
+
+  const segments = segmentAssistantProse(article, "Automatic");
+
+  assert.deepEqual(segments.map(({ element }) => element.tagName), ["P"]);
+  assert.equal(segments[0]!.element.querySelector("code")!.hasAttribute("data-myco-prose"), false);
+});
+
+test("whole mode keeps a pure Markdown surface with inline code", () => {
+  const article = turn(
+    `<div class="markdownContent-current"><p>Use <code>npm run check</code> before saving.</p></div>`
+  );
+
+  const segments = segmentAssistantProse(article, "Whole");
+
+  assert.equal(segments.length, 1);
+  assert.equal(segments[0]!.element.classList.contains("markdownContent-current"), true);
+});
+
+test("groups split across nested protected wrappers", () => {
+  const article = turn(
+    `<section>
+       <div><p>Opening prose.</p></div>
+       <div data-content-type="tool"><p>Tool output</p></div>
+       <div><p>Closing prose.</p></div>
+     </section>`
+  );
+
+  const segments = segmentAssistantProse(article, "Whole");
+
+  assert.deepEqual(
+    segments.map(({ element, group, position }) => [element.tagName, group, position]),
+    [["P", 0, "single"], ["P", 1, "single"]]
+  );
+});

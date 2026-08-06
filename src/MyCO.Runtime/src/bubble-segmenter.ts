@@ -16,9 +16,10 @@ const WHOLE_SURFACE_SELECTOR = [
   "[data-testid*=markdown]",
   "[class*=markdownContent]"
 ].join(",");
-const PROTECTED_SELECTOR = [
+// Inline code is protected from receiving a marker, but it is not a barrier
+// for the surrounding safe paragraph or Markdown surface.
+const HARD_PROTECTED_SELECTOR = [
   "pre",
-  "code",
   "table",
   "[role=table]",
   "math",
@@ -34,7 +35,8 @@ const PROTECTED_SELECTOR = [
   "[data-content-type=command]",
   "[data-content-type=terminal]",
   "[data-content-type=diff]",
-  "[data-content-type=approval]"
+  "[data-content-type=approval]",
+  "[data-content-type=status]"
 ].join(",");
 
 const SOFT_MINIMUM = 120;
@@ -95,8 +97,8 @@ function isWholeResponseSurface(element: Element, turn: Element): boolean {
   if (owner && owner !== turn) return false;
   if (element.closest(".mc-nickname,.mc-avatar")) return false;
   if (
-    element.matches(PROTECTED_SELECTOR) ||
-    element.querySelector(PROTECTED_SELECTOR)
+    element.matches(HARD_PROTECTED_SELECTOR) ||
+    element.querySelector(HARD_PROTECTED_SELECTOR)
   ) {
     return false;
   }
@@ -129,8 +131,9 @@ function findSafeBlocks(turn: Element): Element[] {
 function isSafeProseBlock(element: Element): boolean {
   if (!element.textContent?.trim()) return false;
   if (element.closest(".mc-nickname,.mc-avatar")) return false;
+  if (element.closest(HARD_PROTECTED_SELECTOR)) return false;
   if (isInteractiveOrTool(element)) return false;
-  if (element.matches(PROTECTED_SELECTOR) || element.querySelector(PROTECTED_SELECTOR)) {
+  if (element.matches(HARD_PROTECTED_SELECTOR) || element.querySelector(HARD_PROTECTED_SELECTOR)) {
     return false;
   }
   return !element.querySelector(
@@ -210,16 +213,41 @@ function isHeading(element: Element): boolean {
 }
 
 function hasProtectedBarrier(left: Element, right: Element): boolean {
-  if (left.parentElement !== right.parentElement) return false;
-  let sibling = left.nextElementSibling;
-  while (sibling && sibling !== right) {
-    if (
-      sibling.matches(PROTECTED_SELECTOR) ||
-      sibling.querySelector(PROTECTED_SELECTOR)
-    ) {
-      return true;
+  if (left.parentElement === right.parentElement) {
+    let sibling = left.nextElementSibling;
+    while (sibling && sibling !== right) {
+      if (
+        sibling.matches(HARD_PROTECTED_SELECTOR) ||
+        sibling.querySelector(HARD_PROTECTED_SELECTOR)
+      ) {
+        return true;
+      }
+      sibling = sibling.nextElementSibling;
     }
-    sibling = sibling.nextElementSibling;
+  }
+
+  // Real renderers often place prose and protected cards under different
+  // wrapper elements. Walk document order so a barrier is still observed
+  // without changing or reparenting host DOM.
+  if (
+    (left.compareDocumentPosition(right) & 4) === 0
+  ) {
+    return false;
+  }
+  let cursor: Element | null = left;
+  while ((cursor = nextElementInDocumentOrder(cursor)) !== null) {
+    if (cursor === right) return false;
+    if (cursor.matches(HARD_PROTECTED_SELECTOR)) return true;
   }
   return false;
+}
+
+function nextElementInDocumentOrder(element: Element): Element | null {
+  if (element.firstElementChild) return element.firstElementChild;
+  let current: Element | null = element;
+  while (current) {
+    if (current.nextElementSibling) return current.nextElementSibling;
+    current = current.parentElement;
+  }
+  return null;
 }

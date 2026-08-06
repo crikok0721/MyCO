@@ -5,10 +5,18 @@
              xmlns:local="clr-namespace:MyCO.Manager.Controls"
              UseLayoutRounding="True">
     <UserControl.Resources>
+        <local:PreviewEffectiveAvatarSizeConverter x:Key="PreviewEffectiveAvatarSizeConverter" />
+        <local:PreviewEffectiveAvatarVerticalOffsetConverter x:Key="PreviewEffectiveAvatarVerticalOffsetConverter" />
+        <local:PreviewEffectiveUserAvatarVerticalOffsetConverter x:Key="PreviewEffectiveUserAvatarVerticalOffsetConverter" />
+        <local:PreviewUserHorizontalOffsetConverter x:Key="PreviewUserHorizontalOffsetConverter" />
+        <local:PreviewEffectiveRadiusConverter x:Key="PreviewEffectiveRadiusConverter" />
+        <local:PreviewNicknameBubbleMarginConverter x:Key="PreviewNicknameBubbleMarginConverter" />
         <!-- Both roles share one geometry algorithm; their semantic brushes remain distinct. -->
         <Style x:Key="PreviewBubbleStyle" TargetType="Border">
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="{Binding BubbleRadius}" />
+            <Setter Property="CornerRadius"
+                    Value="{Binding BubbleRadius,
+                        Converter={StaticResource PreviewEffectiveRadiusConverter}}" />
             <Setter Property="Padding"
                     Value="{Binding PreviewBubblePadding,
                         RelativeSource={RelativeSource AncestorType={x:Type local:ChatPreviewControl}}}" />
@@ -82,16 +90,17 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <Grid Width="{Binding AvatarSize}"
-                          Height="{Binding AvatarSize}"
-                          MinWidth="34"
-                          MinHeight="34"
-                          MaxWidth="54"
-                          MaxHeight="54"
+                    <Grid Width="{Binding AvatarSize, Converter={StaticResource PreviewEffectiveAvatarSizeConverter}}"
+                          Height="{Binding AvatarSize, Converter={StaticResource PreviewEffectiveAvatarSizeConverter}}"
+                          MinWidth="24"
+                          MinHeight="24"
+                          MaxWidth="72"
+                          MaxHeight="72"
                           VerticalAlignment="Top">
                         <Grid.RenderTransform>
                             <TranslateTransform X="{Binding AssistantAvatarOffsetX}"
-                                                Y="{Binding AssistantAvatarOffsetY}" />
+                                                Y="{Binding AssistantAvatarOffsetY,
+                                                    Converter={StaticResource PreviewEffectiveAvatarVerticalOffsetConverter}}" />
                         </Grid.RenderTransform>
                         <Ellipse Fill="{Binding PreviewAvatarBackground}" />
                         <Ellipse Stroke="{Binding PreviewAvatarBorder}"
@@ -103,18 +112,19 @@
                         </Ellipse>
                     </Grid>
                     <StackPanel Grid.Column="1"
-                                Margin="12,-2,0,0">
-                        <Grid Height="48"
-                              Visibility="{Binding NicknameVisible,
-                                  Converter={StaticResource BooleanToVisibilityConverter}}">
+                                Margin="12,0,0,0"
+                                VerticalAlignment="Top">
+                        <Grid MinHeight="22">
                             <TextBlock Text="{Binding AssistantName}"
                                        Foreground="{Binding PreviewNicknameColor}"
                                        FontSize="13"
+                                       LineHeight="18"
+                                       LineStackingStrategy="BlockLineHeight"
                                        MaxWidth="360"
                                        TextTrimming="CharacterEllipsis"
                                        HorizontalAlignment="Left"
-                                       VerticalAlignment="Top"
-                                       Margin="2,0,0,0">
+                                       Visibility="{Binding NicknameVisible,
+                                           Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <TextBlock.RenderTransform>
                                     <TranslateTransform X="{Binding AssistantNicknameOffsetX}"
                                                         Y="{Binding AssistantNicknameOffsetY}" />
@@ -122,12 +132,14 @@
                             </TextBlock>
                         </Grid>
                         <Border x:Name="AssistantPreviewBubble"
-                                Background="{Binding PreviewUserBubble}"
+                                Background="{Binding PreviewAssistantBubble}"
                                 Style="{StaticResource PreviewBubbleStyle}"
+                                Margin="{Binding AssistantNicknameOffsetY,
+                                    Converter={StaticResource PreviewNicknameBubbleMarginConverter}}"
                                 MaxWidth="{Binding PreviewAssistantBubbleMaxWidth,
                                     RelativeSource={RelativeSource AncestorType={x:Type local:ChatPreviewControl}}}">
                             <TextBlock Text="{DynamicResource PreviewAssistantMessage}"
-                                       Foreground="{Binding PreviewUserText}"
+                                       Foreground="{Binding PreviewAssistantText}"
                                        TextWrapping="Wrap"
                                        LineHeight="21" />
                         </Border>
@@ -143,21 +155,23 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel HorizontalAlignment="Right"
-                                Margin="0,-2,12,0">
-                        <Grid Height="48"
-                              Visibility="{Binding NicknameVisible,
-                                  Converter={StaticResource BooleanToVisibilityConverter}}">
+                                Margin="0,0,12,0"
+                                VerticalAlignment="Top">
+                        <Grid MinHeight="22">
                             <TextBlock Text="{Binding UserName}"
                                        TextAlignment="Right"
                                        Foreground="{Binding PreviewNicknameColor}"
                                        FontSize="13"
+                                       LineHeight="18"
+                                       LineStackingStrategy="BlockLineHeight"
                                        MaxWidth="360"
                                        TextTrimming="CharacterEllipsis"
                                        HorizontalAlignment="Right"
-                                       VerticalAlignment="Top"
-                                       Margin="0,0,2,0">
+                                       Visibility="{Binding NicknameVisible,
+                                           Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <TextBlock.RenderTransform>
-                                    <TranslateTransform X="{Binding UserNicknameOffsetX}"
+                                    <TranslateTransform X="{Binding UserNicknameOffsetX,
+                                        Converter={StaticResource PreviewUserHorizontalOffsetConverter}}"
                                                         Y="{Binding UserNicknameOffsetY}" />
                                 </TextBlock.RenderTransform>
                             </TextBlock>
@@ -165,6 +179,8 @@
                         <Border x:Name="UserPreviewBubble"
                                 Background="{Binding PreviewUserBubble}"
                                 Style="{StaticResource PreviewBubbleStyle}"
+                                Margin="{Binding UserNicknameOffsetY,
+                                    Converter={StaticResource PreviewNicknameBubbleMarginConverter}}"
                                 HorizontalAlignment="Right">
                             <TextBlock Text="{DynamicResource PreviewUserMessage}"
                                        Foreground="{Binding PreviewUserText}"
@@ -173,15 +189,17 @@
                         </Border>
                     </StackPanel>
                     <Grid Grid.Column="1"
-                          Width="{Binding AvatarSize}"
-                          Height="{Binding AvatarSize}"
-                          MinWidth="34"
-                          MinHeight="34"
-                          MaxWidth="54"
-                          MaxHeight="54">
+                          Width="{Binding AvatarSize, Converter={StaticResource PreviewEffectiveAvatarSizeConverter}}"
+                          Height="{Binding AvatarSize, Converter={StaticResource PreviewEffectiveAvatarSizeConverter}}"
+                          MinWidth="24"
+                          MinHeight="24"
+                          MaxWidth="72"
+                          MaxHeight="72">
                         <Grid.RenderTransform>
-                            <TranslateTransform X="{Binding UserAvatarOffsetX}"
-                                                Y="{Binding UserAvatarOffsetY}" />
+                            <TranslateTransform X="{Binding UserAvatarOffsetX,
+                                Converter={StaticResource PreviewUserHorizontalOffsetConverter}}"
+                                                Y="{Binding UserAvatarOffsetY,
+                                                    Converter={StaticResource PreviewEffectiveUserAvatarVerticalOffsetConverter}}" />
                         </Grid.RenderTransform>
                         <Ellipse Fill="{Binding PreviewAvatarBackground}" />
                         <Ellipse Stroke="{Binding PreviewAvatarBorder}"

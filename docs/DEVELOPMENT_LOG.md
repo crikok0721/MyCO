@@ -1,6 +1,6 @@
 # Development Log
 
-## 2026-08-06 — Fresh self-contained local release directory
+## 2026-08-06 — Geometry baseline v2 and refreshed self-contained release
 
 Date:
 
@@ -8,14 +8,22 @@ Date:
 
 Change:
 
+- Recalibrated the schema-7 geometry baseline: zero now resolves to a 35px
+  avatar and -4px User avatar Y; Assistant avatar Y remains 11px.
+- Added idempotent migration from schema-7 baseline v1 and preserved schema-0..6
+  absolute-value migration through the new baseline.
+- Updated the Manager preview's role-specific baseline converters and Runtime
+  default/fallback variables, then regenerated the Runtime bundle via
+  `npm.cmd run check`.
 - Ran `scripts/build-release.ps1` from the current `0.99.2` source tree with
-  the bundled .NET SDK and generated `artifacts\MyCO-win-x64\` plus its ZIP.
+  the user-local .NET 8.0.423 SDK and generated `artifacts\MyCO-win-x64\` plus
+  its ZIP.
 - The directory contains `MyCO.exe`, `MyCO.Updater.exe`, runtime configuration,
-  documentation and 496 SHA-256 manifest entries; all entries match.
+  documentation and 499 SHA-256 manifest entries; all entries match.
 - The ZIP SHA-256 is recorded in `MyCO-win-x64.zip.sha256` and matches the
   independently calculated archive hash.
 - Archive SHA-256:
-  `879f97a46fbcfe0cb2311c58fe1f2edaa891cea2ccbd4e508761f13e5456bdd4`.
+  `df20625ccb5066fd9c2ca70adfd47801c18a222ba51becec7c412c8c8ba1012d`.
 
 Reason:
 
@@ -29,9 +37,10 @@ registry association or program launch was performed.
 
 Testing:
 
-Runtime 52/52, .NET 229/229, Release build 0 warnings/0 errors, manifest
-verification 0 mismatches, and archive hash verification passed. Visual and
-real-user launch acceptance remains pending.
+Runtime lint and 57/57 tests, .NET Release build 0 warnings/0 errors and
+238/238 tests, manifest verification 0 mismatches, archive hash verification,
+and executable version `0.99.2.0` passed. Visual and real-user launch
+acceptance remains pending; the executable was not launched.
 
 ## 2026-08-06 — Repository housekeeping
 
@@ -1268,3 +1277,64 @@ Release verification:
 - The embedded Authenticode signer is `CN=Crikok`; Windows reports
   `UnknownError` for the self-signed certificate, which is expected because it
   is not in the public Windows trust chain.
+
+## 2026-08-06 — Requirements ledger, bubble regression repair and geometry deltas
+
+Change:
+
+- Added the current requirements ledger and evidence audit, and updated the
+  project entry rules to require a Requirement Impact Check. Historical
+  completion claims are now separated from current evidence.
+- Repaired Automatic/Whole segment selection for inline code and nested
+  protected wrappers. Added structural cache invalidation while preserving
+  streaming grouping and complete destroy cleanup.
+- Introduced schema-7 baseline-relative appearance geometry deltas, a Core
+  resolver, schema-0..6 migration, centered Manager slider ranges, and preview
+  converters that use the same effective geometry and opposite right-anchor
+  sign as Runtime. Runtime serialization carries both effective values and the
+  delta metadata.
+- Runtime host apply now rejects diagnostics that say the runtime is not
+  installed instead of treating a CDP evaluation as a successful appearance
+  apply.
+
+Reason:
+
+- User evidence showed Automatic text loss, Whole-mode boundary failures and
+  preview sliders that were absolute values rather than centered adjustments.
+  Historical docs also disagreed with the current HEAD and real visual gates.
+
+Impact:
+
+- Runtime fixture tests cover inline code, nested barriers and cache refresh.
+- Existing startup, tray, onboarding, private-CDP, DOM safety and exact-process
+  boundaries remain unchanged.
+- WPF, Windows Shell, real Codex timing and DPI acceptance are still unverified;
+  the executable was not launched against the active user/Codex profile.
+
+Modified Files:
+
+- `docs/REQUIREMENTS.md`, `docs/REQUIREMENTS_AUDIT.md`, `docs/CONTEXT.md`,
+  `docs/architecture.md`, `docs/TASK_LIST.md`, `docs/DECISIONS.md`, this log,
+  `AGENTS.md`, `CLAUDE.md`, and the implementation plan.
+- `src/MyCO.Core/Configuration/{AppConfig,ConfigStore,AppearanceGeometry}.cs`
+  and `src/MyCO.Core/Injection/{RuntimeConfigSerializer,RuntimeTargetSession}.cs`.
+- `src/MyCO.Manager/{Controls/ChatPreviewControl.*,Views/AppearancePage.xaml,
+  ViewModels/MainWindowViewModel.cs,Resources/Strings.*.xaml}`.
+- `src/MyCO.Runtime/src/{bubble-segmenter,decorator,types}.ts` and regenerated
+  `dist/MyCO.runtime.js`; focused Runtime and .NET regression tests.
+
+Testing:
+
+- `npm.cmd ci`: passed with 0 vulnerabilities; `npm.cmd test` and
+  `npm.cmd run check`: passed, 56/56 Runtime tests and regenerated the bundle.
+- WPF XAML and four-locale resource dictionaries parsed successfully; centered
+  slider bindings and the requirements ledger/audit structure were checked with
+  read-only scripts.
+- Local .NET 8.0.423 SDK: `dotnet build .\MyCO.sln -c Release --no-restore`
+  passed with 0 warnings/0 errors; `dotnet test .\MyCO.sln -c Release
+  --no-build` passed 235/235.
+- `scripts\build-release.ps1` passed and replaced the local publish output with
+  `artifacts\MyCO-win-x64`; `MyCO.exe` is `0.99.2.0` and the generated
+  `MyCO-win-x64.zip.sha256` sidecar records the archive hash.
+- Real visual/system acceptance, including Windows 10/11 DPI and startup
+  matrix, remains unverified; no published release was created.

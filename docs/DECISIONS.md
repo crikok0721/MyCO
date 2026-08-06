@@ -326,3 +326,34 @@ Reason: BalloonTip is already available on the supported desktop stack and is
 the smallest dependency-free route. Toast APIs can provide richer templates but
 add identity, packaging or runtime-deployment obligations that are unnecessary
 for this incremental change.
+
+## D-022 — Persist appearance geometry as baseline-relative deltas
+
+Decision: schema 7 stores one `AppearanceGeometryDeltas` object. A versioned
+safe baseline is resolved in Core and the resulting effective geometry is sent
+to the Runtime and used by the WPF preview. Existing absolute schema-6 fields
+are migration inputs only; compatibility properties remain ignored by storage
+and are populated after normalization. Every slider has a symmetric range with
+zero at its midpoint, and reset writes zero deltas. Baseline version 2 uses a
+35px avatar and a -4px User avatar vertical offset (Assistant remains 11px).
+Schema-7 baseline-1 deltas are resolved against the old 40px/11px values and
+then converted to the new delta representation.
+
+Reason: absolute values made the UI imply that a machine-specific 34px or 11px
+value was the neutral point and caused preview/runtime drift. A single resolver
+keeps persistence, preview and CSS variables semantically aligned without
+reading chat content or adding a renderer protocol dependency.
+
+## D-023 — Hard barriers plus structural fingerprints for bubble refresh
+
+Decision: inline code remains native but does not reject its safe paragraph.
+Block code, tables, math, tools, command/terminal, Diff, approval and status
+surfaces are hard barriers. Whole mode selects the innermost safe Markdown
+surface and falls back to safe semantic blocks. Decorator cache fingerprints
+structure and protected-node count while excluding text length, so streaming
+text does not regroup but inserted barriers/mode changes do.
+
+Reason: the previous broad protected selector dropped paragraphs containing
+inline code, and a same-element/mode cache kept stale positions after a new
+protected child appeared. The repair is marker-only and leaves DOM order and
+native surfaces untouched.

@@ -51,14 +51,16 @@ readiness is still blocked by the environment-dependent items below.
 - [ ] Refine compact-layout spacing at the minimum supported window size.
 - [ ] Add optional release signing verification in local tooling.
 
-## Completed in the current repair
+## Implemented in code; verification gates still open
 
-- [x] Schema 6 independent Assistant/User avatar and nickname offsets plus the
-  Assistant-only ordinary-prose maximum width, including migration, validation,
-  preview, Runtime CSS variables, serialization and destroy coverage.
-- [x] Immediate all-renderer config application with latest-request ordering,
+- [ ] Schema 7 baseline-plus-delta Assistant/User avatar and nickname offsets
+  plus Assistant-only ordinary-prose maximum width. Baseline v2 (35px avatar,
+  -4px User avatar Y) and migration tests are present; the real preview/Codex
+  geometry remains unverified.
+- [ ] Immediate all-renderer config application with latest-request ordering,
   Runtime diagnostic validation, partial-failure reporting and zero-session
-  fail-closed status.
+  fail-closed status. Transport tests exist; current real renderer timing is
+  unverified.
 - [x] Three independent startup semantics, the eight-combination automated
   matrix, single-instance associated launch routing, and transactional MyCO-only
   shortcut/protocol repair with reparse and concurrent-generation protection.
@@ -87,8 +89,9 @@ readiness is still blocked by the environment-dependent items below.
 - [x] Role-safe multi-renderer calibration and protected-surface rejection.
 - [x] One identity owner per legal message unit, including multiple Assistant
   progress/final units inside one logical turn.
-- [x] Shared preview bubble geometry, compact startup spacing, and unified
-  calibration/onboarding surfaces in light and dark themes.
+- [ ] Shared preview/runtime anchor geometry, compact startup spacing, and
+  unified calibration/onboarding surfaces in light and dark themes; WPF/DPI
+  visual evidence is pending.
 - [x] Four-language Manager/localization support including natural Japanese and
   a Japanese README.
 - [x] Transactional factory reset with known-target containment, reparse-point
@@ -97,7 +100,8 @@ readiness is still blocked by the environment-dependent items below.
   invalidation of legacy single-sample rules.
 - [x] Conversation-root boundary enforcement, composer/empty-state exclusion,
   singleton reconciliation, orphan cleanup, and streaming mutation refresh.
-- [x] Stable Whole-response surface and fully rounded bubble contours.
+- [ ] Automatic and Whole response grouping repairs and fully rounded contours;
+  Runtime 57/57 fixture tests pass, but real Codex DOM evidence is pending.
 - [x] User minimize paths uniformly hide to the single tray icon and preserve
   the prior Normal/Maximized state.
 - [x] Standard minimize/maximize/restore/close window controls.

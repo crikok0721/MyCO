@@ -145,13 +145,13 @@
                                        Margin="0,6,0,8" />
 
                             <TextBlock Text="{Binding BubbleRadiusLabel}" Margin="0,12,0,4" />
-                            <Slider Minimum="0" Maximum="30" Value="{Binding BubbleRadius}" />
+                            <Slider Minimum="-18" Maximum="18" Value="{Binding BubbleRadius}" />
                             <TextBlock Text="{Binding BubblePaddingXLabel}" Margin="0,12,0,4" />
-                            <Slider Minimum="6" Maximum="28" Value="{Binding BubblePaddingX}" />
+                            <Slider Minimum="-18" Maximum="18" Value="{Binding BubblePaddingX}" />
                             <TextBlock Text="{Binding BubblePaddingYLabel}" Margin="0,12,0,4" />
-                            <Slider Minimum="6" Maximum="22" Value="{Binding BubblePaddingY}" />
+                            <Slider Minimum="-16" Maximum="16" Value="{Binding BubblePaddingY}" />
                             <TextBlock Text="{Binding AssistantBubbleMaxWidthLabel}" Margin="0,12,0,4" />
-                            <Slider Minimum="45" Maximum="80"
+                            <Slider Minimum="-20" Maximum="20"
                                     Value="{Binding AssistantBubbleMaxWidth}" />
                             <CheckBox Content="{DynamicResource ShowNicknames}"
                                       IsChecked="{Binding NicknameVisible}"
@@ -166,9 +166,9 @@
                                   Foreground="{DynamicResource TextBrush}">
                             <StackPanel Margin="0,16,0,0">
                                 <TextBlock Text="{Binding AvatarSizeLabel}" Margin="0,0,0,4" />
-                                <Slider Minimum="24" Maximum="72" Value="{Binding AvatarSize}" />
+                                <Slider Minimum="-32" Maximum="32" Value="{Binding AvatarSize}" />
                                 <TextBlock Text="{Binding MessageGapLabel}" Margin="0,12,0,4" />
-                                <Slider Minimum="8" Maximum="64" Value="{Binding MessageGap}" />
+                                <Slider Minimum="-40" Maximum="40" Value="{Binding MessageGap}" />
 
                                 <TextBlock Text="{DynamicResource AppearanceAssistantGeometry}"
                                            Style="{StaticResource LabelText}"
@@ -182,7 +182,7 @@
                                         Value="{Binding AssistantAvatarOffsetX}" />
                                 <TextBlock Text="{Binding AssistantAvatarOffsetYLabel}"
                                            Margin="0,12,0,4" />
-                                <Slider Minimum="-20" Maximum="40"
+                                <Slider Minimum="-32" Maximum="32"
                                         Value="{Binding AssistantAvatarOffsetY}" />
                                 <TextBlock Text="{DynamicResource NicknamePosition}"
                                            Style="{StaticResource CaptionText}"
@@ -193,7 +193,7 @@
                                         Value="{Binding AssistantNicknameOffsetX}" />
                                 <TextBlock Text="{Binding AssistantNicknameOffsetYLabel}"
                                            Margin="0,12,0,4" />
-                                <Slider Minimum="-12" Maximum="28"
+                                <Slider Minimum="-28" Maximum="28"
                                         Value="{Binding AssistantNicknameOffsetY}" />
 
                                 <Border Height="1"
@@ -211,7 +211,7 @@
                                         Value="{Binding UserAvatarOffsetX}" />
                                 <TextBlock Text="{Binding UserAvatarOffsetYLabel}"
                                            Margin="0,12,0,4" />
-                                <Slider Minimum="-20" Maximum="40"
+                                <Slider Minimum="-32" Maximum="32"
                                         Value="{Binding UserAvatarOffsetY}" />
                                 <TextBlock Text="{DynamicResource NicknamePosition}"
                                            Style="{StaticResource CaptionText}"
@@ -222,7 +222,7 @@
                                         Value="{Binding UserNicknameOffsetX}" />
                                 <TextBlock Text="{Binding UserNicknameOffsetYLabel}"
                                            Margin="0,12,0,4" />
-                                <Slider Minimum="-12" Maximum="28"
+                                <Slider Minimum="-28" Maximum="28"
                                         Value="{Binding UserNicknameOffsetY}" />
                             </StackPanel>
                         </Expander>

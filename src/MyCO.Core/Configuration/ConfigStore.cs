@@ -159,23 +159,22 @@ public sealed class ConfigStore
         {
             throw new InvalidOperationException("Unsupported configuration schema.");
         }
-        if (config.Appearance.AvatarSize is < 24 or > 96 ||
-            config.Appearance.AssistantAvatarOffsetX is < -32 or > 32 ||
-            config.Appearance.UserAvatarOffsetX is < -32 or > 32 ||
-            config.Appearance.AssistantAvatarOffsetY is < -20 or > 40 ||
-            config.Appearance.UserAvatarOffsetY is < -20 or > 40 ||
-            config.Appearance.AssistantNicknameOffsetX is < -32 or > 32 ||
-            config.Appearance.UserNicknameOffsetX is < -32 or > 32 ||
-            config.Appearance.AssistantNicknameOffsetY is < -12 or > 28 ||
-            config.Appearance.UserNicknameOffsetY is < -12 or > 28 ||
-            config.Appearance.BubbleRadius is < 0 or > 36 ||
-            config.Appearance.BubblePaddingX is < 4 or > 40 ||
-            config.Appearance.BubblePaddingY is < 4 or > 32 ||
-            config.Appearance.MessageGap is < 4 or > 80 ||
-            config.Appearance.AssistantBubbleMaxWidth is < 45 or > 80)
+        var geometry = config.Appearance.Geometry;
+        // Keep source compatibility with callers that still construct schema-6
+        // absolute values. New schema-7 JSON contains only Geometry, so this
+        // branch is a one-time, deterministic conversion and is idempotent.
+        if (geometry.IsZero)
         {
-            throw new ArgumentException("Appearance values are outside supported ranges.");
+            geometry = AppearanceGeometryResolver.FromAbsolute(config.Appearance);
         }
+        AppearanceGeometryResolver.Validate(geometry);
+        if (config.Appearance.GeometryBaselineVersion !=
+            AppearanceGeometryResolver.BaselineVersion)
+        {
+            throw new InvalidOperationException(
+                "Unsupported appearance geometry baseline.");
+        }
+        var effectiveGeometry = AppearanceGeometryResolver.Resolve(geometry);
         if (config.Appearance.Preset is not ("ReferenceDark" or "Minimal"))
         {
             throw new ArgumentException("Appearance preset is not supported.");
@@ -213,7 +212,27 @@ public sealed class ConfigStore
 
         return config with
         {
+            SchemaVersion = BuildInfo.ConfigSchemaVersion,
             Language = LanguageCodes.Normalize(config.Language),
+            Appearance = config.Appearance with
+            {
+                GeometryBaselineVersion = AppearanceGeometryResolver.BaselineVersion,
+                Geometry = geometry,
+                AvatarSize = effectiveGeometry.AvatarSize,
+                AssistantAvatarOffsetX = effectiveGeometry.AssistantAvatarOffsetX,
+                AssistantAvatarOffsetY = effectiveGeometry.AssistantAvatarOffsetY,
+                UserAvatarOffsetX = effectiveGeometry.UserAvatarOffsetX,
+                UserAvatarOffsetY = effectiveGeometry.UserAvatarOffsetY,
+                AssistantNicknameOffsetX = effectiveGeometry.AssistantNicknameOffsetX,
+                AssistantNicknameOffsetY = effectiveGeometry.AssistantNicknameOffsetY,
+                UserNicknameOffsetX = effectiveGeometry.UserNicknameOffsetX,
+                UserNicknameOffsetY = effectiveGeometry.UserNicknameOffsetY,
+                BubbleRadius = effectiveGeometry.BubbleRadius,
+                BubblePaddingX = effectiveGeometry.BubblePaddingX,
+                BubblePaddingY = effectiveGeometry.BubblePaddingY,
+                MessageGap = effectiveGeometry.MessageGap,
+                AssistantBubbleMaxWidth = effectiveGeometry.AssistantBubbleMaxWidth
+            },
             Assistant = config.Assistant with
             {
                 Name = NicknameValidator.Normalize(config.Assistant.Name)
@@ -400,57 +419,115 @@ internal static class ConfigMigration
             "bubbleDisplayMode",
             JsonValue.Create(BubbleDisplayMode.Automatic.ToString()));
 
-        var legacyAvatarOffsetX = schemaVersion <= 5
-            ? appearance["avatarOffsetX"]?.GetValue<int>() ?? 0
-            : 0;
-        var legacyAvatarOffsetY = schemaVersion <= 5
-            ? appearance["avatarOffsetY"]?.GetValue<int>() ?? 11
-            : 11;
-        var legacyMessageMaxWidth = schemaVersion <= 5
-            ? Math.Clamp(
-                appearance["messageMaxWidth"]?.GetValue<int>() ?? 66,
-                45,
-                80)
-            : 66;
+        var legacyGeometryKeys = new[]
+        {
+            "avatarSize", "avatarOffsetX", "avatarOffsetY", "messageMaxWidth",
+            "assistantAvatarOffsetX", "assistantAvatarOffsetY",
+            "userAvatarOffsetX", "userAvatarOffsetY",
+            "assistantNicknameOffsetX", "assistantNicknameOffsetY",
+            "userNicknameOffsetX", "userNicknameOffsetY",
+            "assistantBubbleMaxWidth"
+        };
+        var hasLegacyGeometry = legacyGeometryKeys.Any(appearance.ContainsKey);
+        if (appearance["geometry"] is null ||
+            (schemaVersion < BuildInfo.ConfigSchemaVersion && hasLegacyGeometry))
+        {
+            var defaultAvatarSize = schemaVersion < BuildInfo.ConfigSchemaVersion
+                ? 40
+                : AppearanceGeometryResolver.AvatarSizeBaseline;
+            var defaultAssistantAvatarOffsetY = schemaVersion < BuildInfo.ConfigSchemaVersion
+                ? 11
+                : AppearanceGeometryResolver.AssistantAvatarOffsetYBaseline;
+            var defaultUserAvatarOffsetY = schemaVersion < BuildInfo.ConfigSchemaVersion
+                ? 11
+                : AppearanceGeometryResolver.UserAvatarOffsetYBaseline;
+            var avatarSize = ReadInt(appearance, "avatarSize", defaultAvatarSize);
+            var assistantAvatarOffsetX = schemaVersion <= 5
+                ? ReadInt(appearance, "avatarOffsetX", 0)
+                : ReadInt(appearance, "assistantAvatarOffsetX", 0);
+            var assistantAvatarOffsetY = schemaVersion <= 5
+                ? ReadInt(appearance, "avatarOffsetY", defaultAssistantAvatarOffsetY)
+                : ReadInt(appearance, "assistantAvatarOffsetY", defaultAssistantAvatarOffsetY);
+            var userAvatarOffsetX = schemaVersion <= 5
+                ? assistantAvatarOffsetX
+                : ReadInt(appearance, "userAvatarOffsetX", assistantAvatarOffsetX);
+            var userAvatarOffsetY = schemaVersion <= 5
+                ? assistantAvatarOffsetY
+                : ReadInt(
+                    appearance,
+                    "userAvatarOffsetY",
+                    schemaVersion < BuildInfo.ConfigSchemaVersion
+                        ? assistantAvatarOffsetY
+                        : defaultUserAvatarOffsetY);
+            var assistantNicknameOffsetX = ReadInt(appearance, "assistantNicknameOffsetX", 0);
+            var assistantNicknameOffsetY = ReadInt(appearance, "assistantNicknameOffsetY", 0);
+            var userNicknameOffsetX = ReadInt(appearance, "userNicknameOffsetX", 0);
+            var userNicknameOffsetY = ReadInt(appearance, "userNicknameOffsetY", 0);
+            var radius = ReadInt(appearance, "bubbleRadius", 14);
+            var paddingX = ReadInt(appearance, "bubblePaddingX", 14);
+            var paddingY = ReadInt(appearance, "bubblePaddingY", 10);
+            var messageGap = ReadInt(appearance, "messageGap", 28);
+            var width = schemaVersion <= 5
+                ? ReadInt(appearance, "messageMaxWidth", 66)
+                : ReadInt(appearance, "assistantBubbleMaxWidth", 66);
+            appearance["geometry"] = JsonSerializer.SerializeToNode(
+                AppearanceGeometryResolver.ClampForMigration(
+                    AppearanceGeometryResolver.FromEffective(
+                        new EffectiveAppearanceGeometry
+                        {
+                            AvatarSize = avatarSize,
+                            AssistantAvatarOffsetX = assistantAvatarOffsetX,
+                            AssistantAvatarOffsetY = assistantAvatarOffsetY,
+                            UserAvatarOffsetX = userAvatarOffsetX,
+                            UserAvatarOffsetY = userAvatarOffsetY,
+                            AssistantNicknameOffsetX = assistantNicknameOffsetX,
+                            AssistantNicknameOffsetY = assistantNicknameOffsetY,
+                            UserNicknameOffsetX = userNicknameOffsetX,
+                            UserNicknameOffsetY = userNicknameOffsetY,
+                            BubbleRadius = radius,
+                            BubblePaddingX = paddingX,
+                            BubblePaddingY = paddingY,
+                            MessageGap = messageGap,
+                            AssistantBubbleMaxWidth = width
+                        })),
+                JsonOptions);
+            changed = true;
+        }
+        var geometryBaselineVersion = ReadInt(
+            appearance,
+            "geometryBaselineVersion",
+            AppearanceGeometryResolver.BaselineVersion);
+        if (appearance["geometry"] is JsonObject geometry &&
+            geometryBaselineVersion == AppearanceGeometryResolver.LegacyBaselineVersion)
+        {
+            var legacyDeltas = geometry.Deserialize<AppearanceGeometryDeltas>(JsonOptions)
+                               ?? new AppearanceGeometryDeltas();
+            var legacyEffective =
+                AppearanceGeometryResolver.ResolveLegacyBaselineOne(legacyDeltas);
+            appearance["geometry"] = JsonSerializer.SerializeToNode(
+                AppearanceGeometryResolver.ClampForMigration(
+                    AppearanceGeometryResolver.FromEffective(legacyEffective)),
+                JsonOptions);
+            appearance["geometryBaselineVersion"] =
+                AppearanceGeometryResolver.BaselineVersion;
+            changed = true;
+        }
+        foreach (var property in new[]
+                 {
+                     "avatarOffsetX", "avatarOffsetY", "messageMaxWidth",
+                     "assistantAvatarOffsetX", "assistantAvatarOffsetY",
+                     "userAvatarOffsetX", "userAvatarOffsetY",
+                     "assistantNicknameOffsetX", "assistantNicknameOffsetY",
+                     "userNicknameOffsetX", "userNicknameOffsetY",
+                     "assistantBubbleMaxWidth"
+                 })
+        {
+            changed |= RemoveValue(appearance, property);
+        }
         changed |= EnsureValue(
             appearance,
-            "assistantAvatarOffsetX",
-            JsonValue.Create(legacyAvatarOffsetX));
-        changed |= EnsureValue(
-            appearance,
-            "assistantAvatarOffsetY",
-            JsonValue.Create(legacyAvatarOffsetY));
-        changed |= EnsureValue(
-            appearance,
-            "userAvatarOffsetX",
-            JsonValue.Create(legacyAvatarOffsetX));
-        changed |= EnsureValue(
-            appearance,
-            "userAvatarOffsetY",
-            JsonValue.Create(legacyAvatarOffsetY));
-        changed |= EnsureValue(
-            appearance,
-            "assistantNicknameOffsetX",
-            JsonValue.Create(0));
-        changed |= EnsureValue(
-            appearance,
-            "assistantNicknameOffsetY",
-            JsonValue.Create(0));
-        changed |= EnsureValue(
-            appearance,
-            "userNicknameOffsetX",
-            JsonValue.Create(0));
-        changed |= EnsureValue(
-            appearance,
-            "userNicknameOffsetY",
-            JsonValue.Create(0));
-        changed |= EnsureValue(
-            appearance,
-            "assistantBubbleMaxWidth",
-            JsonValue.Create(legacyMessageMaxWidth));
-        changed |= RemoveValue(appearance, "avatarOffsetX");
-        changed |= RemoveValue(appearance, "avatarOffsetY");
-        changed |= RemoveValue(appearance, "messageMaxWidth");
+            "geometryBaselineVersion",
+            JsonValue.Create(AppearanceGeometryResolver.BaselineVersion));
 
         changed |= EnsureValue(
             migrated,
@@ -563,6 +640,22 @@ internal static class ConfigMigration
 
     private static bool RemoveValue(JsonObject target, string property) =>
         target.Remove(property);
+
+    private static int ReadInt(JsonObject source, string property, int fallback)
+    {
+        try
+        {
+            return source[property]?.GetValue<int>() ?? fallback;
+        }
+        catch (InvalidOperationException)
+        {
+            return fallback;
+        }
+        catch (FormatException)
+        {
+            return fallback;
+        }
+    }
 }
 
 internal sealed record ConfigMigrationResult(AppConfig Config, bool WasMigrated);

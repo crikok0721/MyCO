@@ -110,20 +110,22 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private string _userName = "You";
     private string _assistantAvatar = string.Empty;
     private string _userAvatar = string.Empty;
-    private double _avatarSize = 40;
+    // Appearance sliders store user deltas from the versioned Codex baseline.
+    // Zero is the calibrated/safe baseline and therefore the visual midpoint.
+    private double _avatarSize;
     private double _assistantAvatarOffsetX;
-    private double _assistantAvatarOffsetY = 11;
+    private double _assistantAvatarOffsetY;
     private double _userAvatarOffsetX;
-    private double _userAvatarOffsetY = 11;
+    private double _userAvatarOffsetY;
     private double _assistantNicknameOffsetX;
     private double _assistantNicknameOffsetY;
     private double _userNicknameOffsetX;
     private double _userNicknameOffsetY;
-    private double _bubbleRadius = 14;
-    private double _bubblePaddingX = 14;
-    private double _bubblePaddingY = 10;
-    private double _messageGap = 28;
-    private double _assistantBubbleMaxWidth = 66;
+    private double _bubbleRadius;
+    private double _bubblePaddingX;
+    private double _bubblePaddingY;
+    private double _messageGap;
+    private double _assistantBubbleMaxWidth;
     private bool _nicknameVisible = true;
     private string _userBubble = "#242424";
     private string _assistantBubble = "#222222";
@@ -823,7 +825,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     ? "HomeAppearancePending"
                     : "HomeAppearanceOff");
     public string AvatarSizeLabel =>
-        LocalizationService.Format("AvatarSizeFormat", AvatarSize);
+        LocalizationService.Format("AvatarSizeDeltaFormat", AvatarSize);
     public string AssistantAvatarOffsetXLabel =>
         LocalizationService.Format("AvatarOffsetXFormat", AssistantAvatarOffsetX);
     public string AssistantAvatarOffsetYLabel =>
@@ -841,15 +843,15 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     public string UserNicknameOffsetYLabel =>
         LocalizationService.Format("NicknameOffsetYFormat", UserNicknameOffsetY);
     public string BubbleRadiusLabel =>
-        LocalizationService.Format("BubbleRadiusFormat", BubbleRadius);
+        LocalizationService.Format("BubbleRadiusDeltaFormat", BubbleRadius);
     public string BubblePaddingXLabel =>
-        LocalizationService.Format("HorizontalPaddingFormat", BubblePaddingX);
+        LocalizationService.Format("HorizontalPaddingDeltaFormat", BubblePaddingX);
     public string BubblePaddingYLabel =>
-        LocalizationService.Format("VerticalPaddingFormat", BubblePaddingY);
+        LocalizationService.Format("VerticalPaddingDeltaFormat", BubblePaddingY);
     public string MessageGapLabel =>
-        LocalizationService.Format("MessageGapFormat", MessageGap);
+        LocalizationService.Format("MessageGapDeltaFormat", MessageGap);
     public string AssistantBubbleMaxWidthLabel =>
-        LocalizationService.Format("AssistantBubbleMaxWidthFormat", AssistantBubbleMaxWidth);
+        LocalizationService.Format("AssistantBubbleMaxWidthDeltaFormat", AssistantBubbleMaxWidth);
 
     public bool WasFirstRun { get; private set; }
     public string VersionLabel => BuildInfo.Version;
@@ -1752,6 +1754,24 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
 
     private AppConfig BuildConfig()
     {
+        var geometry = new AppearanceGeometryDeltas
+        {
+            AvatarSizeDelta = (int)Math.Round(AvatarSize),
+            AssistantAvatarOffsetXDelta = (int)Math.Round(AssistantAvatarOffsetX),
+            AssistantAvatarOffsetYDelta = (int)Math.Round(AssistantAvatarOffsetY),
+            UserAvatarOffsetXDelta = (int)Math.Round(UserAvatarOffsetX),
+            UserAvatarOffsetYDelta = (int)Math.Round(UserAvatarOffsetY),
+            AssistantNicknameOffsetXDelta = (int)Math.Round(AssistantNicknameOffsetX),
+            AssistantNicknameOffsetYDelta = (int)Math.Round(AssistantNicknameOffsetY),
+            UserNicknameOffsetXDelta = (int)Math.Round(UserNicknameOffsetX),
+            UserNicknameOffsetYDelta = (int)Math.Round(UserNicknameOffsetY),
+            BubbleRadiusDelta = (int)Math.Round(BubbleRadius),
+            BubblePaddingXDelta = (int)Math.Round(BubblePaddingX),
+            BubblePaddingYDelta = (int)Math.Round(BubblePaddingY),
+            MessageGapDelta = (int)Math.Round(MessageGap),
+            AssistantBubbleMaxWidthDelta = (int)Math.Round(AssistantBubbleMaxWidth)
+        };
+        var effective = AppearanceGeometryResolver.Resolve(geometry);
         return new AppConfig
         {
             Language = SelectedLanguage.Code,
@@ -1777,21 +1797,23 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 BubbleDisplayMode =
                     SelectedBubbleDisplayModeOption?.Mode ??
                     BubbleDisplayMode.Automatic,
-                AvatarSize = (int)Math.Round(AvatarSize),
-                AssistantAvatarOffsetX = (int)Math.Round(AssistantAvatarOffsetX),
-                AssistantAvatarOffsetY = (int)Math.Round(AssistantAvatarOffsetY),
-                UserAvatarOffsetX = (int)Math.Round(UserAvatarOffsetX),
-                UserAvatarOffsetY = (int)Math.Round(UserAvatarOffsetY),
-                AssistantNicknameOffsetX = (int)Math.Round(AssistantNicknameOffsetX),
-                AssistantNicknameOffsetY = (int)Math.Round(AssistantNicknameOffsetY),
-                UserNicknameOffsetX = (int)Math.Round(UserNicknameOffsetX),
-                UserNicknameOffsetY = (int)Math.Round(UserNicknameOffsetY),
-                BubbleRadius = (int)Math.Round(BubbleRadius),
-                BubblePaddingX = (int)Math.Round(BubblePaddingX),
-                BubblePaddingY = (int)Math.Round(BubblePaddingY),
+                GeometryBaselineVersion = AppearanceGeometryResolver.BaselineVersion,
+                Geometry = geometry,
+                AvatarSize = effective.AvatarSize,
+                AssistantAvatarOffsetX = effective.AssistantAvatarOffsetX,
+                AssistantAvatarOffsetY = effective.AssistantAvatarOffsetY,
+                UserAvatarOffsetX = effective.UserAvatarOffsetX,
+                UserAvatarOffsetY = effective.UserAvatarOffsetY,
+                AssistantNicknameOffsetX = effective.AssistantNicknameOffsetX,
+                AssistantNicknameOffsetY = effective.AssistantNicknameOffsetY,
+                UserNicknameOffsetX = effective.UserNicknameOffsetX,
+                UserNicknameOffsetY = effective.UserNicknameOffsetY,
+                BubbleRadius = effective.BubbleRadius,
+                BubblePaddingX = effective.BubblePaddingX,
+                BubblePaddingY = effective.BubblePaddingY,
                 NicknameVisible = NicknameVisible,
-                MessageGap = (int)Math.Round(MessageGap),
-                AssistantBubbleMaxWidth = (int)Math.Round(AssistantBubbleMaxWidth),
+                MessageGap = effective.MessageGap,
+                AssistantBubbleMaxWidth = effective.AssistantBubbleMaxWidth,
                 UserBubble = _persistedConfig.Appearance.UserBubble,
                 UserText = _persistedConfig.Appearance.UserText,
                 DarkBubblePalette = new BubblePalette
@@ -1838,20 +1860,23 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         UserName = config.User.Name;
         AssistantAvatar = config.Assistant.Avatar;
         UserAvatar = config.User.Avatar;
-        AvatarSize = config.Appearance.AvatarSize;
-        AssistantAvatarOffsetX = config.Appearance.AssistantAvatarOffsetX;
-        AssistantAvatarOffsetY = config.Appearance.AssistantAvatarOffsetY;
-        UserAvatarOffsetX = config.Appearance.UserAvatarOffsetX;
-        UserAvatarOffsetY = config.Appearance.UserAvatarOffsetY;
-        AssistantNicknameOffsetX = config.Appearance.AssistantNicknameOffsetX;
-        AssistantNicknameOffsetY = config.Appearance.AssistantNicknameOffsetY;
-        UserNicknameOffsetX = config.Appearance.UserNicknameOffsetX;
-        UserNicknameOffsetY = config.Appearance.UserNicknameOffsetY;
-        BubbleRadius = config.Appearance.BubbleRadius;
-        BubblePaddingX = config.Appearance.BubblePaddingX;
-        BubblePaddingY = config.Appearance.BubblePaddingY;
-        MessageGap = config.Appearance.MessageGap;
-        AssistantBubbleMaxWidth = config.Appearance.AssistantBubbleMaxWidth;
+        var geometry = config.Appearance.Geometry.IsZero
+            ? AppearanceGeometryResolver.FromAbsolute(config.Appearance)
+            : config.Appearance.Geometry;
+        AvatarSize = geometry.AvatarSizeDelta;
+        AssistantAvatarOffsetX = geometry.AssistantAvatarOffsetXDelta;
+        AssistantAvatarOffsetY = geometry.AssistantAvatarOffsetYDelta;
+        UserAvatarOffsetX = geometry.UserAvatarOffsetXDelta;
+        UserAvatarOffsetY = geometry.UserAvatarOffsetYDelta;
+        AssistantNicknameOffsetX = geometry.AssistantNicknameOffsetXDelta;
+        AssistantNicknameOffsetY = geometry.AssistantNicknameOffsetYDelta;
+        UserNicknameOffsetX = geometry.UserNicknameOffsetXDelta;
+        UserNicknameOffsetY = geometry.UserNicknameOffsetYDelta;
+        BubbleRadius = geometry.BubbleRadiusDelta;
+        BubblePaddingX = geometry.BubblePaddingXDelta;
+        BubblePaddingY = geometry.BubblePaddingYDelta;
+        MessageGap = geometry.MessageGapDelta;
+        AssistantBubbleMaxWidth = geometry.AssistantBubbleMaxWidthDelta;
         NicknameVisible = config.Appearance.NicknameVisible;
         AssistantBubble = config.Appearance.DarkBubblePalette.AssistantBubble;
         DarkAssistantText = config.Appearance.DarkBubblePalette.AssistantText;

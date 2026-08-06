@@ -5,7 +5,11 @@ import type { MessageRole, RuntimeConfig } from "./types.js";
 export class Decorator {
   private segmentState = new WeakMap<
     Element,
-    { mode: RuntimeConfig["appearance"]["bubbleDisplayMode"]; elements: Element[] }
+    {
+      mode: RuntimeConfig["appearance"]["bubbleDisplayMode"];
+      elements: Element[];
+      structureFingerprint: string;
+    }
   >();
 
   decorate(
@@ -86,10 +90,13 @@ export class Decorator {
       config.appearance.bubbleDisplayMode
     );
     const active = new Set(segments.map((segment) => segment.element));
+    const elements = segments.map((segment) => segment.element);
+    const structureFingerprint = buildStructureFingerprint(turn, elements);
     const previous = this.segmentState.get(turn);
     if (
       previous?.mode === config.appearance.bubbleDisplayMode &&
-      sameElements(previous.elements, segments.map((segment) => segment.element)) &&
+      sameElements(previous.elements, elements) &&
+      previous.structureFingerprint === structureFingerprint &&
       segments.every(
         ({ element }) =>
           element.getAttribute("data-myco-prose") === role &&
@@ -113,7 +120,8 @@ export class Decorator {
     }
     this.segmentState.set(turn, {
       mode: config.appearance.bubbleDisplayMode,
-      elements: segments.map((segment) => segment.element)
+      elements,
+      structureFingerprint
     });
     return segments.length;
   }
@@ -183,6 +191,30 @@ function sameElements(left: Element[], right: Element[]): boolean {
     left.length === right.length &&
     left.every((element, index) => element === right[index])
   );
+}
+
+function buildStructureFingerprint(turn: Element, elements: Element[]): string {
+  // Text length is deliberately excluded: streaming text growth must not
+  // reshuffle an existing group until the DOM structure or mode changes.
+  const protectedCount = turn.querySelectorAll(
+    "pre,table,[role=table],math,.katex,.katex-display,[data-math]," +
+      "[data-testid*=tool],[data-testid*=command],[data-testid*=terminal]," +
+      "[data-testid*=diff],[data-testid*=approval],[data-content-type=tool]," +
+      "[data-content-type=command],[data-content-type=terminal]," +
+      "[data-content-type=diff],[data-content-type=approval],[data-content-type=status]"
+  ).length;
+  const elementShape = elements.map((element) => {
+    const ancestors: string[] = [];
+    let current = element.parentElement;
+    while (current && current !== turn) {
+      ancestors.push(
+        `${current.tagName}:${current.getAttribute("data-content-type") ?? ""}:${current.childElementCount}`
+      );
+      current = current.parentElement;
+    }
+    return `${element.tagName}:${element.childElementCount}:${ancestors.join("/")}`;
+  });
+  return `${protectedCount}|${elementShape.join(";")}`;
 }
 
 function clearProseMarker(element: Element): void {

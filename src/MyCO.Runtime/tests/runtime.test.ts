@@ -33,6 +33,14 @@ function fixture(): JSDOM {
   );
 }
 
+test("defaultConfig uses the recalibrated appearance baseline", () => {
+  const appearance = defaultConfig().appearance;
+
+  assert.equal(appearance.avatarSize, 35);
+  assert.equal(appearance.assistantAvatarOffsetY, 11);
+  assert.equal(appearance.userAvatarOffsetY, -4);
+});
+
 test("runtime bubbles prose only and preserves native tool surfaces", () => {
   const dom = fixture();
   const runtime = new MyCORuntime(dom.window.document);
@@ -338,7 +346,7 @@ test("role placement variables reapply independently and destroy removes them", 
   first.appearance.assistantNicknameOffsetX = 17;
   first.appearance.assistantNicknameOffsetY = 19;
   first.appearance.userNicknameOffsetX = 23;
-  first.appearance.userNicknameOffsetY = 29;
+  first.appearance.userNicknameOffsetY = 28;
   first.appearance.assistantBubbleMaxWidth = 72;
   first.appearance.messageGap = 31;
 
@@ -352,7 +360,7 @@ test("role placement variables reapply independently and destroy removes them", 
   assert.equal(rootStyle.getPropertyValue("--mc-assistant-nickname-offset-x"), "17px");
   assert.equal(rootStyle.getPropertyValue("--mc-assistant-nickname-offset-y"), "19px");
   assert.equal(rootStyle.getPropertyValue("--mc-user-nickname-offset-x"), "23px");
-  assert.equal(rootStyle.getPropertyValue("--mc-user-nickname-offset-y"), "29px");
+  assert.equal(rootStyle.getPropertyValue("--mc-user-nickname-offset-y"), "28px");
   assert.equal(rootStyle.getPropertyValue("--mc-assistant-bubble-max-width"), "72%");
   assert.equal(rootStyle.getPropertyValue("--mc-message-gap"), "31px");
 
@@ -571,6 +579,33 @@ test("streaming text growth does not repeatedly regroup existing blocks", () => 
 
   assert.equal(first.getAttribute("data-myco-bubble-position"), "start");
   assert.equal(second.getAttribute("data-myco-bubble-position"), "end");
+  runtime.destroy();
+});
+
+test("a new protected barrier invalidates cached bubble positions", () => {
+  const dom = new JSDOM(
+    `<!doctype html><html><head></head><body><main>
+      <article data-message-author-role="assistant">
+        <p id="before">Opening prose.</p>
+        <p id="after">Closing prose.</p>
+      </article>
+    </main></body></html>`,
+    { url: "app://-/index.html", pretendToBeVisual: true }
+  );
+  const runtime = new MyCORuntime(dom.window.document);
+  const config = defaultConfig();
+  config.appearance.bubbleDisplayMode = "Whole";
+  runtime.applyConfig(config);
+
+  const article = dom.window.document.querySelector("article")!;
+  const barrier = dom.window.document.createElement("pre");
+  barrier.textContent = "native code";
+  article.insertBefore(barrier, dom.window.document.querySelector("#after"));
+  runtime.refresh();
+
+  assert.equal(article.querySelector("#before")!.getAttribute("data-myco-bubble-position"), "single");
+  assert.equal(article.querySelector("#after")!.getAttribute("data-myco-bubble-position"), "single");
+  assert.equal(barrier.hasAttribute("data-myco-prose"), false);
   runtime.destroy();
 });
 

@@ -5,7 +5,7 @@ namespace MyCO.Tests;
 public sealed class ManagerUiRegressionTests
 {
     [Fact]
-    public void PreviewBubblesUseOneUserSurfaceWhileKeepingSeparateAlignment()
+    public void PreviewBubblesUseRoleSpecificSurfacesWhileKeepingSeparateAlignment()
     {
         var preview = ReadManagerXaml("Controls", "ChatPreviewControl.xaml");
         var bubbles = Elements(preview, "Border")
@@ -17,14 +17,34 @@ public sealed class ManagerUiRegressionTests
             .ToArray();
 
         Assert.Equal(2, bubbles.Length);
-        Assert.Single(bubbles.Select(element => Attribute(element, "Background")).Distinct());
+        Assert.Equal(2, bubbles.Select(element => Attribute(element, "Background")).Distinct().Count());
         Assert.Equal(2, textBlocks.Length);
-        Assert.Single(textBlocks.Select(element => Attribute(element, "Foreground")).Distinct());
-        Assert.Contains("PreviewUserBubble", Attribute(bubbles[0], "Background"));
-        Assert.Contains("PreviewUserText", Attribute(textBlocks[0], "Foreground"));
+        Assert.Equal(2, textBlocks.Select(element => Attribute(element, "Foreground")).Distinct().Count());
+        Assert.Contains(bubbles, element => Attribute(element, "Background")?.Contains("PreviewAssistantBubble", StringComparison.Ordinal) == true);
+        Assert.Contains(bubbles, element => Attribute(element, "Background")?.Contains("PreviewUserBubble", StringComparison.Ordinal) == true);
+        Assert.Contains(textBlocks, element => Attribute(element, "Foreground")?.Contains("PreviewAssistantText", StringComparison.Ordinal) == true);
+        Assert.Contains(textBlocks, element => Attribute(element, "Foreground")?.Contains("PreviewUserText", StringComparison.Ordinal) == true);
         Assert.Contains(
             bubbles,
             element => Attribute(element, "HorizontalAlignment") == "Right");
+    }
+
+    [Fact]
+    public void PreviewUsesTheRecalibratedBaselineForAvatarSizeAndUserAvatarY()
+    {
+        var root = FindRepositoryRoot();
+        var preview = ReadManagerXaml("Controls", "ChatPreviewControl.xaml")
+            .ToString(SaveOptions.DisableFormatting);
+        var code = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "Controls",
+            "ChatPreviewControl.xaml.cs"));
+
+        Assert.Contains("PreviewEffectiveUserAvatarVerticalOffsetConverter", preview, StringComparison.Ordinal);
+        Assert.Contains("AppearanceGeometryResolver.AvatarSizeBaseline", code, StringComparison.Ordinal);
+        Assert.Contains("AppearanceGeometryResolver.UserAvatarOffsetYBaseline", code, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -71,24 +91,29 @@ public sealed class ManagerUiRegressionTests
             value.Contains("{Binding AvatarOffset", StringComparison.Ordinal));
 
         Assert.Equal(
-            4,
+            7,
             sliders.Count(slider =>
                 Attribute(slider, "Minimum") == "-32" &&
                 Attribute(slider, "Maximum") == "32"));
-        Assert.Equal(
-            2,
-            sliders.Count(slider =>
-                Attribute(slider, "Minimum") == "-20" &&
-                Attribute(slider, "Maximum") == "40"));
-        Assert.Equal(
-            2,
-            sliders.Count(slider =>
-                Attribute(slider, "Minimum") == "-12" &&
-                Attribute(slider, "Maximum") == "28"));
-        Assert.Single(
-            sliders,
-            slider => Attribute(slider, "Minimum") == "45" &&
-                      Attribute(slider, "Maximum") == "80");
+        Assert.Single(sliders, slider =>
+            Attribute(slider, "Minimum") == "-20" &&
+            Attribute(slider, "Maximum") == "20");
+        Assert.Equal(2, sliders.Count(slider =>
+            Attribute(slider, "Minimum") == "-28" &&
+            Attribute(slider, "Maximum") == "28"));
+        Assert.Single(sliders, slider =>
+            Attribute(slider, "Minimum") == "-40" &&
+            Attribute(slider, "Maximum") == "40");
+        Assert.Equal(2, sliders.Count(slider =>
+            Attribute(slider, "Minimum") == "-18" &&
+            Attribute(slider, "Maximum") == "18"));
+        Assert.Single(sliders, slider =>
+            Attribute(slider, "Minimum") == "-16" &&
+            Attribute(slider, "Maximum") == "16");
+        Assert.Contains(sliders, slider =>
+            Attribute(slider, "Minimum") == "-20" &&
+            Attribute(slider, "Maximum") == "20" &&
+            Attribute(slider, "Value")?.Contains("AssistantBubbleMaxWidth", StringComparison.Ordinal) == true);
     }
 
     [Fact]
@@ -399,7 +424,7 @@ public sealed class ManagerUiRegressionTests
 
         Assert.Contains("<MyCOVersion>0.99.2</MyCOVersion>", version);
         Assert.Contains("<MyCOProtocolVersion>1</MyCOProtocolVersion>", version);
-        Assert.Contains("<MyCOConfigSchemaVersion>6</MyCOConfigSchemaVersion>", version);
+        Assert.Contains("<MyCOConfigSchemaVersion>7</MyCOConfigSchemaVersion>", version);
         Assert.Contains("<MyCOCalibrationSchemaVersion>1</MyCOCalibrationSchemaVersion>", version);
     }
 
