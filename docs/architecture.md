@@ -46,9 +46,10 @@ and orderly shutdown. `WindowChrome` delegates maximize, restore, caption drag,
 and resize to the Windows window state machine. Every user-triggered minimize
 path enters the tray state machine, sets `ShowInTaskbar=false`, hides the
 window, and preserves its last Normal/Maximized state. An App-owned `NotifyIcon`
-and the named activation event restore the same window. A boot-session marker
-in MyCO config gates one localized user-minimize balloon per Windows boot;
-background startup and duplicate state events are silent. Close presents one
+and the named activation event restore the same window. An in-memory
+process-cycle claim gates one localized user-minimize balloon per MyCO process;
+the legacy boot marker remains only for config round-tripping. Background startup
+and duplicate state events are silent. Close presents one
 short prompt with Exit / Minimize / Cancel. Exiting calls runtime `destroy()`,
 disconnects CDP, unsubscribes system-theme events, and disposes the icon;
 duplicated pipe peer handles owned by the exact Codex root prevent that
@@ -235,14 +236,21 @@ The existing `TrayService` is the single notification-icon owner. Caption,
 system, and close-dialog user-minimize paths all hide the window and taskbar
 button through the same state machine. Double-click, the tray menu, or the
 single-instance activation event restores/focuses it without creating another
-window. The one-per-Windows-boot balloon is backed by a persisted uptime-derived
-identity. Close presents Exit, Minimize, and Cancel. Tray Exit invokes the same
-orderly self-only close path; tray Restart uses the verified restart transaction.
-The balloon title is the invariant product phrase `It's MyCO!!!!!`; its body is
-localized. MyCO also maintains its own per-user Start-menu identity shortcut
-with the packaged icon and `Crikok.MyCO` AUMID. The existing BalloonTip remains
-the dependency-free Windows 10/11 compatibility route; no self-drawn popup or
-Windows App SDK runtime is introduced.
+window. The first user-initiated minimize in each MyCO process presents one
+balloon; later minimizes in that process are silent. Close presents Exit,
+Minimize, and Cancel. Tray Exit invokes the same orderly self-only close path;
+tray Restart uses the verified restart transaction.
+The balloon/toast title is the invariant product phrase `It's MyCO!!!!!`; its
+body is localized. MyCO also maintains its own per-user Start-menu identity
+shortcut with the packaged icon and `Crikok.MyCO` AUMID. On supported Windows,
+the first route is a native `ToastGeneric` with a 64px project-owned blue
+information `appLogoOverride`; the existing BalloonTip remains the compatibility
+fallback. No self-drawn popup or Windows App SDK runtime is introduced. A
+user-minimize event is presented first and its in-memory process claim is
+committed only after either notification request returns successfully, so a
+failed shell request cannot consume the cycle. The legacy persisted boot marker
+remains only for schema-compatible config round-tripping and does not gate a new
+MyCO process.
 
 ### Codex launch association feasibility matrix
 

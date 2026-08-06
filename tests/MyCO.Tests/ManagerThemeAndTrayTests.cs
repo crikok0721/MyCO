@@ -162,17 +162,52 @@ public sealed partial class ManagerThemeAndTrayTests
     }
 
     [Fact]
-    public void TrayNotificationIsClaimedOnlyOncePerWindowsBoot()
+    public void TrayNotificationIsClaimedOnlyOncePerMycoProcessCycle()
     {
-        const string boot = "2026-08-02T05:00:00.0000000+00:00";
+        Assert.True(TrayNotificationPolicy.ShouldNotify(true, false));
+        Assert.False(TrayNotificationPolicy.ShouldNotify(true, true));
+        Assert.False(TrayNotificationPolicy.ShouldNotify(false, false));
+    }
 
-        Assert.True(TrayNotificationPolicy.ShouldNotify(true, boot, null));
-        Assert.False(TrayNotificationPolicy.ShouldNotify(true, boot, boot));
-        Assert.False(TrayNotificationPolicy.ShouldNotify(false, boot, null));
-        Assert.True(TrayNotificationPolicy.ShouldNotify(
-            true,
-            "2026-08-03T05:00:00.0000000+00:00",
-            boot));
+    [Fact]
+    public void TrayNotificationClaimIsCommittedOnlyAfterPresentationSucceeds()
+    {
+        bool nextPresented;
+        var presentationCount = 0;
+
+        Assert.True(
+            TrayNotificationPolicy.TryPresent(
+                userInitiated: true,
+                alreadyPresented: false,
+                () => presentationCount++,
+                out nextPresented));
+        Assert.True(nextPresented);
+        Assert.Equal(1, presentationCount);
+        Assert.False(
+            TrayNotificationPolicy.TryPresent(
+                userInitiated: true,
+                alreadyPresented: nextPresented,
+                () => presentationCount++,
+                out var unchangedPresented));
+        Assert.True(unchangedPresented);
+
+        // A new MyCO process starts with a fresh in-memory claim even if an
+        // older config still contains a legacy Windows-boot marker.
+        Assert.True(
+            TrayNotificationPolicy.TryPresent(
+                userInitiated: true,
+                alreadyPresented: false,
+                () => presentationCount++,
+                out var newProcessPresented));
+        Assert.True(newProcessPresented);
+
+        Assert.False(
+            TrayNotificationPolicy.TryPresent(
+                userInitiated: true,
+                alreadyPresented: false,
+                () => throw new InvalidOperationException("shell rejected request"),
+                out var failedPresented));
+        Assert.False(failedPresented);
     }
 
     [Fact]
@@ -692,16 +727,100 @@ public sealed partial class ManagerThemeAndTrayTests
             "MyCO.Manager",
             "Services",
             "TrayService.cs"));
+        var window = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "Views",
+            "MainWindow.xaml.cs"));
         Assert.Single(Regex.Matches(tray, "ShowBalloonTip").Cast<Match>());
+        Assert.Contains("TrayToastNotificationService.TryShow", tray);
         Assert.Contains("TrayMinimizedNotification", tray);
         Assert.Contains("UserMinimizedToTray", tray);
+        Assert.Contains("TryPresentTrayMinimizeNotification", tray);
         Assert.Contains("It's MyCO!!!!!", tray);
         Assert.Contains("BalloonTipClicked", tray);
         Assert.Contains("HandleBalloonTipClicked", tray);
+        Assert.Contains("if (userInitiated)", window);
+        Assert.DoesNotContain("TryClaimTrayMinimizeNotification", window);
     }
 
     [Fact]
-    public void FactoryResetPersistsTheBootScopedTrayClaimBeforeCommit()
+    public void NativeTrayToastUsesLargeAppLogoOverrideAndKeepsLocalizedLines()
+    {
+        const string title = "It's MyCO!!!!!";
+        const string body = "MyCO 已最小化到托盘。";
+        var xml = TrayToastNotificationService.BuildToastXml(
+            title,
+            body,
+            "C:\\MyCO\\Assets\\MyCO-notification-info.png");
+
+        Assert.Contains("template=\"ToastGeneric\"", xml);
+        Assert.Contains("placement=\"appLogoOverride\"", xml);
+        Assert.Contains("hint-crop=\"circle\"", xml);
+        Assert.Contains("file:///C:/MyCO/Assets/MyCO-notification-info.png", xml);
+        Assert.Contains(title, xml);
+        Assert.Contains(body, xml);
+    }
+
+    [Fact]
+    public void NativeTrayToastFallsBackToLegacyBalloonAndPublishesInfoAsset()
+    {
+        var root = FindRepositoryRoot();
+        var assetPath = Path.Combine(
+            root,
+            "assets",
+            "MyCO-notification-info.png");
+        Assert.True(File.Exists(assetPath));
+        var png = File.ReadAllBytes(assetPath);
+        Assert.Equal(
+            new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 },
+            png.Take(8).ToArray());
+        Assert.Equal(64, ReadBigEndianInt32(png, 16));
+        Assert.Equal(64, ReadBigEndianInt32(png, 20));
+
+        var project = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "MyCO.Manager.csproj"));
+        Assert.Contains("MyCO-notification-info.png", project);
+        Assert.Contains("CopyToPublishDirectory", project);
+
+        var service = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "Services",
+            "TrayToastNotificationService.cs"));
+        Assert.Contains("ToastNotificationManager", service);
+        Assert.Contains("ShowBalloonTip", File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "Services",
+            "TrayService.cs")));
+    }
+
+    [Fact]
+    public void DirectAndCloseChoiceMinimizePathsShareTheFirstCycleNotification()
+    {
+        var root = FindRepositoryRoot();
+        var window = File.ReadAllText(Path.Combine(
+            root,
+            "src",
+            "MyCO.Manager",
+            "Views",
+            "MainWindow.xaml.cs"));
+
+        Assert.Contains("PrepareForBackground(userInitiated: true);", window);
+        Assert.Contains("CloseChoice.MinimizeToTray", window);
+        Assert.Contains("UserMinimizedToTray?.Invoke", window);
+        Assert.DoesNotContain("TrayMinimizeNotificationBootId", window);
+    }
+
+    [Fact]
+    public void LegacyBootClaimRemainsConfigCompatibleButDoesNotGateProcessCycle()
     {
         var root = FindRepositoryRoot();
         var viewModel = File.ReadAllText(Path.Combine(
@@ -711,9 +830,10 @@ public sealed partial class ManagerThemeAndTrayTests
             "ViewModels",
             "MainWindowViewModel.cs"));
 
-        Assert.Contains("TrayMinimizeNotificationBootId =", viewModel);
-        Assert.Contains("await SaveConfigAsync(defaults).ConfigureAwait(true);", viewModel);
-        Assert.Contains("transaction.Commit();", viewModel);
+        Assert.Contains("TrayMinimizeNotificationBootId", viewModel);
+        Assert.Contains("_persistedConfig.TrayMinimizeNotificationBootId", viewModel);
+        Assert.DoesNotContain("PersistTrayMinimizeNotificationBootIdAsync()", viewModel);
+        Assert.DoesNotContain("SystemBootIdentity", viewModel);
     }
 
     [Fact]

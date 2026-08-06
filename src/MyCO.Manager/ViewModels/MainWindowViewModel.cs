@@ -144,7 +144,7 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
     private bool _launchAtLogin;
     private bool _launchCodexOnMycoStart;
     private bool _associateCodexLaunches;
-    private string? _trayMinimizeNotificationBootId;
+    private bool _trayMinimizeNotificationPresented;
     private bool _previewThemeFollowsManager = true;
     private bool _settingPreviewTheme;
     private string _status = LocalizationService.Get("StatusStarting");
@@ -415,19 +415,18 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         set => Set(ref _associateCodexLaunches, value);
     }
 
-    public bool TryClaimTrayMinimizeNotification()
+    public bool TryPresentTrayMinimizeNotification(Action present)
     {
-        var bootId = SystemBootIdentity.Current();
-        if (!TrayNotificationPolicy.ShouldNotify(
+        if (!TrayNotificationPolicy.TryPresent(
                 userInitiated: true,
-                bootId,
-                _trayMinimizeNotificationBootId))
+                _trayMinimizeNotificationPresented,
+                present,
+                out var nextAlreadyPresented))
         {
             return false;
         }
 
-        _trayMinimizeNotificationBootId = bootId;
-        _ = PersistTrayMinimizeNotificationBootIdAsync();
+        _trayMinimizeNotificationPresented = nextAlreadyPresented;
         return true;
     }
 
@@ -1538,9 +1537,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                     load.Config,
                     required: true)
                 .ConfigureAwait(true);
-            // This is process-independent boot-session state, not a user
-            // appearance setting. Preserve it so Reset cannot show a second
-            // balloon during the same Windows boot.
+            // Keep the legacy field for schema-compatible round-tripping. The
+            // active notification claim is process-local and is not persisted.
             defaults = defaults with
             {
                 TrayMinimizeNotificationBootId =
@@ -1731,7 +1729,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
                 LaunchAtLogin = LaunchAtLogin,
                 LaunchCodexOnMycoStart = LaunchCodexOnMycoStart,
                 AssociateCodexLaunches = AssociateCodexLaunches,
-                TrayMinimizeNotificationBootId = _trayMinimizeNotificationBootId,
+                TrayMinimizeNotificationBootId =
+                    _persistedConfig.TrayMinimizeNotificationBootId,
                 Calibration = _calibration
             });
         SetStatus("StatusDefaultsRestored");
@@ -1776,7 +1775,8 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
             LaunchAtLogin = LaunchAtLogin,
             LaunchCodexOnMycoStart = LaunchCodexOnMycoStart,
             AssociateCodexLaunches = AssociateCodexLaunches,
-            TrayMinimizeNotificationBootId = _trayMinimizeNotificationBootId,
+            TrayMinimizeNotificationBootId =
+                _persistedConfig.TrayMinimizeNotificationBootId,
             Assistant = new PersonConfig
             {
                 Name = NicknameValidator.Normalize(AssistantName),
@@ -1851,7 +1851,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         LaunchAtLogin = config.LaunchAtLogin;
         LaunchCodexOnMycoStart = config.LaunchCodexOnMycoStart;
         AssociateCodexLaunches = config.AssociateCodexLaunches;
-        _trayMinimizeNotificationBootId = config.TrayMinimizeNotificationBootId;
         AssistantName = config.Assistant.Name;
         UserName = config.User.Name;
         AssistantAvatar = config.Assistant.Avatar;
@@ -2192,33 +2191,6 @@ public sealed class MainWindowViewModel : ObservableObject, IAsyncDisposable
         {
             _logger.Error("update_install_failed", exception);
             SetUpdateStatus("UpdateStatusFailed");
-        }
-    }
-
-    private async Task PersistTrayMinimizeNotificationBootIdAsync()
-    {
-        try
-        {
-            await _configSaveGate.WaitAsync().ConfigureAwait(true);
-            try
-            {
-                var config = _persistedConfig with
-                {
-                    TrayMinimizeNotificationBootId =
-                        _trayMinimizeNotificationBootId
-                };
-                await _configStore.SaveAsync(config).ConfigureAwait(true);
-                _persistedConfig = config;
-            }
-            finally
-            {
-                _configSaveGate.Release();
-            }
-        }
-        catch (Exception exception) when (
-            exception is IOException or UnauthorizedAccessException)
-        {
-            _logger.Info("tray_notification_state_save_failed");
         }
     }
 

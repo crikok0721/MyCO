@@ -73,13 +73,16 @@ readiness is still blocked by the environment-dependent items below.
 - [x] Three independent startup semantics, the eight-combination automated
   matrix, single-instance associated launch routing, and transactional MyCO-only
   shortcut/protocol repair with reparse and concurrent-generation protection.
-- [x] One-per-boot localized tray BalloonTip with invariant
-  `It's MyCO!!!!!` title, MyCO AUMID/icon identity shortcut, and legacy fallback.
+- [x] Per-MyCO-process-cycle localized tray notification with invariant
+  `It's MyCO!!!!!` title, native ToastGeneric 64px blue information mark,
+  MyCO AUMID/icon identity shortcut, BalloonTip fallback, shared
+  direct/Close→Minimize path, and presentation-before-claim handling. Real
+  Windows shell display remains an acceptance gate.
 - [x] Four-language onboarding title update and removal of the description,
   privacy line and green-dot elements/resources with compact responsive layout.
 
 - [x] 0.99.2 incremental scope: filled titlebar icon, two-tone brand title and
-  subtitle, one-per-Windows-boot tray minimize balloon, default-off MyCO-owned
+  subtitle, per-MyCO-cycle tray minimize balloon, default-off MyCO-owned
   Codex associations, official release update flow, reset confirmation layout,
   and the long-content Runtime shell regression fix.
 

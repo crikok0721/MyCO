@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+    <WindowsSdkPackageVersion>10.0.22621.28</WindowsSdkPackageVersion>
     <AssemblyName>MyCO</AssemblyName>
     <RootNamespace>MyCO.Manager</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -23,6 +24,10 @@
               Link="Assets\MyCO.ico" />
     <Resource Include="..\..\assets\MyCO-logo.png"
               Link="Assets\MyCO-logo.png" />
+    <Content Include="..\..\assets\MyCO-notification-info.png"
+             Link="Assets\MyCO-notification-info.png"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="Always" />
     <None Include="..\..\assets\MyCO-source.ico"
           Link="Assets\MyCO-source.ico" />
   </ItemGroup>

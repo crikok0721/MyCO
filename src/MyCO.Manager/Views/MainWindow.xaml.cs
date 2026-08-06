@@ -74,7 +74,7 @@ public partial class MainWindow : Window
             _transitioningToTray = false;
         }
 
-        if (userInitiated && ViewModel.TryClaimTrayMinimizeNotification())
+        if (userInitiated)
         {
             UserMinimizedToTray?.Invoke(this, EventArgs.Empty);
         }

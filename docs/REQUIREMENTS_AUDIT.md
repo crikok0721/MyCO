@@ -36,7 +36,7 @@ The following IDs were historically described as complete but lacked current rea
 5. **Existing Windows/UI evidence gates:** `START-001`, `START-002`, `TRAY-001`, `ONBOARD-001`, `VIS-001`.
 
 6. **Regression restoration and memory guard:** `DEF-001`, `PRE-003`,
-   `BUB-004`, `BUB-005`, `MEM-004`, with defects `ERR-001` through `ERR-004`.
+   `BUB-004`, `BUB-005`, `MEM-004`, with defects `ERR-001` through `ERR-005`.
 
 ## Requirement Impact Check for this pass
 
@@ -73,3 +73,37 @@ gaps are verification/environment gaps, not silent design decisions.
 - Runtime defaults, CSS fallback variables, and the Manager preview use the
   same versioned baseline constants. Real WPF/Codex pixel and slider behavior
   remains unverified under `VIS-001`.
+
+## Recheck — 2026-08-06 / c507837 working tree
+
+- `PRE-003`/`ERR-003`: the shared preview bubble style now includes the
+  theme-aware `PreviewBorder` outline at 1 DIP. Assistant and User semantic
+  brushes remain role-specific; WPF/DPI observation is still unavailable.
+- `TRAY-001`/`ERR-005`: the tray event now calls `ShowBalloonTip` before the
+  persisted boot claim is committed. A throwing presentation request leaves
+  the claim available; exact title, localized body, packaged icon and AUMID
+  wiring remain unchanged. Windows Shell display is still unverified.
+- Current focused Manager tests and the full .NET suite pass (244/244); the
+  Runtime check passes (58/58). These results do not upgrade `VIS-001`.
+
+## Recheck — 2026-08-06 / per-MyCO-cycle tray semantics
+
+- The user explicitly superseded the Windows-boot notification scope with a
+  per-MyCO-process first-minimize reminder. This is recorded as `TRAY-002`;
+  `TRAY-001` is retained as historical/superseded rather than deleted.
+- `ERR-006` records the confirmed lifecycle mismatch. The active claim is now
+  in-memory, while the legacy boot marker remains only for config round-trip
+  compatibility.
+- Direct minimize, taskbar minimized-state handling, and Close→Minimize-to-tray
+  still converge on `UserMinimizedToTray`; background startup remains silent.
+
+## Recheck — 2026-08-06 / reference-sized tray visual
+
+- `ERR-007` confirms that legacy `ToolTipIcon.Info` is shell-sized and cannot
+  match the supplied large blue information mark. `TRAY-003` adds a native
+  `ToastGeneric` `appLogoOverride` route with the project asset
+  `MyCO-notification-info.png`, while retaining BalloonTip as compatibility
+  fallback.
+- XML, asset-dimension, output/publish wiring, focused tray tests (32/32),
+  full .NET tests (247/247), and Runtime tests (58/58) are current evidence.
+  Real Windows 10/11 shell rendering remains `Implemented Unverified`.

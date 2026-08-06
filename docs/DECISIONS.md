@@ -325,7 +325,9 @@ or a self-drawn notification window.
 Reason: BalloonTip is already available on the supported desktop stack and is
 the smallest dependency-free route. Toast APIs can provide richer templates but
 add identity, packaging or runtime-deployment obligations that are unnecessary
-for this incremental change.
+for this incremental change. The boot claim is committed only after the
+BalloonTip request returns, so a failed presentation does not suppress the
+remaining notification opportunity in that Windows boot.
 
 ## D-022 — Persist appearance geometry as baseline-relative deltas
 
@@ -381,3 +383,32 @@ resource/import failures remain fail-safe.
 Reason: a pack URI is a host resource locator, not a valid persisted Runtime
 avatar path. A single Core contract keeps preview, config and Runtime on the
 managed data URL path without writing repository or machine-specific paths.
+
+## D-026 — Scope the tray reminder to the MyCO process cycle
+
+Decision: show the branded `NotifyIcon` BalloonTip on the first user-initiated
+minimize handled by each running MyCO process. Direct minimize, taskbar
+minimize, and Close→Minimize-to-tray share the same event. A process-local
+claim is committed only after the presentation request returns successfully;
+background startup and later minimizes remain silent. The legacy persisted
+Windows-boot marker remains only for config round-tripping and is not used as a
+new-process gate. This supersedes D-021's lifecycle scope while retaining its
+BalloonTip, icon, AUMID and no-self-drawn-window route.
+
+Reason: users expect a newly started MyCO instance to explain its first tray
+minimize even when Windows has not rebooted. Persisting the claim across MyCO
+restarts incorrectly suppressed that first interaction.
+
+## D-027 — Use native ToastGeneric for the reference-sized information mark
+
+Decision: keep the per-process lifecycle and presentation-before-claim contract,
+but prefer a Windows `ToastGeneric` notification with a project-owned 64px blue
+information image in `appLogoOverride`. If the Windows toast service, AUMID,
+shortcut identity, or packaged image is unavailable, fall back to the existing
+WinForms `NotifyIcon.ShowBalloonTip` route. Do not draw a fake WPF popup or add
+the Windows App SDK runtime.
+
+Reason: the legacy `ToolTipIcon.Info` glyph is sized by the Windows shell and
+cannot be enlarged by MyCO. Native ToastGeneric is the supported shell surface
+that exposes the app-logo override shown in the supplied reference while
+preserving the existing fallback and single-claim behavior.

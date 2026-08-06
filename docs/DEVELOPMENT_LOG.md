@@ -1,5 +1,99 @@
 # Development Log
 
+## 2026-08-06 — Per-MyCO-cycle tray minimize reminder
+
+Date:
+
+2026-08-06
+
+Change:
+
+- Replaced the persisted Windows-uptime notification gate with an in-memory
+  claim owned by the current MyCO process.
+- Direct minimize, taskbar minimized-state handling, and Close→Minimize-to-tray
+  continue to share `UserMinimizedToTray`; background startup remains silent.
+- Kept the legacy `TrayMinimizeNotificationBootId` field only for compatible
+  configuration round-tripping; it no longer suppresses a new MyCO process.
+- Added `TRAY-002` and `ERR-006`, and marked the old boot-scoped `TRAY-001`
+  lifecycle as superseded.
+
+Reason:
+
+The requested behavior is one reminder on the first user-initiated minimize in
+each MyCO startup cycle, not one reminder across the entire Windows session.
+
+Testing:
+
+- First-cycle, new-process, failure-retry, direct-path and Close→Minimize path
+  tests pass.
+- Full .NET Release build passed with 0 warnings/errors; 245/245 tests passed.
+- Runtime `npm.cmd ci` and `npm.cmd run check` passed with 58/58 tests and no
+-  reported vulnerabilities.
+- Release validation passed with 502 manifest entries and 0 mismatches; the
+  ZIP sidecar hash was independently checked.
+- Real Windows Shell display remains unverified.
+
+## 2026-08-06 — Preview bubble chrome and tray presentation claim repair
+
+Date:
+
+2026-08-06
+
+Change:
+
+- Added a shared theme-aware 1-DIP outline to the Manager preview bubble style,
+  so Assistant and User surfaces use the same visible bubble chrome while
+  retaining role-specific semantic brushes.
+- Changed tray minimize handling to request `ShowBalloonTip` before persisting
+  the once-per-Windows-boot claim. A failed notification request no longer
+  consumes the remaining claim.
+- Added regression coverage for shared preview chrome, exact tray title/body
+  wiring, icon identity route, and presentation-before-claim behavior.
+- Rebuilt the local self-contained release package after validation.
+
+Reason:
+
+The supplied preview screenshot showed Assistant text merging into the canvas,
+and the reported tray symptom was consistent with a failed BalloonTip request
+being persisted as already delivered.
+
+Impact:
+
+Manager Preview and tray notification lifecycle changed. Runtime source and
+official Codex files were not modified. Windows Shell display remains a real
+environment acceptance gate.
+
+Modified Files:
+
+- `src/MyCO.Manager/Controls/ChatPreviewControl.xaml`
+- `src/MyCO.Manager/Services/TrayNotificationPolicy.cs`
+- `src/MyCO.Manager/Services/TrayService.cs`
+- `src/MyCO.Manager/ViewModels/MainWindowViewModel.cs`
+- `src/MyCO.Manager/Views/MainWindow.xaml.cs`
+- `tests/MyCO.Tests/ManagerUiRegressionTests.cs`
+- `tests/MyCO.Tests/ManagerThemeAndTrayTests.cs`
+- `docs/REQUIREMENTS.md`
+- `docs/ERROR_LEDGER.md`
+- `docs/CONTEXT.md`
+- `docs/architecture.md`
+- `docs/DECISIONS.md`
+- `docs/TASK_LIST.md`
+- `docs/superpowers/plans/2026-08-06-preview-bubble-parity.md`
+
+Testing:
+
+- Preview and tray focused regression tests passed after first failing-test
+  runs.
+- `npm.cmd ci` and `npm.cmd run check` passed with 58/58 Runtime tests and
+  regenerated the Runtime bundle.
+- `dotnet build .\\MyCO.sln -c Release --no-restore` passed with 0 warnings and
+  0 errors; `dotnet test .\\MyCO.sln -c Release --no-build` passed 244/244.
+- Release manifest verification passed with 501 entries and 0 mismatches.
+- Release archive SHA-256 was written to and independently checked against
+  `artifacts\\MyCO-win-x64.zip.sha256`; the final handoff reports the current
+  archive value.
+- No real WPF or Windows 10/11 Shell visual observation was performed.
+
 ## 2026-08-06 — Geometry baseline v2 and refreshed self-contained release
 
 Date:
@@ -1430,3 +1524,18 @@ Testing:
   `2a298253931b9556174ea48aa9e1832f1091827d47e0827ccd5b3b1bc5e0cee5`.
 - The synchronized executable was not launched; real visual/system acceptance
   remains a separate gate.
+# 2026-08-06 — Reference-sized native tray notification
+
+- Change: added `TRAY-003` / `ERR-007`. The first per-MyCO-process minimize now
+  requests a Windows `ToastGeneric` with the packaged 64px blue information
+  mark via `appLogoOverride`; `NotifyIcon.ShowBalloonTip` remains the failure
+  fallback and the existing process-local claim is unchanged.
+- Reason: the legacy `ToolTipIcon.Info` glyph was shell-sized and appeared as a
+  tiny blue `i`, unlike the supplied Windows notification reference.
+- Impact: added the Windows SDK .NET targeting-pack contract, a managed
+  notification-info PNG, native XML/fallback tests, and publish wiring. No
+  official Codex files or user data are touched.
+- Verification: focused tray tests 32/32, full .NET tests 247/247, Release
+  build 0 warnings/errors, Runtime 58/58, native asset included in the Manager
+  output and final package manifest (505 entries, 0 mismatches). Real Windows
+  shell rendering remains unverified.

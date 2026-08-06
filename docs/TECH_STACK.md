@@ -1,12 +1,14 @@
 # Technical Stack
 
-Last updated: 2026-07-29
+Last updated: 2026-08-06
 
 ## Host
 
 - .NET 8, Windows x64
 - WPF, nullable C#, async cancellation for I/O
 - `NotifyIcon` tray lifecycle and `WindowChrome` native window-state integration
+- Windows SDK for .NET targeting pack (`Windows.UI.Notifications`) for the
+  native ToastGeneric route; NotifyIcon remains the compatibility fallback
 - `System.Text.Json` and immutable records for configuration/contracts
 
 Projects:

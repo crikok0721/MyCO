@@ -24,7 +24,7 @@ Core constraints:
 - **Phase:** Phase 3 — Beta testing and pre-release stability remediation
 - **Version:** `0.99.2` (local UI repair; not released)
 - **Branch:** `main`
-- **Base HEAD:** `da71bfb4b0bf51b6c00b8eb2f60ba92ea538e2b9` (existing commit preserved; current repair is uncommitted)
+- **Base HEAD:** `c507837756b5cd83a65c1c1b5e7bb214b835a664` (existing commit preserved; current repair is uncommitted)
 - **GitHub:** https://github.com/crikok0721/MyCO
 
 The active controlling Codex session was never restarted or closed. Production
@@ -56,7 +56,8 @@ restart was exercised only against isolated official Desktop process trees.
   project-owned updater; the local self-contained win-x64 publish includes both
   `MyCO.exe` and the single-file `MyCO.Updater.exe`.
 - User minimize now hides to the single tray icon, preserves Normal/Maximized
-  state, and shows one persisted balloon per Windows boot.
+  state, and shows one in-memory balloon on the first user minimize per MyCO
+  process cycle.
 - Runtime Automatic/Whole protected-barrier and inline-code regression repair;
   structure fingerprints now invalidate stale bubble positions.
 - Whole-mode stretching-shell rejection, shrink-to-content Assistant bubbles,
@@ -73,6 +74,15 @@ restart was exercised only against isolated official Desktop process trees.
   generation-aware rollback, and exact partial-state snapshots.
 - Four-language onboarding copy/layout cleanup and invariant tray title
   `It's MyCO!!!!!` with MyCO-owned notification identity.
+- Manager preview Assistant/User bubbles now share a theme-aware visible
+  outline in the common bubble style; the role-specific surfaces remain
+  separate and WPF visual/DPI parity is still an acceptance gate.
+- Tray presentation now runs before an in-memory per-MyCO-process claim; a
+  native ToastGeneric uses the packaged 64px blue information mark and a
+  failed native request falls back to BalloonTip. A failed presentation does
+  not consume the remaining claim, and a new MyCO process starts with a fresh
+  first-minimize opportunity. The legacy boot marker remains only for config
+  compatibility.
 
 ## Public Beta gap
 
@@ -116,16 +126,17 @@ historical evidence only.
 - The official .NET 8.0.423 SDK was installed to a user-local tool directory
   because the machine image did not include an SDK. `dotnet build .\MyCO.sln
   -c Release --no-restore`: 0 warnings, 0 errors. `dotnet test .\MyCO.sln
-  -c Release --no-build`: 242/242 passed.
-- `scripts\build-release.ps1` completed against the repository release output.
+  -c Release --no-build`: 247/247 passed.
+- `scripts\build-release.ps1` completed against the repository release output
+  after the preview/tray repair.
   The synchronized package is at
   `C:\Users\crikok\Documents\MyCO\artifacts\MyCO-win-x64`,
-  contains 501 files, and its ZIP SHA-256 is
-  `2a298253931b9556174ea48aa9e1832f1091827d47e0827ccd5b3b1bc5e0cee5`.
+   contains 505 files, and its ZIP SHA-256 is
+  recorded and verified in `artifacts\\MyCO-win-x64.zip.sha256`.
   Reflection over the packaged `MyCO.g.resources` confirmed
   `assets/myco-logo.png`; `MyCO.exe` reports `0.99.2.0` and product version
-  `0.99.2+da71bfb4b0bf51b6c00b8eb2f60ba92ea538e2b9`.
-- Real Windows visual acceptance, notification rendering, DPI checks, and the
+  `0.99.2+c507837756b5cd83a65c1c1b5e7bb214b835a664`.
+- Real Windows visual acceptance, native notification rendering, DPI checks, and the
   eight-combination startup matrix remain pending. The executable was not
   launched during this release synchronization.
 - No commit, push, tag, published release, or PR was created.

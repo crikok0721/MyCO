@@ -1,34 +1,38 @@
-using System.Globalization;
-
 namespace MyCO.Manager.Services;
-
-// The uptime-derived boot marker is stable across MyCO restarts during one
-// Windows session and changes after the operating system boots again.
-internal static class SystemBootIdentity
-{
-    public static string Current()
-    {
-        var estimatedBoot = DateTimeOffset.UtcNow -
-                             TimeSpan.FromMilliseconds(Environment.TickCount64);
-        var ticks = estimatedBoot.UtcTicks -
-                    estimatedBoot.UtcTicks % TimeSpan.TicksPerMinute;
-        return new DateTimeOffset(ticks, TimeSpan.Zero)
-            .ToString("O", CultureInfo.InvariantCulture);
-    }
-}
 
 internal static class TrayNotificationPolicy
 {
     public static bool ShouldNotify(
         bool userInitiated,
-        string currentBootId,
-        string? lastNotifiedBootId)
+        bool alreadyPresented)
     {
-        return userInitiated &&
-               !string.IsNullOrWhiteSpace(currentBootId) &&
-               !string.Equals(
-                   currentBootId,
-                   lastNotifiedBootId,
-                   StringComparison.Ordinal);
+        return userInitiated && !alreadyPresented;
+    }
+
+    public static bool TryPresent(
+        bool userInitiated,
+        bool alreadyPresented,
+        Action present,
+        out bool nextAlreadyPresented)
+    {
+        ArgumentNullException.ThrowIfNull(present);
+        nextAlreadyPresented = alreadyPresented;
+        if (!ShouldNotify(userInitiated, alreadyPresented))
+        {
+            return false;
+        }
+
+        try
+        {
+            present();
+        }
+        catch (Exception)
+        {
+            // A failed shell request must not consume the current-process claim.
+            return false;
+        }
+
+        nextAlreadyPresented = true;
+        return true;
     }
 }

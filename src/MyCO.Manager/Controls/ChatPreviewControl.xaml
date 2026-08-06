@@ -13,7 +13,8 @@
         <local:PreviewNicknameBubbleMarginConverter x:Key="PreviewNicknameBubbleMarginConverter" />
         <!-- Both roles share one geometry algorithm; their semantic brushes remain distinct. -->
         <Style x:Key="PreviewBubbleStyle" TargetType="Border">
-            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderBrush" Value="{Binding PreviewBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius"
                     Value="{Binding BubbleRadius,
                         Converter={StaticResource PreviewEffectiveRadiusConverter}}" />

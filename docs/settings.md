@@ -68,9 +68,12 @@ layouts are not silently treated as new relative deltas.
   **Cancel**. Exit releases CDP sessions, Runtime observers, theme/system
   listeners, and the notification icon but leaves Codex running.
 - The tray menu exposes Open, Start/apply, verified Restart, and Exit.
-- The minimize balloon appears once after each Windows boot, only after a
-  user-triggered minimize. Background startup, reopening, and repeated state
-  events do not show it.
+- The minimize notification appears once per MyCO process cycle, only after
+  the first user-triggered minimize. Direct minimize and Close → Minimize share
+  the same claim. Windows 10/11 first receives a native ToastGeneric with the
+  large blue information mark; the legacy BalloonTip is used only as fallback.
+  Background startup, reopening, and repeated state events do not show it;
+  restarting MyCO starts a fresh notification cycle.
 
 最小化表示收纳到托盘；关闭时可选择退出、最小化或取消。退出 MyCO 不会关闭
 Codex。再次运行程序会激活已有实例。

@@ -30,6 +30,42 @@ public sealed class ManagerUiRegressionTests
     }
 
     [Fact]
+    public void PreviewBubblesShareVisibleChromeSoAssistantCannotCollapseIntoBareText()
+    {
+        var preview = ReadManagerXaml("Controls", "ChatPreviewControl.xaml");
+        var style = preview.Descendants()
+            .Single(element =>
+                element.Name.LocalName == "Style" &&
+                Attribute(element, "Key") == "PreviewBubbleStyle");
+        var setters = style.Descendants()
+            .Where(element => element.Name.LocalName == "Setter")
+            .ToArray();
+        var bubbles = Elements(preview, "Border")
+            .Where(element =>
+                Attribute(element, "Name") is "AssistantPreviewBubble" or "UserPreviewBubble")
+            .ToArray();
+
+        Assert.Equal(2, bubbles.Length);
+        Assert.All(
+            bubbles,
+            bubble => Assert.Contains(
+                "PreviewBubbleStyle",
+                Attribute(bubble, "Style"),
+                StringComparison.Ordinal));
+        Assert.Contains(
+            setters,
+            setter => Attribute(setter, "Property") == "BorderBrush" &&
+                      Attribute(setter, "Value")?.Contains(
+                          "PreviewBorder",
+                          StringComparison.Ordinal) == true);
+        Assert.Contains(
+            setters,
+            setter => Attribute(setter, "Property") == "BorderThickness" &&
+                      Attribute(setter, "Value") is not null &&
+                      Attribute(setter, "Value") != "0");
+    }
+
+    [Fact]
     public void PreviewUsesTheRecalibratedBaselineForAvatarSizeAndUserAvatarY()
     {
         var root = FindRepositoryRoot();

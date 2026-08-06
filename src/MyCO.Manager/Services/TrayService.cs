@@ -132,11 +132,21 @@ internal sealed class TrayService : IDisposable
             return;
         }
 
-        _icon.ShowBalloonTip(
-            5000,
-            "It's MyCO!!!!!",
-            LocalizationService.Get("TrayMinimizedNotification"),
-            Forms.ToolTipIcon.Info);
+        _viewModel.TryPresentTrayMinimizeNotification(() =>
+        {
+            const string title = "It's MyCO!!!!!";
+            var body = LocalizationService.Get("TrayMinimizedNotification");
+            if (TrayToastNotificationService.TryShow(title, body))
+            {
+                return;
+            }
+
+            _icon.ShowBalloonTip(
+                5000,
+                title,
+                body,
+                Forms.ToolTipIcon.Info);
+        });
     }
 
     private void ToggleSkin()
