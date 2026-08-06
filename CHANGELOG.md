@@ -4,6 +4,36 @@ All notable project changes are documented here.
 
 ## [Unreleased]
 
+## [0.99.2] - 2026-08-06
+
+### Added
+
+- Add schema 7 baseline-plus-delta geometry with independent Assistant/User
+  avatar and nickname offsets and an Assistant ordinary-prose width limit.
+- Add the packaged `MyCO-logo.png` as the safe first-run Assistant avatar while
+  preserving the default nickname `菲叶子` and existing custom avatars.
+- Add per-MyCO-process tray minimize reminders with the exact title
+  `It's MyCO!!!!!`, a native ToastGeneric route, a packaged 64px information
+  mark, and a BalloonTip compatibility fallback.
+
+### Changed
+
+- Unify Home and Appearance preview geometry and give Assistant and User
+  bubbles the same visible theme-aware chrome and adaptive content sizing.
+- Make the Automatic/Whole runtime grouping and appearance application paths
+  invalidate stale state and report zero/partial renderer failures accurately.
+- Keep startup associations transactional and MyCO-owned, with precise
+  single-instance forwarding and no changes to official Codex shortcuts.
+
+### Fixed
+
+- Prevent long Whole-mode Markdown from becoming a narrow, empty, page-height
+  bubble by rejecting stretching shells and selecting the safe content surface.
+- Make short Assistant replies shrink to their measured content width while
+  retaining maximum-width wrapping for long content.
+- Keep Close-to-tray and direct minimize on the same first-minimize notification
+  path without consuming the claim when presentation fails.
+
 ## [0.99.1] - 2026-08-02
 
 ### Added

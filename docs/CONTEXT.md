@@ -22,9 +22,9 @@ Core constraints:
 ## Current status
 
 - **Phase:** Phase 3 — Beta testing and pre-release stability remediation
-- **Version:** `0.99.2` (local UI repair; not released)
+- **Version:** `0.99.2` (release tag prepared; environment-dependent acceptance gates remain)
 - **Branch:** `main`
-- **Base HEAD:** `c507837756b5cd83a65c1c1b5e7bb214b835a664` (existing commit preserved; current repair is uncommitted)
+- **Release source:** the `v0.99.2` tag will point to the release commit on `main`.
 - **GitHub:** https://github.com/crikok0721/MyCO
 
 The active controlling Codex session was never restarted or closed. Production
@@ -119,7 +119,7 @@ historical evidence only.
 - Real Manager/Codex visual acceptance for the August 1 UI changes remains a
   disposable-session/VM gate; automated XAML/DOM tests are supporting evidence only.
 
-## Current validation for the local 0.99.2 incremental development
+## 0.99.2 release validation
 
 - `npm.cmd ci`: passed with 0 vulnerabilities; Runtime `npm.cmd run check`:
   lint, 58/58 tests, and generated bundle rebuild passed.
@@ -127,25 +127,19 @@ historical evidence only.
   because the machine image did not include an SDK. `dotnet build .\MyCO.sln
   -c Release --no-restore`: 0 warnings, 0 errors. `dotnet test .\MyCO.sln
   -c Release --no-build`: 247/247 passed.
-- `scripts\build-release.ps1` completed against the repository release output
-  after the preview/tray repair.
-  The synchronized package is at
-  `C:\Users\crikok\Documents\MyCO\artifacts\MyCO-win-x64`,
-   contains 505 files, and its ZIP SHA-256 is
-  recorded and verified in `artifacts\\MyCO-win-x64.zip.sha256`.
-  Reflection over the packaged `MyCO.g.resources` confirmed
-  `assets/myco-logo.png`; `MyCO.exe` reports `0.99.2.0` and product version
-  `0.99.2+c507837756b5cd83a65c1c1b5e7bb214b835a664`.
+- The tag-gated release workflow rebuilds the self-contained package from the
+  `v0.99.2` source tag, signs project-owned binaries, emits the SPDX SBOM and
+  SHA-256 sidecar, and publishes the GitHub Release assets.
 - Real Windows visual acceptance, native notification rendering, DPI checks, and the
   eight-combination startup matrix remain pending. The executable was not
   launched during this release synchronization.
-- No commit, push, tag, published release, or PR was created.
-- The release synchronization found no running MyCO process at the final build
-  step; no Codex process or active user profile was changed.
+- The local release build remains a supporting check; the signed GitHub package
+  is the official distribution artifact for this version.
 
 ## Next recommended steps
 
-1. Use the generated package in a disposable Windows session/VM for the restart
+1. Use the published package in a disposable Windows session/VM for the restart
    and visual matrix, including the real Codex conversation and tray shell.
 2. Verify fresh config, disable/recovery, removal and the startup combinations.
-3. Keep publication/signing separate until the visual and clean-machine gates pass.
+3. Record the real Windows visual and clean-machine results against the release
+   requirements; do not infer them from automated tests.
